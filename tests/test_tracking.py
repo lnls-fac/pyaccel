@@ -42,7 +42,7 @@ class TestTracking(unittest.TestCase):
         self.assertListEqual(lost_element, [None,195])
         self.assertListEqual(lost_plane, [None, 'x'])
 
-        # tracking of one particle (list), at all elementsposition
+        # tracking of one particle (list), at all elements
         particles = [0.001,0.0002,0.003,0.0004,0.005,0.006]
         particles_out, lost_flag, lost_element, lost_plane = \
             pyaccel.tracking.linepass(accelerator=self.the_ring,
@@ -51,6 +51,20 @@ class TestTracking(unittest.TestCase):
         p1_e1000 = particles_out[1000-1,:]
         self.assertAlmostEqual(sum(p1_e1000), 0.0152805372605638, places=15)
 
+        # tracking of two particles at two differente elemnts
+        particles = numpy.zeros((6,2))
+        particles[:,0] = [0.001,0.0002,0.003,0.0004,0.005,0.006]
+        particles[:,1] = [0.001,-0.05,0.003,0.0004,0.005,0.006]
+        particles_out, lost_flag, lost_element, lost_plane = \
+            pyaccel.tracking.linepass(accelerator=self.the_ring,
+                                      particles=particles,
+                                      indices=[100-1,500-1])
+        el1 = particles_out[0,:,:]
+        el2 = particles_out[1,:,:]
+        self.assertAlmostEqual(sum(el1[:,0]) , 0.0140704271348954, places=15)
+        self.assertAlmostEqual(sum(el2[:,0]) , 0.0140823891384837, places=15)
+        self.assertFalse(sum(el1[:,1]) == sum(el1[:,1])) # particle lost
+        self.assertEqual(lost_element[1], 39)
 
 
 
