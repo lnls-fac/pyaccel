@@ -107,8 +107,8 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
          arrays) whose first index selects the coordinate rx, px,
          ry, py, dl, de in this order and the second index selects
          a particular particle.
-         ex.: pos = [[rx1,px1,ry1,py1,dl1,de1],
-                     [rx2,px2,ry2,py2,dl2,de2]]
+         ex.: pos = [[rx1,px1,ry1,py1,de1,dl1],
+                     [rx2,px2,ry2,py2,de2,dl2]]
               indices = None
               particles_out = array([[rx3, rx4],
                                      [px3, px4],
@@ -165,8 +165,9 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
         if _trackcpp.track_linepass_wrapper(accelerator._accelerator, p_in, p_out, args):
             lost_flag = True
 
-        for k in range(20):
-            print(str(k+1), p_out[k].rx)
+        #if len(p_out)>1:
+        #    _print_CppDoublePos(p_out[0])
+        #    _print_CppDoublePos(p_out[1])
 
         if indices is None:
             particles_out[:,i] = _CppDoublePos2Numpy(p_out[0])
@@ -174,7 +175,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
             for j in range(len(indices)):
                 #pp = p_out[1+indices[j]]
                 #print(pp.rx)
-                particles_out[j,:,i] = _CppDoublePos2Numpy(p_out[indices[j]])
+                particles_out[j,:,i] = _CppDoublePos2Numpy(p_out[1+indices[j]])
 
         if args.element_offset:
             lost_element.append(args.element_offset)
@@ -388,3 +389,13 @@ def _process_args(accelerator, pos, indices=None):
         indices = range(len(accelerator))
 
     return pos, return_ndarray, indices
+
+def _print_CppDoublePos(pos):
+    print('')
+    print('{0:+.16f}'.format(pos.rx))
+    print('{0:+.16f}'.format(pos.px))
+    print('{0:+.16f}'.format(pos.ry))
+    print('{0:+.16f}'.format(pos.py))
+    print('{0:+.16f}'.format(pos.de))
+    print('{0:+.16f}'.format(pos.dl))
+    print('')

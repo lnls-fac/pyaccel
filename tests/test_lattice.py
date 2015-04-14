@@ -18,9 +18,6 @@ class TestLattice(unittest.TestCase):
         length = pyaccel.lattice.lengthlat(self.the_ring)
         self.assertAlmostEqual(length,518.396)
 
-    def test_get_rf_frequency(self):
-        self.assertAlmostEqual(pyaccel.lattice.get_rf_frequency(self.the_ring),499657944.80373, 4)
-
     def test_findspos(self):
         s = [0, 0, 0, 0, 0.5000, 1.0000, 3.4129, 3.4129,
             3.4129, 3.5129, 3.6229, 3.7729, 3.8929, 3.8929,
