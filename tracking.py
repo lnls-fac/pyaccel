@@ -392,7 +392,7 @@ def findorbit6(accelerator, indices=None):
 
     Raises TrackingException
     """
-
+    
     closed_orbit = _trackcpp.CppDoublePosVector()
     r = _trackcpp.track_findorbit6(accelerator._accelerator, closed_orbit)
     if r > 0:
