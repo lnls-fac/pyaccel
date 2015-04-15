@@ -90,25 +90,25 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
 
-    Returns: (pos_out, lost_flag, lost_element, lost_plane)
+    Returns: (particles_out, lost_flag, lost_element, lost_plane)
     particles_out --
          6D position for each particle at entrance of each element . The
-         structure of 'pos_out' depends on inputs 'pos' and 'indices'.
-         If 'indices' is 'None' then only tracked positions at the end
-         of the line are returned. There are still two possibilities
-         for the structure of pos_out, depending on 'pos':
-         (1) if 'pos' is a single particle defined as a python list of
-         coordinates, 'pos_out' will also be a simple list:
-         ex.: pos = [rx1,px1,ry1,py1,dl1,de1]
+         structure of 'particles_out' depends on inputs 'particles' and
+         'indices'. If 'indices' is 'None' then only tracked positions at the
+         end of the line are returned. There are still two possibilities
+         for the structure of particles_out, depending on 'particles':
+         (1) if 'particles' is a single particle defined as a python list of
+         coordinates, 'particles_out' will also be a simple list:
+         ex.: particles = [rx1,px1,ry1,py1,de1,dl1]
               indices = 'None'
-              particles_out = numpy.array([rx2,px2,ry2,py2,dl2,de2])
-         (2) if 'pos' is either a python list of particles or a numpy
-         matrix then 'pos_out' will be a matrix (numpy array of
+              particles_out = numpy.array([rx2,px2,ry2,py2,de2,dl2])
+         (2) if 'particles' is either a python list of particles or a numpy
+         matrix then 'particles_out' will be a matrix (numpy array of
          arrays) whose first index selects the coordinate rx, px,
-         ry, py, dl, de in this order and the second index selects
+         ry, py, de, dl in this order and the second index selects
          a particular particle.
-         ex.: pos = [[rx1,px1,ry1,py1,de1,dl1],
-                     [rx2,px2,ry2,py2,de2,dl2]]
+         ex.: particles = [[rx1,px1,ry1,py1,de1,dl1],
+                           [rx2,px2,ry2,py2,de2,dl2]]
               indices = None
               particles_out = array([[rx3, rx4],
                                      [px3, px4],
@@ -116,11 +116,11 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
                                      [py3, py4],
                                      [de3, de4],
                                      [dl3, dl4]])
-         Now, if 'indices' is not 'None' then 'pos_out' can be either
-         (3) a numpy matrix, when 'pos' is a single particle defined as
-         a python list. The first index of 'pos_out' runs through the
+         Now, if 'indices' is not 'None' then 'particles_out' can be either
+         (3) a numpy matrix, when 'particles' is a single particle defined as
+         a python list. The first index of 'particles_out' runs through the
          particle coordinate and the second through the element index
-         (4) a numpy rank-3 tensor, when 'pos' is the initial positions
+         (4) a numpy rank-3 tensor, when 'particles' is the initial positions
          of many particles. The firs index now is the element index at
          whose exits particles coordinates are returned, the second
          index runs through coordinates in phase space and the third
@@ -165,16 +165,10 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
         if _trackcpp.track_linepass_wrapper(accelerator._accelerator, p_in, p_out, args):
             lost_flag = True
 
-        #if len(p_out)>1:
-        #    _print_CppDoublePos(p_out[0])
-        #    _print_CppDoublePos(p_out[1])
-
         if indices is None:
             particles_out[:,i] = _CppDoublePos2Numpy(p_out[0])
         else:
             for j in range(len(indices)):
-                #pp = p_out[1+indices[j]]
-                #print(pp.rx)
                 particles_out[j,:,i] = _CppDoublePos2Numpy(p_out[1+indices[j]])
 
         if args.element_offset:
@@ -196,8 +190,80 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
 
 
 @interactive
-def ringpass(accelerator, pos, nr_turns=1, trajectory=False, offset=0):
+def ringpass(accelerator, particles, nr_turns = 1,
+             turn_by_turn = False, element_offset=0):
     """Track particle(s) along a ring.
+
+    Accepts one or multiple particles initial positions. In the latter case,
+    a list of particles or a numpy 2D array (with particle as second index)
+    should be given as input; tracked particles positions at the end of
+    the ring are output variables, as well as information on whether particles
+    have been lost along the tracking and where they were lost.
+
+    Keyword arguments:
+    accelerator -- Accelerator object
+    particles   -- initial 6D particle(s) position(s).
+                   Few examples
+                        ex.1: particles = [rx,px,ry,py,de,dl]
+                        ex.2: particles = [[0.001,0,0,0,0,0],[0.002,0,0,0,0,0]]
+                        ex.3: particles = numpy.zeros((6,Np))
+    nr_turns       -- number of turns around ring to track each particle.
+    turn_by_turn   -- flag indicating whether turn by turn positions are to
+                      be returned. If 'False' only the positions after
+                      'nr_turns' are returned.
+    element_offset -- element offset (default 0) for tracking. tracking will
+                      start at the element with index 'element_offset'
+
+    Returns: (particles_out, lost_flag, lost_turn, lost_element, lost_plane)
+    particles_out --
+         6D position for each particle at end of ring.
+         The structure of 'particles_out' depends on inputs 'particles' and
+         flag 'turn_by_turn'. If 'turn_by_turn' is 'False' then only tracked
+         positions at the end 'nr_turns' are returned. There are still two
+         possibilities for the structure of particles_out, depending on
+         'particles':
+         (1) if 'particles' is a single particle defined as a python list of
+         coordinates, 'particles_out' will also be a simple list:
+         ex.: particles = [rx1,px1,ry1,py1,de1,dl1]
+              turn_by_turn = False
+              particles_out = numpy.array([rx2,px2,ry2,py2,de2,dl2])
+         (2) if 'pos' is either a python list of particles or a numpy
+         matrix then 'particles_out' will be a matrix (numpy array of
+         arrays) whose first index selects the coordinate rx, px,
+         ry, py, dl, de in this order and the second index selects
+         a particular particle.
+         ex.: pos = [[rx1,px1,ry1,py1,de1,dl1],
+                     [rx2,px2,ry2,py2,de2,dl2]]
+              indices = None
+              particles_out = array([[rx3, rx4],
+                                     [px3, px4],
+                                     [ry3, ry4],
+                                     [py3, py4],
+                                     [de3, de4],
+                                     [dl3, dl4]])
+         Now, if 'indices' is not 'None' then 'pos_out' can be either
+         (3) a numpy matrix, when 'pos' is a single particle defined as
+         a python list. The first index of 'pos_out' runs through the
+         particle coordinate and the second through the element index
+         (4) a numpy rank-3 tensor, when 'pos' is the initial positions
+         of many particles. The firs index now is the element index at
+         whose exits particles coordinates are returned, the second
+         index runs through coordinates in phase space and the third
+         index runs through particles.
+    lost_element -- list of element index where each particle was lost
+                    If the particle survived the tracking through the line its
+                    corresponding element in this list is set to 'None'. When
+                    there is only one particle defined as a python list (not as
+                    a numpy matrix with one column) 'lost_element' returns a
+                    single number.
+    lost_plane  -- list of integers representing on what plane each particle
+                   was lost while being tracked. If the particle is not lost
+                   then its corresponding element in the list is set to 'None'.
+                   If it is lost in the horizontal or vertical plane it is set
+                   to 1 or 2, correspondingly. If tracking is performed with a
+                   single particle described as a python list then 'lost_plane'
+                   returns a single number
+
 
     Accepts one or multiple particles. In the latter case, a list of particles
     or numpy 2D array (with particle as first index) should be given as input;
