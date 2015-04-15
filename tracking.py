@@ -309,9 +309,9 @@ def ringpass(accelerator, particles, nr_turns = 1,
 
     # initialize particles_out tensor according to input options
     if turn_by_turn:
-        particles_out = _numpy.zeros((nr_turns,6,pos.shape[1]))
+        particles_out = _numpy.zeros((nr_turns,6,particles.shape[1]))
     else:
-        particles_out = _numpy.zeros((6,pos.shape[1]))
+        particles_out = _numpy.zeros((6,particles.shape[1]))
     particles_out.fill(float('nan'))
     lost_flag = False
     lost_turn, lost_element, lost_plane = [], [], []
@@ -322,11 +322,11 @@ def ringpass(accelerator, particles, nr_turns = 1,
     args.trajectory = turn_by_turn
 
     # loop over particles
-    for i in range(pos.shape[1]):
+    for i in range(particles.shape[1]):
 
         # python particle pos -> trackcpp particle pos
         args.element_offset = element_offset
-        p_in = _Numpy2CppDoublePos(pos[:,i])
+        p_in = _Numpy2CppDoublePos(particles[:,i])
         p_out = _trackcpp.CppDoublePosVector()
 
         # tracking
@@ -339,7 +339,7 @@ def ringpass(accelerator, particles, nr_turns = 1,
             for n in range(nr_turns):
                 pos_out[n,:,i] = _CppDoublePos2Numpy(p_out[n])
         else:
-            pos_out[:,i] = _CppDoublePos2Numpy(p_out[0])
+            particles_out[:,i] = _CppDoublePos2Numpy(p_out[0])
 
         # fills vectors with info about particle loss
         if args.lost_plane:
