@@ -18,11 +18,11 @@ class TestTracking(unittest.TestCase):
     def test_ringpass(self):
         the_ring = self.the_ring
         particles =[0.001,0.0002,0.003,0.0004,0.005,0.006]
-        particles_out, lost_flag, lost_element, lost_plane = \
-            pyaccel.tracking.ringpass(accelerator=the_ring,
-                                      particles=particles,
-                                      nr_turns=100,
-                                      turn_by_turn=False)
+        # particles_out, lost_flag, lost_element, lost_plane = \
+        #     pyaccel.tracking.ringpass(accelerator=the_ring,
+        #                               particles=particles,
+        #                               nr_turns=100,
+        #                               turn_by_turn=False)
 
 
     def test_linepass(self):

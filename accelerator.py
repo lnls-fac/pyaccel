@@ -1,8 +1,8 @@
 
 import trackcpp as _trackcpp
-import mathphys as _mp
-import pyaccel.elements as _elements
 import pyaccel.lattice as _lattice
+import pyaccel.elements as _elements
+import mathphys as _mp
 from pyaccel.utils import interactive as _interactive
 
 
