@@ -7,9 +7,9 @@ import test_tracking
 import test_lattice
 
 suite_list = []
-suite_list.append(test_elements.get_suite())
-suite_list.append(test_accelerator.get_suite())
-suite_list.append(test_lattice.get_suite())
+#suite_list.append(test_elements.get_suite())
+#suite_list.append(test_accelerator.get_suite())
+#suite_list.append(test_lattice.get_suite())
 suite_list.append(test_tracking.get_suite())
 
 

@@ -217,22 +217,25 @@ def ringpass(accelerator, pos, nr_turns=1, trajectory=False, offset=0):
     # checks whether single or multiple particles
     pos, return_ndarray, _ = _process_args(accelerator, pos, indices=None)
 
-    if trajectory:
-        pos_out = _numpy.zeros((nr_turns,6,pos.shape[1]))
+    # initialize particles_out tensor according to input options
+    if turn_by_turn:
+        particles_out = _numpy.zeros((nr_turns,6,particles.shape[1]))
     else:
-        pos_out = _numpy.zeros((6,pos.shape[1]))
-    pos_out.fill(float('nan'))
+        particles_out = _numpy.zeros((6,particles.shape[1]))
+    particles_out.fill(float('nan'))
+    lost_flag = False
+    lost_turn, lost_element, lost_plane = [], [], []
 
     args = _trackcpp.LinePassArgs()
     args.trajectory = trajectory
     args.nr_turns = nr_turns
 
-    lost_flag = False
-    lost_turn, lost_element, lost_plane = [], [], []
-    for i in range(pos.shape[1]):
+    # loop over particles
+    for i in range(particles.shape[1]):
 
-        args.element_offset = offset
-        p_in = _Numpy2CppDoublePos(pos[:,i])
+        # python particle pos -> trackcpp particle pos
+        args.element_offset = element_offset
+        p_in = _Numpy2CppDoublePos(particles[:,i])
         p_out = _trackcpp.CppDoublePosVector()
 
         if _trackcpp.track_ringpass_wrapper(accelerator._accelerator, p_in, p_out, args):
@@ -242,7 +245,7 @@ def ringpass(accelerator, pos, nr_turns=1, trajectory=False, offset=0):
             for n in range(nr_turns):
                 pos_out[n,:,i] = _CppDoublePos2Numpy(p_out[i])
         else:
-            pos_out[:,i] = _CppDoublePos2Numpy(p_out[0])
+            particles_out[:,i] = _CppDoublePos2Numpy(p_out[0])
 
         if args.lost_turn < nr_turns:
             lost_turn.append(args.lost_turn)
