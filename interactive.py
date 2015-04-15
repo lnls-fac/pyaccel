@@ -22,6 +22,7 @@ import sirius.SI_V07 as _sirius_si
 
 plt.ion()
 
+pyaccel_version = _pyaccel.__version__
 create_accelerator = _sirius_si.create_accelerator
 
 rx = 0
