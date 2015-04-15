@@ -337,7 +337,7 @@ def ringpass(accelerator, particles, nr_turns = 1,
         # trackcpp particle pos -> python particle pos
         if turn_by_turn:
             for n in range(nr_turns):
-                pos_out[n,:,i] = _CppDoublePos2Numpy(p_out[n])
+                particles_out[n,:,i] = _CppDoublePos2Numpy(p_out[n])
         else:
             particles_out[:,i] = _CppDoublePos2Numpy(p_out[0])
 
@@ -392,7 +392,7 @@ def findorbit6(accelerator, indices=None):
 
     Raises TrackingException
     """
-    
+
     closed_orbit = _trackcpp.CppDoublePosVector()
     r = _trackcpp.track_findorbit6(accelerator._accelerator, closed_orbit)
     if r > 0:

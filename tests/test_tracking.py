@@ -4,6 +4,7 @@ import numpy
 import pyaccel
 import trackcpp
 import numpy
+import matplotlib.pyplot as plt
 
 import sirius
 
@@ -16,13 +17,66 @@ class TestTracking(unittest.TestCase):
         pass
 
     def test_ringpass(self):
+
+        # one particle (python list), storing pos at end only
         the_ring = self.the_ring
-        particles =[0.001,0.0002,0.003,0.0004,0.005,0.006]
-        # particles_out, lost_flag, lost_element, lost_plane = \
-        #     pyaccel.tracking.ringpass(accelerator=the_ring,
-        #                               particles=particles,
-        #                               nr_turns=100,
-        #                               turn_by_turn=False)
+        particles =[0.001,0,0,0,0,0]
+        particles_out, lost_flag, lost_turn, lost_element, lost_plane = \
+            pyaccel.tracking.ringpass(accelerator=the_ring,
+                                      particles=particles,
+                                      nr_turns=10,
+                                      turn_by_turn=False)
+        p1 = particles_out
+        self.assertAlmostEqual(sum(p1),-3.455745799826087e-04, places=15)
+
+        # one particle (python list), storing pos at all turns
+        the_ring = self.the_ring
+        particles = [0.001,0,0,0,0,0]
+        particles_out, lost_flag, lost_turn, lost_element, lost_plane = \
+            pyaccel.tracking.ringpass(accelerator=the_ring,
+                                      particles=particles,
+                                      nr_turns=100,
+                                      turn_by_turn=True)
+        n1 = particles_out[50,:]
+        n2 = particles_out[10,:]
+        self.assertAlmostEqual(sum(n1),-0.0009014664358281, places=15)
+        self.assertAlmostEqual(sum(n2),-0.0009459070222543, places=15)
+
+        # two particles (python list), storing pos at all turns
+        the_ring = self.the_ring
+        particles = [[0.001,0,0,0,0,0],[0.001,0,0,0,0,0]]
+        particles_out, lost_flag, lost_turn, lost_element, lost_plane = \
+            pyaccel.tracking.ringpass(accelerator=the_ring,
+                                      particles=particles,
+                                      nr_turns=100,
+                                      turn_by_turn=True)
+        n1_p1 = particles_out[50,:,0]
+        n2_p1 = particles_out[10,:,0]
+        n1_p2 = particles_out[50,:,1]
+        n2_p2 = particles_out[10,:,1]
+        self.assertAlmostEqual(sum(n1_p1),-0.0009014664358281, places=15)
+        self.assertAlmostEqual(sum(n2_p1),-0.0009459070222543, places=15)
+        self.assertAlmostEqual(sum(n1_p2),-0.0009014664358281, places=15)
+        self.assertAlmostEqual(sum(n2_p2),-0.0009459070222543, places=15)
+
+        # two particles (numpy array), storing pos at all turns
+        the_ring = self.the_ring
+        particles = numpy.zeros((6,2))
+        particles[:,0] = [0.001,0,0,0,0,0]
+        particles[:,1] = [0.001,0,0,0,0,0]
+        particles_out, lost_flag, lost_turn, lost_element, lost_plane = \
+            pyaccel.tracking.ringpass(accelerator=the_ring,
+                                      particles=particles,
+                                      nr_turns=120,
+                                      turn_by_turn=True)
+        n1_p1 = particles_out[50,:,0]
+        n2_p1 = particles_out[10,:,0]
+        n1_p2 = particles_out[50,:,1]
+        n2_p2 = particles_out[10,:,1]
+        self.assertAlmostEqual(sum(n1_p1),-0.0009014664358281, places=15)
+        self.assertAlmostEqual(sum(n2_p1),-0.0009459070222543, places=15)
+        self.assertAlmostEqual(sum(n1_p2),-0.0009014664358281, places=15)
+        self.assertAlmostEqual(sum(n2_p2),-0.0009459070222543, places=15)
 
 
     def test_linepass(self):
