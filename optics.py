@@ -5,7 +5,7 @@ import numpy as _np
 import mathphys as _mp
 import pyaccel.lattice as _lattice
 import pyaccel.tracking as _tracking
-from pyaccel.utils import interactive
+from pyaccel.utils import interactive as _interactive
 
 class OpticsException(Exception):
     pass
@@ -39,7 +39,7 @@ class Twiss:
         return r
 
 
-@interactive
+@_interactive
 def gettwiss(twiss_list, attribute_list):
     """Build a matrix with Twiss data from a list of Twiss objects.
 
@@ -60,7 +60,7 @@ def gettwiss(twiss_list, attribute_list):
     return values
 
 
-@interactive
+@_interactive
 def calctwiss(
         accelerator=None,
         indices=None,
@@ -140,7 +140,7 @@ def calctwiss(
     return tw
 
 
-@interactive
+@_interactive
 def getrffrequency(accelerator):
     """Return the frequency of the first RF cavity in the lattice"""
     for e in accelerator:
@@ -150,36 +150,36 @@ def getrffrequency(accelerator):
         raise OpticsException('no cavity element in the lattice')
 
 
-@interactive
+@_interactive
 def getrevolutionperiod(accelerator):
     return accelerator.length/accelerator.velocity
 
 
-@interactive
+@_interactive
 def getrevolutionfrequency(accelerator):
     return 1.0 / get_revolution_period(accelerator)
 
 
-@interactive
+@_interactive
 def getfractunes(lattice):
     raise OpticsException('not implemented')
 
 
-@interactive
+@_interactive
 def gettunes(lattice):
     raise OpticsException('not implemented')
 
 
-@interactive
+@_interactive
 def getchromaticities(lattice):
     raise OpticsException('not implemented')
 
 
-@interactive
+@_interactive
 def getmcf(lattice):
     raise OpticsException('not implemented')
 
 
-@interactive
+@_interactive
 def getradiationintegrals(accelerator):
     raise OpticsException('not implemented')

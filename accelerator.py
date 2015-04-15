@@ -1,15 +1,16 @@
 
 import trackcpp as _trackcpp
-import pyaccel.lattice
 import mathphys as _mp
-from pyaccel.utils import interactive
+import pyaccel.elements as _elements
+import pyaccel.lattice as _lattice
+from pyaccel.utils import interactive as _interactive
 
 
 class AcceleratorException(Exception):
     pass
 
 
-@interactive
+@_interactive
 class Accelerator(object):
 
     __isfrozen = False # this is used to prevent creation of new attributes
@@ -63,7 +64,7 @@ class Accelerator(object):
     def __getitem__(self, index):
 
         if isinstance(index,int):
-            return pyaccel.elements.Element(element=self._accelerator.lattice[index])
+            return _elements.Element(element=self._accelerator.lattice[index])
         elif isinstance(index, (list,tuple)):
             lattice = _trackcpp.CppElementVector()
             for i in index:
@@ -89,11 +90,11 @@ class Accelerator(object):
             if isinstance(value, (list,tuple)):
                 for i in range(len(value)):
                     v = value[i]
-                    if not isinstance(v, pyaccel.elements.Element):
+                    if not isinstance(v, _elements.Element):
                         raise TypeError('invalid value')
                     self._accelerator.lattice[index[i]] = v._e
             else:
-                if not isinstance(value, pyaccel.elements.Element):
+                if not isinstance(value, _elements.Element):
                     raise TypeError('invalid value')
                 for i in range(len(value)):
                     self._accelerator.lattice[index[i]] = value._e
@@ -123,14 +124,14 @@ class Accelerator(object):
         return r
 
     def append(self, value):
-        if not isinstance(value, pyaccel.elements.Element):
+        if not isinstance(value, _elements.Element):
             raise TypeError('value must be Element')
         self._accelerator.lattice.append(value._e)
 
     @property
     def length(self):
         """Lattice length in m"""
-        return pyaccel.lattice.lengthlat(self._accelerator.lattice)
+        return _lattice.lengthlat(self._accelerator.lattice)
 
     @property
     def energy(self):

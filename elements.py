@@ -3,7 +3,7 @@ import ctypes as _ctypes
 import warnings as _warnings
 import numpy as _numpy
 import trackcpp as _trackcpp
-from pyaccel.utils import interactive
+from pyaccel.utils import interactive as _interactive
 
 
 _DBL_MAX = _trackcpp.get_double_max()
@@ -15,7 +15,7 @@ _coord_matrix = _ctypes.c_double*_DIMS[0]*_DIMS[1]
 pass_methods = _trackcpp.pm_dict
 
 
-@interactive
+@_interactive
 def marker(fam_name):
     """Create a marker element.
 
@@ -26,7 +26,7 @@ def marker(fam_name):
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def bpm(fam_name):
     """Create a beam position monitor element.
 
@@ -37,7 +37,7 @@ def bpm(fam_name):
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def drift(fam_name, length):
     """Create a drift element.
 
@@ -49,7 +49,7 @@ def drift(fam_name, length):
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def hcorrector(fam_name,  length=0.0, hkick=0.0):
     """Create a horizontal corrector element.
 
@@ -62,7 +62,7 @@ def hcorrector(fam_name,  length=0.0, hkick=0.0):
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def vcorrector(fam_name, length=0.0, vkick=0.0):
     """Create a vertical corrector element.
 
@@ -75,7 +75,7 @@ def vcorrector(fam_name, length=0.0, vkick=0.0):
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def corrector(fam_name,  length=0.0, hkick=0.0, vkick=0.0):
     """Create a corrector element.
 
@@ -89,7 +89,7 @@ def corrector(fam_name,  length=0.0, hkick=0.0, vkick=0.0):
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
         gap=0.0, fint_in=0.0, fint_out=0.0, polynom_a=None,
         polynom_b=None, K=None, S=None):
@@ -113,7 +113,7 @@ def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def quadrupole(fam_name, length, K, nr_steps=10):
     """Create a quadrupole element.
 
@@ -127,7 +127,7 @@ def quadrupole(fam_name, length, K, nr_steps=10):
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def sextupole(fam_name, length, S, nr_steps=5):
     """Create a sextupole element.
 
@@ -141,7 +141,7 @@ def sextupole(fam_name, length, S, nr_steps=5):
     return Element(element=e)
 
 
-@interactive
+@_interactive
 def rfcavity(fam_name, length, voltage, frequency):
     """Create a RF cavity element.
 
@@ -184,7 +184,7 @@ class Polynom(_numpy.ndarray):
         super().__setitem__(index, value)
 
 
-@interactive
+@_interactive
 class Kicktable(object):
 
     def __init__(self, **kwargs):

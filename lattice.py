@@ -1,12 +1,10 @@
 
 import numpy as _numpy
 import trackcpp as _trackcpp
-import pyaccel.accelerator
-import pyaccel.elements
-from pyaccel.utils import interactive
+from pyaccel.utils import interactive as _interactive
 
 
-@interactive
+@_interactive
 def flatlat(elist):
     """Take a list-of-list-of-... elements and flattens it: a simple list of lattice elements"""
     flat_elist = []
@@ -19,7 +17,7 @@ def flatlat(elist):
     return flat_elist
 
 
-@interactive
+@_interactive
 def buildlat(elist):
     """Build lattice from a list of elements and lines"""
     lattice = _trackcpp.CppElementVector()
@@ -29,7 +27,7 @@ def buildlat(elist):
     return lattice
 
 
-@interactive
+@_interactive
 def shiftlat(lattice, start):
     """Shift periodically the lattice so that it starts at element whose index is 'start'"""
     new_lattice = lattice[start:]
@@ -38,13 +36,13 @@ def shiftlat(lattice, start):
     return new_lattice
 
 
-@interactive
+@_interactive
 def lengthlat(lattice):
     length = [e.length for e in lattice]
     return sum(length)
 
 
-@interactive
+@_interactive
 def findspos(lattice, indices = None):
     """Return longitudinal position of the entrance for all lattice elements"""
     is_number = False
@@ -66,7 +64,7 @@ def findspos(lattice, indices = None):
         return _numpy.array([pos[i] for i in indices])
 
 
-@interactive
+@_interactive
 def findcells(lattice, attribute_name, value=None):
     """Returns a list with indices of elements that match criteria 'attribute_name=value'"""
     indices = []
@@ -81,7 +79,7 @@ def findcells(lattice, attribute_name, value=None):
     return indices
 
 
-@interactive
+@_interactive
 def getcellstruct(lattice, attribute_name, indices = None, m=None, n=None):
     """Return a list with requested lattice data"""
     if indices is None:
@@ -108,7 +106,7 @@ def getcellstruct(lattice, attribute_name, indices = None, m=None, n=None):
     return data
 
 
-@interactive
+@_interactive
 def setcellstruct(lattice, attribute_name, indices, values):
     """ sets elements data and returns a new updated lattice """
     try:
@@ -130,7 +128,7 @@ def setcellstruct(lattice, attribute_name, indices, values):
     return lattice
 
 
-@interactive
+@_interactive
 def finddict(lattice, attribute_name):
     """Return a dict which correlates values of 'attribute_name' and a list of indices corresponding to matching elements"""
     latt_dict = {}
