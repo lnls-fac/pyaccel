@@ -109,7 +109,7 @@ def calctwiss(
 
     ''' propagates twiss through line '''
     m_previous = _np.eye(6,6)
-    for i in range(len(accelerator)):
+    for i in range(1, len(accelerator)):
         m_current = transfer_matrices[i-1]
         m = _np.dot(m_current, _np.linalg.inv(m_previous))
         m_previous = m_current
