@@ -97,7 +97,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
 
     Accepts one or multiple particles initial positions. In the latter case,
     a list of particles or a numpy 2D array (with particle as second index)
-    should be given as input; tracked particles positions along at the exits of
+    should be given as input; tracked particles positions at the entrances of
     elements are output variables, as well as information on whether particles
     have been lost along the tracking and where they were lost.
 
@@ -110,7 +110,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
                         ex.2: particles = [[0.001,0,0,0,0,0],[0.002,0,0,0,0,0]]
                         ex.3: particles = numpy.zeros((Np,6))
     indices     -- list of indices corresponding to accelerator elements at
-                   whose exits, tracked particles positions are to be
+                   whose entrances, tracked particles positions are to be
                    stored; string 'all' corresponds to selecting all elements.
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
@@ -119,7 +119,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
 
     particles_out -- 6D position for each particle at entrance of each element.
                      The structure of 'particles_out' depends on inputs
-                     'particles' and 'indices'. If 'indices' is 'None' then only
+                     'particles' and 'indices'. If 'indices' is None then only
                      tracked positions at the end of the line are returned.
                      There are still two possibilities for the structure of
                      particles_out, depending on 'particles':
@@ -128,7 +128,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
                         list of coordinates, 'particles_out' will also be a
                         simple list:
                         ex.:particles = [rx1,px1,ry1,py1,de1,dl1]
-                            indices = 'None'
+                            indices = None
                             particles_out=numpy.array([rx2,px2,ry2,py2,de2,dl2])
 
                     (2) if 'particles' is either a python list of particles or a
@@ -144,7 +144,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
                                   [rx4,px4,ry4,py4,de4,dl4]
                                 ])
 
-                    Now, if 'indices' is not 'None' then 'particles_out' can be
+                    Now, if 'indices' is not None then 'particles_out' can be
                     either
 
                     (3) a numpy matrix, when 'particles' is a single particle
@@ -155,20 +155,20 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
                     (4) a numpy rank-3 tensor, when 'particles' is the initial
                         positions of many particles. The first index now is the
                         particle index, the second index is the coordinate index
-                        and the third index is the element index at whose exits
-                        particles coordinates are returned.
+                        and the third index is the element index at whose
+                        entrances particles coordinates are returned.
 
     lost_flag    -- a general flag indicating whether there has been particle
                     loss.
     lost_element -- list of element index where each particle was lost
                     If the particle survived the tracking through the line its
-                    corresponding element in this list is set to 'None'. When
+                    corresponding element in this list is set to None. When
                     there is only one particle defined as a python list (not as
                     a numpy matrix with one column) 'lost_element' returns a
                     single number.
     lost_plane   -- list of strings representing on what plane each particle
                     was lost while being tracked. If the particle is not lost
-                    then its corresponding element in the list is set to 'None'.
+                    then its corresponding element in the list is set to None.
                     If it is lost in the horizontal or vertical plane it is set
                     to string 'x' or 'y', correspondingly. If tracking is
                     performed with a single particle described as a python list
@@ -211,7 +211,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
             particles_out[i,:] = _CppDoublePos2Numpy(p_out[0])
         else:
             for j in range(len(indices)):
-                particles_out[i,:,j] = _CppDoublePos2Numpy(p_out[1+indices[j]])
+                particles_out[i,:,j] = _CppDoublePos2Numpy(p_out[indices[j]])
 
         # fills vectors with info about particle loss
         if args.lost_plane:
@@ -235,7 +235,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
 
 @_interactive
 def ringpass(accelerator, particles, nr_turns = 1,
-             turn_by_turn = False, element_offset=0):
+             turn_by_turn = None, element_offset=0):
     """Track particle(s) along a ring.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -254,9 +254,14 @@ def ringpass(accelerator, particles, nr_turns = 1,
                         ex.2: particles = [[0.001,0,0,0,0,0],[0.002,0,0,0,0,0]]
                         ex.3: particles = numpy.zeros((Np,6))
     nr_turns       -- number of turns around ring to track each particle.
-    turn_by_turn   -- flag indicating whether turn by turn positions are to
-                      be returned. If 'False' only the positions after
-                      'nr_turns' are returned.
+    turn_by_turn   -- parameter indicating what turn by turn positions are to
+                      be returned. If None ringpass returns particles
+                      positions only at the end of the ring, at the last turn.
+                      If turn_by_turn is 'closed' ringpass returns positions
+                      at the end of the ring for every turn. If it is 'open'
+                      than positions are returned at the beginning of every
+                      turn.
+
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
 
@@ -264,7 +269,7 @@ def ringpass(accelerator, particles, nr_turns = 1,
 
     particles_out -- 6D position for each particle at end of ring. The structure
                      of 'particles_out' depends on inputs 'particles' and
-                     'turn_by_turn'. If 'turn_by_turn' is 'False' then only
+                     'turn_by_turn'. If 'turn_by_turn' is None then only
                      tracked positions at the end 'nr_turns' are returned. There
                      are still two possibilities for the structure of
                      particles_out, depending on 'particles':
@@ -289,8 +294,8 @@ def ringpass(accelerator, particles, nr_turns = 1,
                                    [rx4,px4,ry4,py4,de4,dl4]
                                  ])
 
-                     Now, if 'turn_by_turn' is 'True' then 'particles_out' can
-                     be either
+                     Now, if 'turn_by_turn' is 'close' or 'open' then
+                     'particles_out' can be either
 
                     (3) a numpy matrix, when 'particles' is a single particle
                         defined as a python list. The first index of
@@ -308,13 +313,13 @@ def ringpass(accelerator, particles, nr_turns = 1,
     lost_turn    -- list of turn index where each particle was lost.
     lost_element -- list of element index where each particle was lost
                     If the particle survived the tracking through the ring its
-                    corresponding element in this list is set to 'None'. When
+                    corresponding element in this list is set to None. When
                     there is only one particle defined as a python list (not as
                     a numpy matrix with one column) 'lost_element' returns a
                     single number.
     lost_plane   -- list of strings representing on what plane each particle
                     was lost while being tracked. If the particle is not lost
-                    then its corresponding element in the list is set to 'None'.
+                    then its corresponding element in the list is set to None.
                     If it is lost in the horizontal or vertical plane it is set
                     to string 'x' or 'y', correspondingly. If tracking is
                     performed with a single particle described as a python list
@@ -338,7 +343,7 @@ def ringpass(accelerator, particles, nr_turns = 1,
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
     args.nr_turns = nr_turns
-    args.trajectory = turn_by_turn
+    args.trajectory = True if turn_by_turn else False
 
     # loop over particles
     for i in range(particles.shape[0]):
@@ -355,8 +360,14 @@ def ringpass(accelerator, particles, nr_turns = 1,
 
         # trackcpp particle pos -> python particle pos
         if turn_by_turn:
-            for n in range(nr_turns):
-                particles_out[i,:,n] = _CppDoublePos2Numpy(p_out[n])
+            if turn_by_turn == 'closed':
+                for n in range(nr_turns):
+                    particles_out[i,:,n] = _CppDoublePos2Numpy(p_out[n])
+            elif turn_by_turn == 'open':
+                particles_out[i,:,0] = particles[i,:]
+                for n in range(1,nr_turns):
+                    particles_out[i,:,n] = _CppDoublePos2Numpy(p_out[n-1])
+
         else:
             particles_out[i,:] = _CppDoublePos2Numpy(p_out[0])
 
@@ -394,20 +405,27 @@ def set6dtracking(accelerator):
     accelerator.cavity_on = True
     accelerator.radiation_on = True
 
-
 @_interactive
 def findorbit6(accelerator, indices=None, fixed_point_guess=None):
-    """Calculate 6D orbit closed-orbit.
+    """Calculate 6D closed orbit.
 
-    Accepts an optional list of indices of ring elements where closed-orbit
-    coordinates are to be returned. If this argument is not passed closed-orbit
-    positions are returned at the start of every element.
+    Accepts an optional list of indices of ring elements where closed orbit
+    coordinates are to be returned. If this argument is not passed, closed orbit
+    positions are returned at the start of every element. In addition a guess
+    fixed point at the entrance of the ring may be provided.
 
     Keyword arguments:
     accelerator -- Accelerator object
+    indices     -- list of element indices where closed orbit data is to be
+                   returned. Closed orbit is calculated at the entrance of the
+                   elements. If indices is None the closed orbit is returned
+                   only at the entrance of the first element.
+    fixed_point_guess -- A 6D position where to start the search of the closed
+                         orbit at the entrance of the first element. If not
+                         provided the algorithm will start with zero orbit.
 
     Returns:
-    orbit -- 6D position at elements
+    orbit -- 6D position of the closed orbit at the entraces of the elements.
 
     Raises TrackingException
     """
@@ -471,7 +489,7 @@ def _CppDoublePos2Numpy(p_in):
 
 def _CppDoublePosVector2Numpy(orbit, indices):
 
-    if indices == 'all':
+    if indices == 'close':
         _indices = range(len(orbit))
     elif indices is None:
         _indices = [len(orbit)-1]
@@ -509,8 +527,10 @@ def _process_args(accelerator, pos, indices=None):
         else:
             pos = _numpy.array(pos,ndmin=2)
             return_ndarray = False
-    if indices == 'all':
-        indices = range(len(accelerator))
+    if indices == 'open':
+        indices = list(range(len(accelerator)))
+    elif indices == 'closed':
+        indices = list(range(len(accelerator)+1))
 
     return pos, return_ndarray, indices
 
