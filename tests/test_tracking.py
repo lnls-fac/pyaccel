@@ -16,6 +16,30 @@ class TestTracking(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_findorbit6(self):
+
+        # find orbit without fixed point guess and indices = 'all'
+        the_ring = self.the_ring
+        pyaccel.tracking.set6dtracking(the_ring)
+        co = pyaccel.tracking.findorbit6(the_ring, indices='all')
+        self.assertAlmostEqual(sum(co[0,:]),-0.017521825012520562, places=15)
+
+        # find orbit with fixed point guess and indices = 'all'
+        the_ring = self.the_ring
+        pyaccel.tracking.set6dtracking(the_ring)
+        fixed_point_guess = [0.002,0,0,0,0,0]
+        co = pyaccel.tracking.findorbit6(the_ring, indices = 'all',
+                fixed_point_guess=fixed_point_guess)
+        self.assertAlmostEqual(sum(co[-1,:]),-0.017514304817188964, places=15)
+
+        # find orbit with fixed point guess and indices = None
+        the_ring = self.the_ring
+        pyaccel.tracking.set6dtracking(the_ring)
+        fixed_point_guess = [0.002,0,0,0,0,0]
+        co = pyaccel.tracking.findorbit6(the_ring, indices = None,
+                fixed_point_guess=fixed_point_guess)
+        self.assertAlmostEqual(sum(co),-0.017514304817188964, places=15)
+
     def test_ringpass(self):
 
         # one particle (python list), storing pos at end only

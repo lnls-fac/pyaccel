@@ -377,7 +377,7 @@ def set6dtracking(accelerator):
 
 
 @_interactive
-def findorbit6(accelerator, indices=None):
+def findorbit6(accelerator, indices=None, fixed_point_guess=None):
     """Calculate 6D orbit closed-orbit.
 
     Accepts an optional list of indices of ring elements where closed-orbit
@@ -393,12 +393,18 @@ def findorbit6(accelerator, indices=None):
     Raises TrackingException
     """
 
-    closed_orbit = _trackcpp.CppDoublePosVector()
-    r = _trackcpp.track_findorbit6(accelerator._accelerator, closed_orbit)
+    if fixed_point_guess is None:
+        fixed_point_guess = _trackcpp.CppDoublePos()
+    else:
+        fixed_point_guess = _Numpy2CppDoublePos(fixed_point_guess)
+
+    #_print_CppDoublePos(fixed_point_guess)
+    _closed_orbit = _trackcpp.CppDoublePosVector()
+    r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit, fixed_point_guess)
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    closed_orbit = _CppDoublePosVector2Numpy(closed_orbit, indices)
+    closed_orbit = _CppDoublePosVector2Numpy(_closed_orbit, indices)
     return closed_orbit
 
 
@@ -444,20 +450,26 @@ def _Numpy2CppDoublePos(p_in):
 def _CppDoublePos2Numpy(p_in):
     return (p_in.rx,p_in.px,p_in.ry,p_in.py,p_in.de,p_in.dl)
 
-def _CppDoublePosVector2Numpy(orbit, indices = None):
-    if indices is None:
-        indices = range(len(orbit))
-    elif isinstance(indices,int):
-        indices = [indices]
+def _CppDoublePosVector2Numpy(orbit, indices):
 
-    orbit_out = _numpy.zeros((6, len(indices)))
-    for i in range(len(indices)):
-        orbit_out[:, i] = [
-            orbit[indices[i]].rx, orbit[indices[i]].px,
-            orbit[indices[i]].ry, orbit[indices[i]].py,
-            orbit[indices[i]].de, orbit[indices[i]].dl
+    if indices == 'all':
+        _indices = range(len(orbit))
+    elif indices is None:
+        _indices = [len(orbit)-1]
+    elif isinstance(indices,int):
+        _indices = [indices]
+
+    orbit_out = _numpy.zeros((len(_indices), 6))
+    for i in range(len(_indices)):
+        orbit_out[i,:] = [
+            orbit[_indices[i]].rx, orbit[_indices[i]].px,
+            orbit[_indices[i]].ry, orbit[_indices[i]].py,
+            orbit[_indices[i]].de, orbit[_indices[i]].dl
         ]
-    return orbit_out
+    if indices is None:
+        return orbit_out[0,:]
+    else:
+        return orbit_out
 
 def _Numpy2CppDoublePosVector(orbit):
     orbit_out = _trackcpp.CppDoublePosVector()
