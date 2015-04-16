@@ -43,11 +43,13 @@ def lengthlat(lattice):
 
 
 @_interactive
-def findspos(lattice, indices = None):
+def findspos(lattice, indices=None):
     """Return longitudinal position of the entrance for all lattice elements"""
     is_number = False
-    if indices is None:
+    if indices is None or indices == 'open':
         indices = range(len(lattice))
+    elif indices == 'closed':
+        indices = range(len(lattice)+1)
     else:
         try:
             indices[0]
