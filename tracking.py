@@ -1,8 +1,21 @@
+""" Pyaccel mtracking module
+
+This module concentrates all tracking routines of the accelerator.
+Most of them take a structure called 'positions' as an argument which
+should store the initial coordinates of the particle, or the bunch of particles
+to be tracked. Most of these routines generate tracked particle positions as
+output, among other data. These input and ouput particle positions are stored
+as native python lists or numpy arrays. Depending on the routine these position
+objects may have one, two, three or four indices. These indices are used to
+select particle's inices (p), coordinates(c), lattice element indices(e) or
+turn number (n). For example, v = pos[p,c,e,n]. Routines in these module may
+return particle positions structure missing one or more indices but but the
+PCEN ordering is preserved.
+"""
 import numpy as _numpy
 import trackcpp as _trackcpp
 import pyaccel.accelerator as _accelerator
 from pyaccel.utils import interactive as _interactive
-
 
 lost_planes = (None, 'x', 'y', 'z')
 
@@ -23,7 +36,13 @@ def elementpass(element, particles, **kwargs):
 
     Keyword arguments:
     element         -- 'Element' object
-    particles       -- initial 6D position or list of positions
+    particles       -- initial 6D particle(s) position(s)
+                       ex.1: particles = [rx,px,ry,py,de,dl]
+                       ex.2: particles = [[rx1,px1,ry1,py1,de1,dl1],
+                                          [rx2,px2,ry2,py2,de2,dl2]]
+                       ex.3: particles = numpy.array(
+                                          [[rx1,px1,ry1,py1,de1,dl1],
+                                           [rx2,px2,ry2,py2,de2,dl2]])
     energy          -- energy of the beam [eV]
     harmonic_number -- harmonic number of the lattice
     cavity_on       -- cavity on state (True/False)
@@ -32,7 +51,12 @@ def elementpass(element, particles, **kwargs):
 
     Returns:
     particles_out   -- a numpy array with tracked 6D position(s) of the
-                       particle(s)
+                       particle(s). If elementpass is invoked for a single
+                       particle then 'particles_out' is a simple vector with
+                       one index that refers to the particle coordinates. If
+                       'position' represents many particles, the first index of
+                       'position_out' selects the particle and the second index
+                       selects the coordinate.
 
     Raises TrackingException
     """
@@ -42,6 +66,7 @@ def elementpass(element, particles, **kwargs):
     for key in keys_needed:
         if key not in kwargs:
             raise TrackingException("missing '" + key + "' argument'")
+
 
     # creates accelerator for tracking
     accelerator = _accelerator.Accelerator(**kwargs)
@@ -53,16 +78,15 @@ def elementpass(element, particles, **kwargs):
     particles_out = _numpy.zeros(particles.shape)
     particles_out.fill(float('nan'))
 
-    for i in range(particles.shape[1]):
-        p_in = _Numpy2CppDoublePos(particles[:,i])
+    for i in range(particles.shape[0]):
+        p_in = _Numpy2CppDoublePos(particles[i,:])
         if _trackcpp.track_elementpass_wrapper(element._e,p_in, accelerator._accelerator):
             raise TrackingException
-        particles_out[:,i] = \
-            (p_in.rx, p_in.px, p_in.ry, p_in.py, p_in.de, p_in.dl)
+        particles_out[i,:] = _CppDoublePos2Numpy(p_in)
 
     # returns tracking data
-    if particles_out.shape[1] == 1 and not return_ndarray:
-        particles_out = particles_out[:,0]
+    if particles_out.shape[0] == 1 and not return_ndarray:
+        particles_out = particles_out[0,:]
 
     return particles_out
 
@@ -84,7 +108,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
                    Few examples
                         ex.1: particles = [rx,px,ry,py,de,dl]
                         ex.2: particles = [[0.001,0,0,0,0,0],[0.002,0,0,0,0,0]]
-                        ex.3: particles = numpy.zeros((6,Np))
+                        ex.3: particles = numpy.zeros((Np,6))
     indices     -- list of indices corresponding to accelerator elements at
                    whose exits, tracked particles positions are to be
                    stored; string 'all' corresponds to selecting all elements.
@@ -109,32 +133,30 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
 
                     (2) if 'particles' is either a python list of particles or a
                         numpy matrix then 'particles_out' will be a matrix
-                        (numpy array of arrays) whose first index selects the
-                        coordinate rx, px, ry, py, de or dl, in this order, and
-                        the second index selects a particular particle.
+                        (numpy array of arrays) whose first index selects a
+                        particular particle and second index picks a coordinate
+                        rx, px, ry, py, de or dl, in this order.
                         ex.:particles = [[rx1,px1,ry1,py1,de1,dl1],
                                          [rx2,px2,ry2,py2,de2,dl2]]
                             indices = None
-                            particles_out = numpy.array([[rx3, rx4],
-                                                         [px3, px4],
-                                                         [ry3, ry4],
-                                                         [py3, py4],
-                                                         [de3, de4],
-                                                         [dl3, dl4]])
+                            particles_out = numpy.array(
+                                [ [rx3,px3,ry3,py3,de3,dl3],
+                                  [rx4,px4,ry4,py4,de4,dl4]
+                                ])
 
                     Now, if 'indices' is not 'None' then 'particles_out' can be
                     either
 
                     (3) a numpy matrix, when 'particles' is a single particle
                         defined as a python list. The first index of
-                        'particles_out' runs through theparticle coordinate and
+                        'particles_out' runs through the particle coordinate and
                         the second through the element index
 
                     (4) a numpy rank-3 tensor, when 'particles' is the initial
                         positions of many particles. The first index now is the
-                        element index at whose exits particles coordinates are
-                        returned, the second index runs through coordinates in
-                        phase space and the third index runs through particles.
+                        particle index, the second index is the coordinate index
+                        and the third index is the element index at whose exits
+                        particles coordinates are returned.
 
     lost_flag    -- a general flag indicating whether there has been particle
                     loss.
@@ -163,21 +185,20 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
                                                        indices)
     # initialize particles_out tensor according to input options
     if indices is None:
-        particles_out = _numpy.ones((6,particles.shape[1]))
+        particles_out = _numpy.ones((particles.shape[0],6))
     else:
-        particles_out = _numpy.zeros((len(indices),6,particles.shape[1]))
+        particles_out = _numpy.zeros((particles.shape[0], 6, len(indices)))
     particles_out.fill(float('nan'))
-
 
     lost_flag = False
     lost_element, lost_plane = [], []
 
     # loop over particles
-    for i in range(particles.shape[1]):
+    for i in range(particles.shape[0]):
 
         # python particle pos -> trackcpp particle pos
         args.element_offset = element_offset
-        p_in = _Numpy2CppDoublePos(particles[:,i])
+        p_in = _Numpy2CppDoublePos(particles[i,:])
         p_out = _trackcpp.CppDoublePosVector()
 
         # tracking
@@ -187,10 +208,10 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
 
         # trackcpp particle pos -> python particle pos
         if indices is None:
-            particles_out[:,i] = _CppDoublePos2Numpy(p_out[0])
+            particles_out[i,:] = _CppDoublePos2Numpy(p_out[0])
         else:
             for j in range(len(indices)):
-                particles_out[j,:,i] = _CppDoublePos2Numpy(p_out[1+indices[j]])
+                particles_out[i,:,j] = _CppDoublePos2Numpy(p_out[1+indices[j]])
 
         # fills vectors with info about particle loss
         if args.lost_plane:
@@ -203,9 +224,9 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
     # simplifies output structure in case of single particle and python list
     if len(lost_element) == 1 and not return_ndarray:
         if len(particles_out.shape) == 3:
-            particles_out = particles_out[:,:,0]
+            particles_out = particles_out[0,:,:]
         else:
-            particles_out = particles_out[:,0]
+            particles_out = particles_out[0,:]
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
 
@@ -218,7 +239,7 @@ def ringpass(accelerator, particles, nr_turns = 1,
     """Track particle(s) along a ring.
 
     Accepts one or multiple particles initial positions. In the latter case,
-    a list of particles or a numpy 2D array (with particle as second index)
+    a list of particles or a numpy 2D array (with particle as firts index)
     should be given as input; tracked particles positions at the end of
     the ring are output variables, as well as information on whether particles
     have been lost along the tracking and where they were lost.
@@ -231,7 +252,7 @@ def ringpass(accelerator, particles, nr_turns = 1,
                       Few examples
                         ex.1: particles = [rx,px,ry,py,de,dl]
                         ex.2: particles = [[0.001,0,0,0,0,0],[0.002,0,0,0,0,0]]
-                        ex.3: particles = numpy.zeros((6,Np))
+                        ex.3: particles = numpy.zeros((Np,6))
     nr_turns       -- number of turns around ring to track each particle.
     turn_by_turn   -- flag indicating whether turn by turn positions are to
                       be returned. If 'False' only the positions after
@@ -263,26 +284,24 @@ def ringpass(accelerator, particles, nr_turns = 1,
                         ex.: particles = [[rx1,px1,ry1,py1,de1,dl1],
                                           [rx2,px2,ry2,py2,de2,dl2]]
                              turn_by_turn = False
-                             particles_out = numpy.array([[rx3, rx4],
-                                                          [px3, px4],
-                                                          [ry3, ry4],
-                                                          [py3, py4],
-                                                          [de3, de4],
-                                                          [dl3, dl4]])
+                             particles_out = numpy.array(
+                                 [ [rx3,px3,ry3,py3,de3,dl3],
+                                   [rx4,px4,ry4,py4,de4,dl4]
+                                 ])
 
                      Now, if 'turn_by_turn' is 'True' then 'particles_out' can
                      be either
 
                     (3) a numpy matrix, when 'particles' is a single particle
                         defined as a python list. The first index of
-                        'particles_out' runs through turn index and the second
-                        through the particle coordinate rx, px, ry, py, de or dl
+                        'particles_out' runs through coordinates rx, px, ry, py,
+                        de or dl and the second index runs through the turn
+                        number
 
                     (4) a numpy rank-3 tensor, when 'particles' is the initial
-                        positions of many particles. The first index still runs
-                        through turns, while the second runs through the
-                        particles coordinate and the third runs through the
-                        particles indices.
+                        positions of many particles. The first index now runs
+                        through particles, the second through coordinates and
+                        the third through turn number.
 
     lost_flag    -- a general flag indicating whether there has been particle
                     loss.
@@ -309,9 +328,9 @@ def ringpass(accelerator, particles, nr_turns = 1,
 
     # initialize particles_out tensor according to input options
     if turn_by_turn:
-        particles_out = _numpy.zeros((nr_turns,6,particles.shape[1]))
+        particles_out = _numpy.zeros((particles.shape[0],6,nr_turns))
     else:
-        particles_out = _numpy.zeros((6,particles.shape[1]))
+        particles_out = _numpy.zeros((particles.shape[0],6))
     particles_out.fill(float('nan'))
     lost_flag = False
     lost_turn, lost_element, lost_plane = [], [], []
@@ -322,11 +341,11 @@ def ringpass(accelerator, particles, nr_turns = 1,
     args.trajectory = turn_by_turn
 
     # loop over particles
-    for i in range(particles.shape[1]):
+    for i in range(particles.shape[0]):
 
         # python particle pos -> trackcpp particle pos
         args.element_offset = element_offset
-        p_in = _Numpy2CppDoublePos(particles[:,i])
+        p_in = _Numpy2CppDoublePos(particles[i,:])
         p_out = _trackcpp.CppDoublePosVector()
 
         # tracking
@@ -337,9 +356,9 @@ def ringpass(accelerator, particles, nr_turns = 1,
         # trackcpp particle pos -> python particle pos
         if turn_by_turn:
             for n in range(nr_turns):
-                particles_out[n,:,i] = _CppDoublePos2Numpy(p_out[n])
+                particles_out[i,:,n] = _CppDoublePos2Numpy(p_out[n])
         else:
-            particles_out[:,i] = _CppDoublePos2Numpy(p_out[0])
+            particles_out[i,:] = _CppDoublePos2Numpy(p_out[0])
 
         # fills vectors with info about particle loss
         if args.lost_plane:
@@ -354,9 +373,9 @@ def ringpass(accelerator, particles, nr_turns = 1,
     # simplifies output structure in case of single particle and python list
     if len(lost_element) == 1 and not return_ndarray:
         if len(particles_out.shape) == 3:
-            particles_out = particles_out[:,:,0]
+            particles_out = particles_out[0,:,:]
         else:
-            particles_out = particles_out[:,0]
+            particles_out = particles_out[0,:]
         lost_turn = lost_turn[0]
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
@@ -486,9 +505,9 @@ def _process_args(accelerator, pos, indices=None):
     return_ndarray = True
     if isinstance(pos, (list,tuple)):
         if isinstance(pos[0], (list,tuple)):
-            pos = _numpy.transpose(_numpy.array(pos))
+            pos = _numpy.array(pos)
         else:
-            pos = _numpy.transpose(_numpy.array(pos,ndmin=2))
+            pos = _numpy.array(pos,ndmin=2)
             return_ndarray = False
     if indices == 'all':
         indices = range(len(accelerator))
