@@ -4,7 +4,6 @@ import numpy
 import pyaccel
 import trackcpp
 import numpy
-import matplotlib.pyplot as plt
 
 import sirius
 
