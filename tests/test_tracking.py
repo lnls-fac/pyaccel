@@ -16,28 +16,29 @@ class TestTracking(unittest.TestCase):
         pass
 
     def test_findorbit6(self):
-        return
 
         # find orbit without fixed point guess and indices = 'all'
         the_ring = self.the_ring
         pyaccel.tracking.set6dtracking(the_ring)
-        co = pyaccel.tracking.findorbit6(the_ring, indices='all')
-        self.assertAlmostEqual(sum(co[0,:]),-0.017521825012520562, places=15)
+        co = pyaccel.tracking.findorbit6(the_ring, indices='closed')
+        self.assertAlmostEqual(sum(co[:,0]),-0.017521825012520562, places=15)
 
         # find orbit with fixed point guess and indices = 'all'
         the_ring = self.the_ring
         pyaccel.tracking.set6dtracking(the_ring)
         fixed_point_guess = [0.002,0,0,0,0,0]
-        co = pyaccel.tracking.findorbit6(the_ring, indices = 'all',
+        co = pyaccel.tracking.findorbit6(the_ring, indices='closed',
                 fixed_point_guess=fixed_point_guess)
-        self.assertAlmostEqual(sum(co[-1,:]),-0.017514304817188964, places=15)
+        self.assertAlmostEqual(sum(co[:,-1]),-0.017514304817188964, places=15)
 
         # find orbit with fixed point guess and indices = None
         the_ring = self.the_ring
         pyaccel.tracking.set6dtracking(the_ring)
         fixed_point_guess = [0.002,0,0,0,0,0]
-        co = pyaccel.tracking.findorbit6(the_ring, indices = None,
+        co = pyaccel.tracking.findorbit6(the_ring, indices=None,
                 fixed_point_guess=fixed_point_guess)
+
+        print(co)
         self.assertAlmostEqual(sum(co),-0.017514304817188964, places=15)
 
     def test_ringpass(self):
@@ -114,7 +115,6 @@ class TestTracking(unittest.TestCase):
         self.assertAlmostEqual(sum(p1),0.0001557474602497, places=15)
 
     def test_linepass(self):
-        return
 
         # tracking of one particle through the whole line
         the_ring = self.the_ring

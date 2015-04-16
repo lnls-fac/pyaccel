@@ -435,13 +435,25 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
     else:
         fixed_point_guess = _Numpy2CppDoublePos(fixed_point_guess)
 
-    #_print_CppDoublePos(fixed_point_guess)
+    if indices:
+        closed_orbit = _numpy.zeros((6,len(accelerator)))
+    else:
+        closed_orbit = _numpy.zeros((6,1))
+
     _closed_orbit = _trackcpp.CppDoublePosVector()
     r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit, fixed_point_guess)
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    closed_orbit = _CppDoublePosVector2Numpy(_closed_orbit, indices)
+    if indices is None:
+        closed_out = _CppDoublePos2Numpy(_closed_orbit[0])
+    else:
+        for i in range(closed_orbit.shape[1]):
+            closed_orbit[:,i] = _CppDoublePos2Numpy(_closed_orbit[i])
+
+    if closed_orbit.shape[1] == 1:
+        closed_orbit = closed_orbit[:,0]
+
     return closed_orbit
 
 
@@ -485,20 +497,20 @@ def _Numpy2CppDoublePos(p_in):
     return p_out
 
 def _CppDoublePos2Numpy(p_in):
-    return (p_in.rx,p_in.px,p_in.ry,p_in.py,p_in.de,p_in.dl)
+    return _numpy.array((p_in.rx,p_in.px,p_in.ry,p_in.py,p_in.de,p_in.dl))
 
 def _CppDoublePosVector2Numpy(orbit, indices):
 
-    if indices == 'close':
+    if indices == 'closed' or indices == 'open':
         _indices = range(len(orbit))
     elif indices is None:
         _indices = [len(orbit)-1]
     elif isinstance(indices,int):
         _indices = [indices]
 
-    orbit_out = _numpy.zeros((len(_indices), 6))
+    orbit_out = _numpy.zeros((6, len(_indices)))
     for i in range(len(_indices)):
-        orbit_out[i,:] = [
+        orbit_out[:,i] = [
             orbit[_indices[i]].rx, orbit[_indices[i]].px,
             orbit[_indices[i]].ry, orbit[_indices[i]].py,
             orbit[_indices[i]].de, orbit[_indices[i]].dl
