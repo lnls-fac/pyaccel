@@ -17,17 +17,17 @@ module, import it from pyaccel.utils with
 import numpy as np
 import matplotlib.pyplot as plt
 import pyaccel as _pyaccel
-import sirius.SI_V07 as _sirius_si
+import sirius.SI_V07 as si_model
 
 plt.ion()
 
 pyaccel_version = _pyaccel.__version__
-create_accelerator = _sirius_si.create_accelerator
+create_accelerator = si_model.create_accelerator
 
 # helpful labels for phase-space coordinates
 (rx, px) = 0, 1
 (ry, py) = 2, 3
-(dl, de) = 5, 4 # this is not a bug!
+(de, dl) = 4, 5
 
 __all__ = [name for name in dir() if not name.startswith('_')]
 
@@ -38,4 +38,4 @@ for f in _pyaccel.utils.interactive_list:
     __all__.append(name)
 
 print('Names defined in pyaccel.interactive: ' + ', '.join(__all__) + '.\n')
-print('Function create_accelerator from ' + _sirius_si.__name__ + '.')
+#print('Function create_accelerator from ' + si_model.__name__ + '.')

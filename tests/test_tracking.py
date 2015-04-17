@@ -3,9 +3,8 @@ import unittest
 import numpy
 import pyaccel
 import trackcpp
-import numpy
-
 import sirius
+
 
 class TestTracking(unittest.TestCase):
 
@@ -15,8 +14,14 @@ class TestTracking(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_findorbit6(self):
+    def test_findm66(self):
 
+        the_ring = self.the_ring
+        pyaccel.tracking.set6dtracking(the_ring)
+        tms = pyaccel.tracking.findm66(the_ring)
+
+    def test_findorbit6(self):
+        #return
         # find orbit without fixed point guess and indices = 'all'
         the_ring = self.the_ring
         pyaccel.tracking.set6dtracking(the_ring)
@@ -41,7 +46,7 @@ class TestTracking(unittest.TestCase):
         self.assertAlmostEqual(sum(co),-0.01752182501252075,places=15)
 
     def test_ringpass(self):
-
+        #return
         # one particle (python list), storing pos at end only
         the_ring = self.the_ring
         particles =[0.001,0,0,0,0,0]
@@ -114,7 +119,7 @@ class TestTracking(unittest.TestCase):
         self.assertAlmostEqual(sum(p1),0.0001557474602497, places=15)
 
     def test_linepass(self):
-
+        #return
         # tracking of one particle through the whole line
         the_ring = self.the_ring
         particles =[0.001,0.0002,0.003,0.0004,0.005,0.006]
@@ -165,7 +170,7 @@ class TestTracking(unittest.TestCase):
         self.assertEqual(lost_element[1], 39)
 
     def test_elementpass(self):
-        return
+        #return
 
         accelerator = {'energy':3e9,
                        'harmonic_number':864,

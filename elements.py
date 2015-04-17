@@ -1,4 +1,6 @@
 
+# -*- coding: utf-8 -*-
+
 import ctypes as _ctypes
 import warnings as _warnings
 import numpy as _numpy

@@ -12,6 +12,7 @@ class OpticsException(Exception):
 
 class Twiss:
     def __init__(self):
+        self.spos = None
         self.closed_orbit = _np.zeros((6,1))
         self.alphax = None
         self.betax  = None
@@ -25,6 +26,7 @@ class Twiss:
         self.etay   = 0
     def __str__(self):
         r = ''
+        r += 'spos        : ' + '{0:+10.3e}'.format(self.spos) + '\n'
         r += 'closed orbit: ' + '{0[0][0]:+10.3e} {0[1][0]:+10.3e} {0[2][0]:+10.3e} {0[3][0]:+10.3e} {0[4][0]:+10.3e} {0[5][0]:+10.3e}'.format(self.closed_orbit) + '\n'
         r += 'mux         : ' + '{0:+10.3e}'.format(self.mux) + '\n'
         r += 'betax       : ' + '{0:+10.3e}'.format(self.betax) + '\n'
@@ -92,6 +94,7 @@ def calctwiss(
     sin_nux = _math.copysign(1,mx[0,1]) * _math.sqrt(-mx[0,1] * mx[1,0] - ((mx[0,0] - mx[1,1])**2)/4);
     sin_nuy = _math.copysign(1,my[0,1]) * _math.sqrt(-my[0,1] * my[1,0] - ((my[0,0] - my[1,1])**2)/4);
     t = Twiss()
+    t.spos    = 0
     t.alphax  = (mx[0,0] - mx[1,1]) / 2 / sin_nux
     t.betax   = mx[0,1] / sin_nux
     t.alphay  = (my[0,0] - my[1,1]) / 2 / sin_nuy
@@ -117,6 +120,7 @@ def calctwiss(
         Dx = _np.array([[m[0,4]],[m[1,4]]])
         Dy = _np.array([[m[2,4]],[m[3,4]]])
         n = Twiss()
+        n.spos   = t.spos + accelerator[i-1].length
         n.betax  =  ((mx[0,0] * t.betax - mx[0,1] * t.alphax)**2 + mx[0,1]**2) / t.betax
         n.alphax = -((mx[0,0] * t.betax - mx[0,1] * t.alphax) * (mx[1,0] * t.betax - mx[1,1] * t.alphax) + mx[0,1] * mx[1,1]) / t.betax
         n.betay  =  ((my[0,0] * t.betay - my[0,1] * t.alphay)**2 + my[0,1]**2) / t.betay
@@ -161,12 +165,13 @@ def getrevolutionfrequency(accelerator):
 
 
 @_interactive
-def getfractunes(lattice):
+def getfractunes(accelerator):
+
     raise OpticsException('not implemented')
 
 
 @_interactive
-def gettunes(lattice):
+def gettunes(accelerator):
     raise OpticsException('not implemented')
 
 

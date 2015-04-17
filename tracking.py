@@ -462,36 +462,33 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
 
 
 @_interactive
-def findm66(accelerator, closed_orbit = None):
-    """Calculate accumulatep_in = _trackcpp.DoublePos()
-        p_in.rx,p_in.px,p_in.ry,p_in.py,p_in.dl,p_in.de = pos[:,i]
-    matrices -- array of matrices along accelerator elements
-
-    Raises TrackingException
+def findm66(accelerator, indices = None, closed_orbit = None):
+    """Calculate 6D transfer matrices of elements in an accelerator.
     """
+
     if closed_orbit is None:
-        closed_orbit = _trackcpp.CppDoublePosVector()
-        r = _trackcpp.track_findorbit6(accelerator._accelerator, closed_orbit)
+        # calcs closed orbit if it was not passed.
+        _closed_orbit = _trackcpp.CppDoublePosVector()
+        r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit)
         if r > 0:
             raise TrackingException(_trackcpp.string_error_messages[r])
     else:
-        if closed_orbit.shape[1] != len(accelerator):
-            closed_orbit = _trackcpp.CppDoublePosVector()
+        _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
 
-    m66 = _trackcpp.CppDoubleMatrixVector()
-    r = _trackcpp.track_findm66(accelerator._accelerator, closed_orbit, m66)
+    _m66 = _trackcpp.CppDoubleMatrixVector()
+    r = _trackcpp.track_findm66(accelerator._accelerator, _closed_orbit, _m66)
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    m66_out = []
-    for i in range(len(m66)):
+    m66 = []
+    for i in range(len(_m66)):
         m = _numpy.zeros((6,6))
         for r in range(6):
             for c in range(6):
-                m[r,c] = m66[i][r][c]
-        m66_out.append(m)
+                m[r,c] = _m66[i][r][c]
+        m66.append(m)
 
-    return m66_out
+    return m66
 
 def _Numpy2CppDoublePos(p_in):
     p_out = _trackcpp.CppDoublePos()
