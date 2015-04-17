@@ -19,18 +19,15 @@ import matplotlib.pyplot as plt
 import pyaccel as _pyaccel
 import sirius.SI_V07 as _sirius_si
 
-
 plt.ion()
 
 pyaccel_version = _pyaccel.__version__
 create_accelerator = _sirius_si.create_accelerator
 
-rx = 0
-px = 1
-ry = 2
-py = 3
-dl = 4
-de = 5
+# helpful labels for phase-space coordinates
+(rx, px) = 0, 1
+(ry, py) = 2, 3
+(dl, de) = 5, 4 # this is not a bug!
 
 __all__ = [name for name in dir() if not name.startswith('_')]
 

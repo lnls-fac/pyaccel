@@ -294,8 +294,12 @@ def ringpass(accelerator, particles, nr_turns = 1,
                                    [rx4,px4,ry4,py4,de4,dl4]
                                  ])
 
-                     Now, if 'turn_by_turn' is 'close' or 'open' then
-                     'particles_out' can be either
+                     'turn_by_turn' can also be either 'close' or 'open'. In
+                     either case 'particles_out' will have tracked positions at
+                     the entrances of the elements. The difference is that for
+                     'closed' it will have an additional tracked position at the
+                     exit of the last element, thus closing the data, in case
+                     the line is a ring. The format of 'particles_out' is ...
 
                     (3) a numpy matrix, when 'particles' is a single particle
                         defined as a python list. The first index of
@@ -446,13 +450,13 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
         raise TrackingException(_trackcpp.string_error_messages[r])
 
     if indices is None:
-        closed_out = _CppDoublePos2Numpy(_closed_orbit[0])
+        closed_orbit = _CppDoublePos2Numpy(_closed_orbit[0])
     else:
-        for i in range(closed_orbit.shape[1]):
-            closed_orbit[:,i] = _CppDoublePos2Numpy(_closed_orbit[i])
-
-    if closed_orbit.shape[1] == 1:
-        closed_orbit = closed_orbit[:,0]
+        if indices == 'open':
+            for i in range(closed_orbit.shape[1]):
+                closed_orbit[:,i] = _CppDoublePos2Numpy(_closed_orbit[i])
+        else:
+            raise TrackingException("invalid value for 'indices' in findorbt6")
 
     return closed_orbit
 
