@@ -466,6 +466,9 @@ def findm66(accelerator, indices = None, closed_orbit = None):
     """Calculate 6D transfer matrices of elements in an accelerator.
     """
 
+    if indices is None:
+        indices = list(range(len(accelerator)))
+
     if closed_orbit is None:
         # calcs closed orbit if it was not passed.
         _closed_orbit = _trackcpp.CppDoublePosVector()
@@ -480,15 +483,29 @@ def findm66(accelerator, indices = None, closed_orbit = None):
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    m66 = []
-    for i in range(len(_m66)):
-        m = _numpy.zeros((6,6))
-        for r in range(6):
-            for c in range(6):
-                m[r,c] = _m66[i][r][c]
-        m66.append(m)
+    m66 = _CppMatrix2Numpy(_m66[-1])
+    if indices == 'm66':
+        return m66
 
-    return m66
+    transfer_matrices = []
+    m66_prev = _numpy.eye(6,6)
+    for i in range(len(_m66)):
+        inv_m66_prev = _numpy.linalg.inv(m66_prev)
+        m66_this = _CppMatrix2Numpy(_m66[i])
+        tm = _numpy.dot(m66_this, inv_m66_prev)
+        m66_prev = m66_this
+        if i in indices:
+            transfer_matrices.append(tm)
+
+    return m66, transfer_matrices
+
+
+def _CppMatrix2Numpy(_m):
+    m = _numpy.zeros((6,6))
+    for r in range(6):
+        for c in range(6):
+            m[r,c] = _m[r][c]
+    return m
 
 def _Numpy2CppDoublePos(p_in):
     p_out = _trackcpp.CppDoublePos()
