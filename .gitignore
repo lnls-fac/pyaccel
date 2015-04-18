@@ -55,3 +55,7 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# tmp ipython notebook folders
+examples/.*
+
