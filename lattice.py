@@ -136,6 +136,32 @@ def finddict(lattice, attribute_name):
     return latt_dict
 
 
+@_interactive
+def knobvalue_set(lattice, fam_name, attribute_name, value):
+
+    if isinstance(fam_name,str):
+        idx = findcells(lattice, 'fam_name', fam_name)
+    else:
+        idx = []
+        for famname in fam_name:
+            idx.append(findcells(lattice, 'fam_name', fam_name))
+    for i in idx:
+        setattr(lattice[i], attribute_name, value)
+
+@_interactive
+def knobvalue_add(lattice, fam_name, attribute_name, value):
+
+    if isinstance(fam_name,str):
+        idx = findcells(lattice, 'fam_name', fam_name)
+    else:
+        idx = []
+        for famname in fam_name:
+            idx.append(findcells(lattice, 'fam_name', fam_name))
+    for i in idx:
+        original_value = getattr(lattice[i], attribute_name)
+        new_value = original_values + value
+        setattr(lattice[i], attribute_name, new_value)
+
 def _is_equal(a,b):
     # checks for strings
     if isinstance(a,str):

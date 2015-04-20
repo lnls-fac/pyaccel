@@ -412,44 +412,44 @@ class Element(object):
 
     @property
     def K(self):
-        return self._e.polunom_b[1]
-        
+        return self._e.polynom_b[1]
+
     @K.setter
     def K(self, value):
         self._e.polynom_b[1] = value
-        
+
     @property
-    def S(self, value):
+    def S(self):
         return self._e.polynom_b[2]
-    
+
     @S.setter
     def S(self, value):
         self._e.polynom_b[2] = value
-        
+
     @property
     def Ks(self):
         return self._e.polynom_a[1]
-        
+
     @Ks.setter
     def Ks(self, value):
         self._e.polynom_a[1] = value
-        
+
     @property
     def hkick_polynom(self):
         return self._e.polynom_b[0] * self._e.length
-        
+
     @hkick_polynom.setter
     def hkick_polynom(self, value):
         self._e.polynom_b[0] = value / self._e.length
-    
+
     @property
     def vkick_polynom(self):
         return self._e.polynom_a[0] * self._e.length
-        
+
     @vkick_polynom.setter
     def vkick_polynom(self, value):
         self._e.polynom_a[0] = value / self._e.length
-        
+
     @property
     def polynom_a(self):
         p = Polynom(self._e.polynom_a)
