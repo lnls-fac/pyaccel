@@ -1,7 +1,13 @@
 
 import numpy as _numpy
+import mathphys as _mp
 import trackcpp as _trackcpp
+import pyaccel as _pyaccel
 from pyaccel.utils import interactive as _interactive
+
+
+class LatticeException(Exception):
+    pass
 
 
 @_interactive
@@ -200,3 +206,19 @@ def _is_equal(a,b):
         except:
             # neither 'a' nor 'b' are iterables
             return a == b
+
+@_interactive
+def read_flat_file(filename):
+    e = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
+    a = _pyaccel.accelerator.Accelerator(energy=e) # energy cannot be zero
+    r = _trackcpp.read_flat_file(filename, a._accelerator)
+    if r > 0:
+        raise LatticeException(_trackcpp.string_error_messages[r])
+
+    return a
+
+@_interactive
+def write_flat_file(accelerator, filename):
+    r = _trackcpp.write_flat_file(filename, accelerator._accelerator)
+    if r > 0:
+        raise LatticeException(_trackcpp.string_error_messages[r])
