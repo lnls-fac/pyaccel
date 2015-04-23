@@ -163,7 +163,7 @@ def getrevolutionperiod(accelerator):
 
 @_interactive
 def getrevolutionfrequency(accelerator):
-    return 1.0 / getrevolutionperiod(accelerator)
+    return 1.0/getrevolutionperiod(accelerator)
 
 
 @_interactive

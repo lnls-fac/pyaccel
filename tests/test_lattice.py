@@ -46,11 +46,14 @@ class TestLattice(unittest.TestCase):
         self.assertTrue(isinstance(lattice, trackcpp.trackcpp.CppElementVector))
 
     def test_shiftlat(self):
+        lattice = [e for e in self.the_ring]
         fam_name = 'end'
-        start = len(self.the_ring)-1
-        self.the_ring = pyaccel.lattice.shiftlat(self.the_ring, start)
-        self.assertEqual(self.the_ring[0].fam_name, fam_name)
+        start = len(lattice) - 1
+        lattice = pyaccel.lattice.shiftlat(lattice, start)
+        self.assertEqual(len(lattice), len(self.the_ring))
+        self.assertEqual(lattice[0].fam_name, fam_name)
 
+    @unittest.skip("long test")
     def test_findcells(self):
         indices_pb = pyaccel.lattice.findcells(self.the_ring, 'polynom_b')
         self.assertEqual(len(indices_pb),len(self.the_ring))
