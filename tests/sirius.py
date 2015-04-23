@@ -11,7 +11,7 @@ _default_vchamber_on = False
 def create_accelerator():
 
     accelerator = _pyaccel.accelerator.Accelerator(
-            elements=create_lattice(),
+            lattice=create_lattice(),
             energy=_energy,
             harmonic_number=_harmonic_number,
             cavity_on=_default_cavity_on,
@@ -270,6 +270,16 @@ def create_lattice():
     return the_ring
 
 def set_rf_frequency(the_ring):
+
+    # circumference = _pyaccel.lattice.lengthlat(the_ring)
+    # #_, beam_velocity, _, _, _ = _mp.beam_optics.beam_rigidity(energy=_energy)
+    # #velocity = beam_velocity
+    # velocity = _mp.constants.light_speed
+    # rev_frequency = velocity / circumference
+    # rf_frequency  = _harmonic_number * rev_frequency
+    # idx = _pyaccel.lattice.findcells(the_ring, 'fam_name', 'cav')
+    # for i in idx:
+    #     the_ring[i].frequency = rf_frequency
 
     beam_velocity = 299792453.6510123 #[m/s]
     circumference = _pyaccel.lattice.lengthlat(the_ring)

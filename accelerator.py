@@ -30,13 +30,13 @@ class Accelerator(object):
             self._accelerator.vchamber_on = False
             self._accelerator.harmonic_number = 0
 
-        if 'elements' in kwargs:
-            elements = kwargs['elements']
-            if isinstance(elements, _trackcpp.CppElementVector):
-                self._accelerator.lattice = elements
-            elif isinstance(elements, list):
-                for i in range(len(elements)):
-                    e = elements[i]
+        if 'lattice' in kwargs:
+            lattice = kwargs['lattice']
+            if isinstance(lattice, _trackcpp.CppElementVector):
+                self._accelerator.lattice = lattice
+            elif isinstance(lattice, list):
+                for i in range(len(lattice)):
+                    e = lattice[i]
                     self._accelerator.lattice.append(e._e)
             else:
                 raise TypeError('values must be list of Element')
@@ -52,7 +52,10 @@ class Accelerator(object):
         if 'vchamber_on' in kwargs:
             self._accelerator.vchamber_on = kwargs['vchamber_on']
 
-        self._brho, self._velocity, self._beta, self._gamma, self._accelerator.energy = _mp.beam_optics.beam_rigidity(energy = self.energy)
+        if self._accelerator.energy == 0:
+            self._brho, self._velocity, self._beta, self._gamma, self._accelerator.energy = _mp.beam_optics.beam_rigidity(gamma = 1.0)
+        else:
+            self._brho, self._velocity, self._beta, self._gamma, self._accelerator.energy = _mp.beam_optics.beam_rigidity(energy = self.energy)
 
         self.__isfrozen = True
 

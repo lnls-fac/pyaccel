@@ -410,6 +410,60 @@ def set6dtracking(accelerator):
     accelerator.radiation_on = True
 
 @_interactive
+def findorbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=None):
+    """Calculate 4D closed orbit.
+
+    Accepts an optional list of indices of ring elements where closed orbit
+    coordinates are to be returned. If this argument is not passed, closed orbit
+    positions are returned at the start of every element. In addition a guess
+    fixed point at the entrance of the ring may be provided.
+
+    Keyword arguments:
+    accelerator -- Accelerator object
+    energy_offset -- relative energy deviation from nominal energy
+    indices     -- list of element indices where closed orbit data is to be
+                   returned. Closed orbit is calculated at the entrance of the
+                   elements. If indices is None the closed orbit is returned
+                   only at the entrance of the first element.
+    fixed_point_guess -- A 6D position where to start the search of the closed
+                         orbit at the entrance of the first element. If not
+                         provided the algorithm will start with zero orbit.
+
+    Returns:
+    orbit -- 4D position of the closed orbit at the entraces of the elements.
+
+    Raises TrackingException
+    """
+
+    if fixed_point_guess is None:
+        fixed_point_guess = _trackcpp.CppDoublePos()
+    else:
+        fixed_point_guess = _4Numpy2CppDoublePos(fixed_point_guess)
+    fixed_point_guess.de = energy_offset
+
+    if indices:
+        closed_orbit = _numpy.zeros((4,len(accelerator)))
+    else:
+        closed_orbit = _numpy.zeros((4,1))
+
+    _closed_orbit = _trackcpp.CppDoublePosVector()
+    r = _trackcpp.track_findorbit4(accelerator._accelerator, _closed_orbit, fixed_point_guess)
+    if r > 0:
+        raise TrackingException(_trackcpp.string_error_messages[r])
+
+    if indices is None:
+        closed_orbit = _CppDoublePos24Numpy(_closed_orbit[0])
+    else:
+        if indices == 'open':
+            for i in range(closed_orbit.shape[1]):
+                closed_orbit[:,i] = _CppDoublePos24Numpy(_closed_orbit[i])
+        else:
+            raise TrackingException("invalid value for 'indices' in findorbit4")
+
+    return closed_orbit
+
+
+@_interactive
 def findorbit6(accelerator, indices=None, fixed_point_guess=None):
     """Calculate 6D closed orbit.
 
@@ -456,7 +510,7 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
             for i in range(closed_orbit.shape[1]):
                 closed_orbit[:,i] = _CppDoublePos2Numpy(_closed_orbit[i])
         else:
-            raise TrackingException("invalid value for 'indices' in findorbt6")
+            raise TrackingException("invalid value for 'indices' in findorbit6")
 
     return closed_orbit
 
@@ -482,7 +536,7 @@ def findm66(accelerator, indices = None, closed_orbit = None):
     r = _trackcpp.track_findm66(accelerator._accelerator, _closed_orbit, _m66)
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
-
+    
     m66 = _CppMatrix2Numpy(_m66[-1])
     if indices == 'm66':
         return m66
@@ -514,8 +568,18 @@ def _Numpy2CppDoublePos(p_in):
     p_out.de, p_out.dl = float(p_in[4]), float(p_in[5])
     return p_out
 
+def _4Numpy2CppDoublePos(p_in):
+    p_out = _trackcpp.CppDoublePos()
+    p_out.rx, p_out.px = float(p_in[0]), float(p_in[1])
+    p_out.ry, p_out.py = float(p_in[2]), float(p_in[3])
+    p_out.de, p_out.dl = 0,0
+    return p_out
+
 def _CppDoublePos2Numpy(p_in):
     return _numpy.array((p_in.rx,p_in.px,p_in.ry,p_in.py,p_in.de,p_in.dl))
+
+def _CppDoublePos24Numpy(p_in):
+    return _numpy.array((p_in.rx,p_in.px,p_in.ry,p_in.py))
 
 def _CppDoublePosVector2Numpy(orbit, indices):
 

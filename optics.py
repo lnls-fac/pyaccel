@@ -7,8 +7,10 @@ import pyaccel.lattice as _lattice
 import pyaccel.tracking as _tracking
 from pyaccel.utils import interactive as _interactive
 
+
 class OpticsException(Exception):
     pass
+
 
 class Twiss:
     def __init__(self):
@@ -143,6 +145,7 @@ def calctwiss(
     else:
         return tw
 
+
 @_interactive
 def getrffrequency(accelerator):
     """Return the frequency of the first RF cavity in the lattice"""
@@ -168,7 +171,7 @@ def getrevolutionperiod(accelerator):
 
 @_interactive
 def getrevolutionfrequency(accelerator):
-    return 1.0 / get_revolution_period(accelerator)
+    return 1.0 / getrevolutionperiod(accelerator)
 
 
 @_interactive
@@ -176,9 +179,11 @@ def getfractunes(accelerator, closed_orbit = None):
     m66 = _tracking.findm66(accelerator, indices = 'm66')
     trace_x = m66[0,0] + m66[1,1]
     trace_y = m66[2,2] + m66[3,3]
+    trace_s = m66[4,4] + m66[5,5]
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
-    return tune_x, tune_y
+    tune_s = _math.acos(trace_s/2.0)/2.0/_math.pi
+    return tune_x, tune_y, tune_s
 
 @_interactive
 def gettunes(accelerator):

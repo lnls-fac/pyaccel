@@ -19,7 +19,12 @@ import matplotlib.pyplot as plt
 import pyaccel as _pyaccel
 import sirius.SI_V07 as si_model
 
+
 plt.ion()
+# plt.rc('font', family='serif')
+# plt.rc('text', usetex=True)
+# plt.rc('text.latex', unicode=True)
+# plt.rc('pgf', texsystem='pdflatex')
 
 pyaccel_version = _pyaccel.__version__
 create_accelerator = si_model.create_accelerator
@@ -38,4 +43,3 @@ for f in _pyaccel.utils.interactive_list:
     __all__.append(name)
 
 print('Names defined in pyaccel.interactive: ' + ', '.join(__all__) + '.\n')
-#print('Function create_accelerator from ' + si_model.__name__ + '.')
