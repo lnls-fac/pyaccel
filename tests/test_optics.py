@@ -12,7 +12,7 @@ class TestTwiss(unittest.TestCase):
         self.accelerator = sirius.create_accelerator()
         self.accelerator.cavity_on = True
         self.accelerator.radiation_on = False
-        pyaccel.tracking.set6dtracking(self.accelerator)
+        #pyaccel.tracking.set6dtracking(self.accelerator)
         twiss, *_ = pyaccel.optics.calctwiss(self.accelerator)
         (self.spos, #self.closed_orbit,
          self.mux, self.betax, self.alphax, self.etax, self.etaxl,
