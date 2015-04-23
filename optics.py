@@ -15,31 +15,30 @@ class OpticsException(Exception):
 class Twiss:
     def __init__(self):
         self.spos = None
-        self.closed_orbit = _np.zeros((6,1))
-        self.alphax = None
-        self.betax  = None
-        self.mux    = 0
-        self.etaxl  = 0
-        self.etax   = 0
-        self.alphay = None
-        self.betay  = None
-        self.muy    = 0
-        self.etayl  = 0
-        self.etay   = 0
+        self.corx, self.copx  = 0, 0
+        self.cory, self.copy  = 0, 0
+        self.code, self.codl  = 0, 0
+        self.etax, self.etaxl = 0, 0
+        self.etay, self.etayl = 0, 0
+        self.mux, self.betax, self.alphax = 0, None, None
+        self.muy, self.betay, self.alphay = 0, None, None
+
     def __str__(self):
         r = ''
-        r += 'spos        : ' + '{0:+10.3e}'.format(self.spos) + '\n'
-        r += 'closed orbit: ' + '{0[0][0]:+10.3e} {0[1][0]:+10.3e} {0[2][0]:+10.3e} {0[3][0]:+10.3e} {0[4][0]:+10.3e} {0[5][0]:+10.3e}'.format(self.closed_orbit) + '\n'
-        r += 'mux         : ' + '{0:+10.3e}'.format(self.mux) + '\n'
-        r += 'betax       : ' + '{0:+10.3e}'.format(self.betax) + '\n'
-        r += 'alphax      : ' + '{0:+10.3e}'.format(self.alphax) + '\n'
-        r += 'etax        : ' + '{0:+10.3e}'.format(self.etax) + '\n'
-        r += 'etaxl       : ' + '{0:+10.3e}'.format(self.etaxl) + '\n'
-        r += 'muy         : ' + '{0:+10.3e}'.format(self.muy) + '\n'
-        r += 'betay       : ' + '{0:+10.3e}'.format(self.betay) + '\n'
-        r += 'alphay      : ' + '{0:+10.3e}'.format(self.alphay) + '\n'
-        r += 'etay        : ' + '{0:+10.3e}'.format(self.etay) + '\n'
-        r += 'etayl       : ' + '{0:+10.3e}'.format(self.etayl) + '\n'
+        r += 'spos      : ' + '{0:+10.3e}'.format(self.spos) + '\n'
+        r += 'corx,copx : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.corx, self.copx) + '\n'
+        r += 'cory,copy : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.cory, self.copy) + '\n'
+        r += 'code,codl : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.code, self.codl) + '\n'
+        r += 'mux       : ' + '{0:+10.3e}'.format(self.mux) + '\n'
+        r += 'betax     : ' + '{0:+10.3e}'.format(self.betax) + '\n'
+        r += 'alphax    : ' + '{0:+10.3e}'.format(self.alphax) + '\n'
+        r += 'etax      : ' + '{0:+10.3e}'.format(self.etax) + '\n'
+        r += 'etaxl     : ' + '{0:+10.3e}'.format(self.etaxl) + '\n'
+        r += 'muy       : ' + '{0:+10.3e}'.format(self.muy) + '\n'
+        r += 'betay     : ' + '{0:+10.3e}'.format(self.betay) + '\n'
+        r += 'alphay    : ' + '{0:+10.3e}'.format(self.alphay) + '\n'
+        r += 'etay      : ' + '{0:+10.3e}'.format(self.etay) + '\n'
+        r += 'etayl     : ' + '{0:+10.3e}'.format(self.etayl) + '\n'
         return r
 
 
@@ -71,8 +70,7 @@ def calctwiss(
         accelerator=None,
         indices=None,
         closed_orbit=None,
-        twiss_in=None,
-        all_data=False):
+        twiss_in=None):
     """Return Twiss parameters of uncoupled dynamics."""
 
     ''' process arguments '''
@@ -84,22 +82,26 @@ def calctwiss(
     except:
         indices = [indices]
 
-    m66, transfer_matrices = _tracking.findm66(accelerator = accelerator, closed_orbit = closed_orbit)
-    if twiss_in is None:
-        twiss_in = Twiss()
-        twiss_in.closed_orbit = closed_orbit
-        twiss_in.mux, twiss_in.muy = 0, 0
+    if closed_orbit is None:
+        closed_orbit = _tracking.findorbit6(accelerator=accelerator, indices='open', fixed_point_guess=None)
+
+    m66, transfer_matrices, *_ = _tracking.findm66(accelerator = accelerator, closed_orbit = closed_orbit)
 
     ''' calcs twiss at first element '''
     mx, my = m66[0:2,0:2], m66[2:4,2:4] # decoupled transfer matrices
     sin_nux = _math.copysign(1,mx[0,1]) * _math.sqrt(-mx[0,1] * mx[1,0] - ((mx[0,0] - mx[1,1])**2)/4);
     sin_nuy = _math.copysign(1,my[0,1]) * _math.sqrt(-my[0,1] * my[1,0] - ((my[0,0] - my[1,1])**2)/4);
+
+    fp = closed_orbit[:,0]
     t = Twiss()
-    t.spos    = 0
-    t.alphax  = (mx[0,0] - mx[1,1]) / 2 / sin_nux
-    t.betax   = mx[0,1] / sin_nux
-    t.alphay  = (my[0,0] - my[1,1]) / 2 / sin_nuy
-    t.betay   = my[0,1] / sin_nuy
+    t.spos = 0
+    t.corx, t.copx = fp[0], fp[1]
+    t.cory, t.copy = fp[2], fp[3]
+    t.code, t.codl = fp[4], fp[5]
+    t.alphax = (mx[0,0] - mx[1,1]) / 2 / sin_nux
+    t.betax  = mx[0,1] / sin_nux
+    t.alphay = (my[0,0] - my[1,1]) / 2 / sin_nuy
+    t.betay  = my[0,1] / sin_nuy
     ''' dispersion function based on eta = (1 - M)^(-1) D'''
     Dx = _np.array([[m66[0,4]],[m66[1,4]]])
     Dy = _np.array([[m66[2,4]],[m66[3,4]]])
@@ -140,10 +142,7 @@ def calctwiss(
         t.etaxl, t.etayl = (t.etax[1,0], t.etay[1,0])
         t.etax,  t.etay  = (t.etax[0,0], t.etay[0,0])
 
-    if all_data:
-        return tw, m66, transfer_matrices, closed_orbit
-    else:
-        return tw
+    return tw, m66, transfer_matrices, closed_orbit
 
 
 @_interactive
