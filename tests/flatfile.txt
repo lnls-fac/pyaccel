@@ -1,0 +1,26 @@
+% energy          3.0e9
+% harmonic_number 864
+% cavity_on       true
+% radiation_on    false
+% vchamber_on     false
+
+#### 0000 ####
+fam_name        start
+length          +0.00000000000000000E+00
+pass_method     identity_pass
+hmax            +1.17000000000000003E-02
+vmax            +1.17000000000000003E-02
+
+#### 0001 ####
+fam_name        l50
+length          +5.00000000000000000E-01
+pass_method     drift_pass
+hmax            +1.17000000000000003E-02
+vmax            +1.17000000000000003E-02
+
+#### 0002 ####
+fam_name        end
+length          +0.00000000000000000E+00
+pass_method     identity_pass
+hmax            +1.17000000000000003E-02
+vmax            +1.17000000000000003E-02

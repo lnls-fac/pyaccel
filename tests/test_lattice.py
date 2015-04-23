@@ -1,4 +1,5 @@
 
+import os
 import unittest
 import numpy
 import pyaccel
@@ -46,11 +47,14 @@ class TestLattice(unittest.TestCase):
         self.assertTrue(isinstance(lattice, trackcpp.trackcpp.CppElementVector))
 
     def test_shiftlat(self):
+        lattice = [e for e in self.the_ring]
         fam_name = 'end'
-        start = len(self.the_ring)-1
-        self.the_ring = pyaccel.lattice.shiftlat(self.the_ring, start)
-        self.assertEqual(self.the_ring[0].fam_name, fam_name)
+        start = len(lattice) - 1
+        lattice = pyaccel.lattice.shiftlat(lattice, start)
+        self.assertEqual(len(lattice), len(self.the_ring))
+        self.assertEqual(lattice[0].fam_name, fam_name)
 
+    @unittest.skip("long test")
     def test_findcells(self):
         indices_pb = pyaccel.lattice.findcells(self.the_ring, 'polynom_b')
         self.assertEqual(len(indices_pb),len(self.the_ring))
@@ -106,12 +110,61 @@ class TestLattice(unittest.TestCase):
             for i in ind:
                 self.assertEqual(self.the_ring[i].fam_name, key)
 
+
+class TestFlatFile(unittest.TestCase):
+
+    def setUp(self):
+        filename = os.path.join(pyaccel.__path__[0], 'tests', 'flatfile.txt')
+        self.a = pyaccel.lattice.read_flat_file(filename)
+
+    def test_read_flat_file(self):
+        # Accelerator fields
+        self.assertAlmostEqual(self.a.energy, 3.0e9, 9)
+        self.assertEqual(self.a.harmonic_number, 864)
+        self.assertTrue(self.a.cavity_on)
+        self.assertFalse(self.a.radiation_on)
+        self.assertFalse(self.a.vchamber_on)
+        # Lattice elements
+        self.assertEqual(self.a[0].fam_name, 'start')
+        self.assertEqual(self.a[1].fam_name, 'l50')
+        self.assertAlmostEqual(self.a[1].length, +5.00000000000000000E-01, 16)
+        self.assertAlmostEqual(self.a[1].hmax, +1.17000000000000003E-02, 16)
+        self.assertAlmostEqual(self.a[1].vmax, +1.17000000000000003E-02, 16)
+        self.assertEqual(self.a[2].pass_method, 'identity_pass')
+
+    def test_write_flat_file(self):
+        t = numpy.array([1.0e-6, 2.0e-6, 3.0e-6, 4.0e-6, 5.0e-6, 6.0e-6])
+        self.a.energy = 1.5e9
+        self.a[1].t_in = t
+        self.a[1].t_out = -t
+        filename = os.path.join(pyaccel.__path__[0], 'tests', 'flatfile2.txt')
+        pyaccel.lattice.write_flat_file(self.a, filename)
+        a = pyaccel.lattice.read_flat_file(filename)
+
+        # Accelerator fields
+        self.assertAlmostEqual(self.a.energy, 1.5e9, 9)
+        self.assertEqual(self.a.harmonic_number, 864)
+        self.assertTrue(self.a.cavity_on)
+        self.assertFalse(self.a.radiation_on)
+        self.assertFalse(self.a.vchamber_on)
+        # Lattice elements
+        self.assertEqual(self.a[0].fam_name, 'start')
+        self.assertTrue((a[1].t_in == t).all())
+        self.assertTrue((a[1].t_out == -t).all())
+
+
 def lattice_suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestLattice)
+    return suite
+
+
+def flat_file_suite():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestFlatFile)
     return suite
 
 
 def get_suite():
     suite_list = []
     suite_list.append(lattice_suite())
+    suite_list.append(flat_file_suite())
     return unittest.TestSuite(suite_list)

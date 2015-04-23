@@ -35,7 +35,15 @@ def buildlat(elist):
 
 @_interactive
 def shiftlat(lattice, start):
-    """Shift periodically the lattice so that it starts at element whose index is 'start'"""
+    """Shift periodically the lattice so that it starts at element whose index
+    is 'start'.
+
+    Keyword arguments:
+    lattice -- a list of objects
+    start -- index of first element in new list
+
+    Returns a list (not an Accelerator).
+    """
     new_lattice = lattice[start:]
     for i in range(start):
         new_lattice.append(lattice[i])
