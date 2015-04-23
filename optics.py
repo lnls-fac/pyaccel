@@ -248,7 +248,7 @@ def getbunchlength(accelerator):
     v_cav = getrfvoltage(accelerator)
     harmon = accelerator.harmonic_number
 
-    radiation = rad_cgamma*((e0/1e9)**^4)*integrals[1]/(2*_math.pi)*1e9
+    radiation = rad_cgamma*((e0/1e9)**4)*integrals[1]/(2*_math.pi)*1e9
     overvoltage = v_cav/radiation
 
     syncphase = _math.pi - _math.asin(1/overvoltage)
