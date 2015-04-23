@@ -65,7 +65,6 @@ class Accelerator(object):
         object.__setattr__(self, key, value)
 
     def __getitem__(self, index):
-
         if isinstance(index,int):
             return _elements.Element(element=self._accelerator.lattice[index])
         elif isinstance(index, (list,tuple)):
@@ -77,7 +76,7 @@ class Accelerator(object):
         else:
             raise TypeError('invalid index')
         a = Accelerator(
-                elements=lattice,
+                lattice=lattice,
                 energy=self._accelerator.energy,
                 harmonic_number=self._accelerator.harmonic_number,
                 cavity_on=self._accelerator.cavity_on,
