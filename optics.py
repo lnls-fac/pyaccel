@@ -152,6 +152,14 @@ def getrffrequency(accelerator):
     else:
         raise OpticsException('no cavity element in the lattice')
 
+@_interactive
+def getrfvoltage(accelerator):
+    """Return the voltage of the first RF cavity in the lattice"""
+    for e in accelerator:
+        if e.voltage != 0:
+            return e.voltage
+    else:
+        raise OpticsException('no cavity element in the lattice')
 
 @_interactive
 def getrevolutionperiod(accelerator):
@@ -189,4 +197,57 @@ def getmcf(lattice):
 
 @_interactive
 def getradiationintegrals(accelerator):
-    raise OpticsException('not implemented')
+    tw = calctwiss(accelerator)
+    D_x, D_x_ = gettwiss(tw,('etax','etaxl'))
+    gamma = _np.zeros(len(accelerator))
+    integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    for i in range(len(accelerator)-1):
+        gamma[i] = (1 + tw[i].alphax**2) / tw[i].betax
+        gamma[i+1] = (1 + tw[i+1].alphax**2) / tw[i+1].betax
+        if accelerator[i].angle != 0.0:
+            rho = accelerator[i].length/accelerator[i].angle
+            dispersion = 0.5*(D_x[i]+D_x[i+1])
+            integrals[0] = integrals[0] + dispersion*accelerator[i].length /rho
+            integrals[1] = integrals[1] + accelerator[i].length/(rho**2)
+            integrals[2] = integrals[2] + accelerator[i].length/abs(rho**3)
+            integrals[3] = integrals[3] + \
+                D_x[i]*_math.tan(accelerator[i].angle_in)/(rho**2) + \
+                (1 + 2*(rho**2)*accelerator[i].polynom_b[1])*(D_x[i]+D_x[i+1])*accelerator[i].length/(2*(rho**3)) + \
+                D_x[i+1]*_math.tan(accelerator[i].angle_out)/(rho**2)
+            H1 = tw[i].betax*D_x_[i]*D_x_[i] + 2*tw[i].alphax*D_x[i]*D_x_[i] + gamma[i]*D_x[i]*D_x[i];
+            H0 = tw[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*tw[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
+            integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
+            integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
+    return integrals
+
+
+@_interactive
+def getbunchlength(accelerator):
+    c = _mp.constants.light_speed
+    E0 = _mp.constants.electron_rest_energy *_mp.constants._joule_2_eV
+    rad_cgamma = _mp.constants.rad_cgamma
+    Cq = _mp.constants.Cq
+
+    e0 = accelerator.energy
+    circumference = _lattice.lengthlat(accelerator)
+    revFreq = getrevolutionfrequency(accelerator)
+    gamma = e0/E0
+    beta = _math.sqrt(1 - 1/gamma)
+
+    compactionFactor = getmcf(accelerator) #not implemented
+    etac = gamma**(-2) - compactionFactor
+
+    naturalEnergySpread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
+
+    freq = getrffrequency(accelerator)
+    v_cav = getrfvoltage(accelerator)
+    harmon = accelerator.harmonic_number
+
+    radiation = rad_cgamma*((e0/1e9)**^4)*integrals[1]/(2*_math.pi)*1e9
+    overvoltage = v_cav/radiation
+
+    syncphase = _math.pi - _math.asin(1/overvoltage)
+    synctune = _math.sqrt((etac * harmon * v_cav * _math.cos(syncphase))/(2*_math.pi*e0))
+
+    bunchlength = beta* c *abs(etac)* naturalEnergySpread /( synctune * revFreq *2*_math.pi)
+    return bunchlenght
