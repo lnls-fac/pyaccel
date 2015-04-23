@@ -64,6 +64,18 @@ class Accelerator(object):
             raise AcceleratorException( "%r is a frozen class" % self )
         object.__setattr__(self, key, value)
 
+    def __delitem__(self, index):
+        if isinstance(index,int):
+            self._accelerator.lattice.erase(self._accelerator.lattice.begin() + index);
+        elif isinstance(index, (list,tuple)):
+            for i in index:
+                self._accelerator.lattice.erase(self._accelerator.lattice.begin() + i);
+        elif isinstance(index, slice):
+            start, stop, step = index.indices(len(self._accelerator.lattice))
+            iterator = range(start, stop, step)
+            for i in iterator:
+                self._accelerator.lattice.erase(self._accelerator.lattice.begin() + i);
+
     def __getitem__(self, index):
         if isinstance(index,int):
             return _elements.Element(element=self._accelerator.lattice[index])

@@ -213,6 +213,8 @@ def getmcf(accelerator,order=1):
 
 @_interactive
 def getradiationintegrals(accelerator):
+    """Return radiation integrals (I1,I2,I3,I4,I5,I6)"""
+    
     tw = calctwiss(accelerator)
     D_x, D_x_ = gettwiss(tw,('etax','etaxl'))
     gamma = _np.zeros(len(accelerator))

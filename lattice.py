@@ -230,3 +230,14 @@ def write_flat_file(accelerator, filename):
     r = _trackcpp.write_flat_file(filename, accelerator._accelerator)
     if r > 0:
         raise LatticeException(_trackcpp.string_error_messages[r])
+
+@_interactive
+def refine_lattice(accelerator, max_length=None, fam_names=None):
+    raise Exception('not implemented yet')
+    new_accelerator = _pyaccel.accelerator.Accelerator()
+    new_accelerator.energy = accelerator.energy
+    new_accelerator.harmonic_number = accelerator.harmonic_number
+    new_accelerator.cavity_on = accelerator.cavity_on
+    new_accelerator.radiation_on = accelerator.radiation_on
+    new_accelerator.vchamber_on = accelerator.vchamber_on
+    return new_accelerator
