@@ -19,10 +19,8 @@ from pyaccel.utils import interactive as _interactive
 
 lost_planes = (None, 'x', 'y', 'z')
 
-
 class TrackingException(Exception):
     pass
-
 
 @_interactive
 def elementpass(element, particles, **kwargs):
@@ -89,7 +87,6 @@ def elementpass(element, particles, **kwargs):
         particles_out = particles_out[0,:]
 
     return particles_out
-
 
 @_interactive
 def linepass(accelerator, particles, indices=None, element_offset=0):
@@ -231,7 +228,6 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
         lost_plane = lost_plane[0]
 
     return particles_out, lost_flag, lost_element, lost_plane
-
 
 @_interactive
 def ringpass(accelerator, particles, nr_turns = 1,
@@ -397,12 +393,10 @@ def ringpass(accelerator, particles, nr_turns = 1,
 
     return particles_out, lost_flag, lost_turn, lost_element, lost_plane
 
-
 @_interactive
 def set4dtracking(accelerator):
     accelerator.cavity_on = False
     accelerator.radiation_on = False
-
 
 @_interactive
 def set6dtracking(accelerator):
@@ -462,7 +456,6 @@ def findorbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=N
 
     return closed_orbit
 
-
 @_interactive
 def findorbit6(accelerator, indices=None, fixed_point_guess=None):
     """Calculate 6D closed orbit.
@@ -514,7 +507,6 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
 
     return closed_orbit
 
-
 @_interactive
 def findm66(accelerator, indices = None, closed_orbit = None):
     """Calculate 6D transfer matrices of elements in an accelerator.
@@ -536,7 +528,7 @@ def findm66(accelerator, indices = None, closed_orbit = None):
     r = _trackcpp.track_findm66(accelerator._accelerator, _closed_orbit, _m66)
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
-    
+
     m66 = _CppMatrix2Numpy(_m66[-1])
     if indices == 'm66':
         return m66
@@ -552,7 +544,6 @@ def findm66(accelerator, indices = None, closed_orbit = None):
             transfer_matrices.append(tm)
 
     return m66, transfer_matrices
-
 
 def _CppMatrix2Numpy(_m):
     m = _numpy.zeros((6,6))

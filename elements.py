@@ -486,7 +486,7 @@ class Element(object):
     def t_out(self, value):
         self._check_type(value, Element._t_valid_types)
         self._check_size(value, _NUM_COORDS)
-        self._set_c_array_from_vector(self.e._t_out, _NUM_COORDS, value)
+        self._set_c_array_from_vector(self._e.t_out, _NUM_COORDS, value)
 
     @property
     def r_in(self):
