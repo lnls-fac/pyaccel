@@ -7,10 +7,8 @@ import pyaccel.lattice as _lattice
 import pyaccel.tracking as _tracking
 from pyaccel.utils import interactive as _interactive
 
-
 class OpticsException(Exception):
     pass
-
 
 class Twiss:
     def __init__(self):
@@ -145,7 +143,6 @@ def calctwiss(
     else:
         return tw
 
-
 @_interactive
 def getrffrequency(accelerator):
     """Return the frequency of the first RF cavity in the lattice"""
@@ -179,11 +176,9 @@ def getfractunes(accelerator, closed_orbit = None):
     m66 = _tracking.findm66(accelerator, indices = 'm66')
     trace_x = m66[0,0] + m66[1,1]
     trace_y = m66[2,2] + m66[3,3]
-    trace_s = m66[4,4] + m66[5,5]
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
-    tune_s = _math.acos(trace_s/2.0)/2.0/_math.pi
-    return tune_x, tune_y, tune_s
+    return tune_x, tune_y
 
 @_interactive
 def gettunes(accelerator):
@@ -196,8 +191,25 @@ def getchromaticities(lattice):
 
 
 @_interactive
-def getmcf(lattice):
-    raise OpticsException('not implemented')
+def getmcf(accelerator,order=1):
+    accel=accelerator[:]
+    _tracking.set4dtracking(accel)
+    ring_length = _lattice.lengthlat(accel)
+
+    dp = _np.linspace(-1e-3,1e-3,11)
+    dl = _np.zeros(_np.size(dp))
+    for i in range(len(dp)):
+        fp = _tracking.findorbit4(accel,dp[i])
+        X0 = _np.concatenate([fp,[dp[i],0]]).tolist()
+        T = _tracking.ringpass(accel,X0)
+        dl[i] = T[0][5]/ring_length
+
+    polynom = _np.polyfit(dp,dl,order)
+    a = _np.fliplr([polynom])[0].tolist()
+    a = a[1:]
+    if len(a) == 1:
+        a=a[0]
+    return a
 
 
 @_interactive
@@ -233,26 +245,28 @@ def getbunchlength(accelerator):
     rad_cgamma = _mp.constants.rad_cgamma
     Cq = _mp.constants.Cq
 
+    integrals = getradiationintegrals(accelerator)
+
     e0 = accelerator.energy
-    circumference = _lattice.lengthlat(accelerator)
-    revFreq = getrevolutionfrequency(accelerator)
     gamma = e0/E0
     beta = _math.sqrt(1 - 1/gamma)
 
-    compactionFactor = getmcf(accelerator) #not implemented
-    etac = gamma**(-2) - compactionFactor
+    circumference = _lattice.lengthlat(accelerator)
+    rev_freq = getrevolutionfrequency(accelerator)
 
-    naturalEnergySpread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
+    compaction_factor = getmcf(accelerator)
+    etac = gamma**(-2) - compaction_factor
+
+    natural_energy_spread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
 
     freq = getrffrequency(accelerator)
     v_cav = getrfvoltage(accelerator)
     harmon = accelerator.harmonic_number
 
-    radiation = rad_cgamma*((e0/1e9)**^4)*integrals[1]/(2*_math.pi)*1e9
+    radiation = rad_cgamma*((e0/1e9)**4)*integrals[1]/(2*_math.pi)*1e9
     overvoltage = v_cav/radiation
 
     syncphase = _math.pi - _math.asin(1/overvoltage)
     synctune = _math.sqrt((etac * harmon * v_cav * _math.cos(syncphase))/(2*_math.pi*e0))
-
-    bunchlength = beta* c *abs(etac)* naturalEnergySpread /( synctune * revFreq *2*_math.pi)
-    return bunchlenght
+    bunchlength = beta* c *abs(etac)* natural_energy_spread /( synctune * rev_freq *2*_math.pi)
+    return bunchlength
