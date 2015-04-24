@@ -175,9 +175,11 @@ def getfractunes(accelerator, closed_orbit = None):
     m66 = _tracking.findm66(accelerator, indices = 'm66')
     trace_x = m66[0,0] + m66[1,1]
     trace_y = m66[2,2] + m66[3,3]
+    trace_z = m66[4,4] + m66[5,5]
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
-    return tune_x, tune_y
+    tune_z = _math.acos(trace_z/2.0)/2.0/_math.pi
+    return tune_x, tune_y, tune_z
 
 @_interactive
 def gettunes(accelerator):
@@ -213,7 +215,7 @@ def getmcf(accelerator,order=1):
 
 @_interactive
 def getradiationintegrals(accelerator):
-    tw = calctwiss(accelerator)
+    tw,*_ = calctwiss(accelerator)
     D_x, D_x_ = gettwiss(tw,('etax','etaxl'))
     gamma = _np.zeros(len(accelerator))
     integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -238,34 +240,51 @@ def getradiationintegrals(accelerator):
 
 
 @_interactive
-def getbunchlength(accelerator):
-    c = _mp.constants.light_speed
-    E0 = _mp.constants.electron_rest_energy *_mp.constants._joule_2_eV
-    rad_cgamma = _mp.constants.rad_cgamma
+def getnaturalenergyspread(accelerator):
     Cq = _mp.constants.Cq
+    gamma = accelerator.gamma_factor
+    integrals = getradiationintegrals(accelerator)
+    natural_energy_spread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
+    return natural_energy_spread
 
+
+@_interactive
+def getnaturalemittance(accelerator):
+    Cq = _mp.constants.Cq
+    gamma = accelerator.gamma_factor
     integrals = getradiationintegrals(accelerator)
 
+    damping = _np.zeros(3)
+    damping[0] = 1 - integrals[3]/integrals[1]
+    damping[1] = 1
+    damping[2] = 2 + integrals[3]/integrals[1]
+
+    natural_emittance = Cq*(gamma**2)*integrals[4]/(damping[0]*integrals[1])
+    return natural_emittance
+
+
+@_interactive
+def getnaturalbunchlength(accelerator):
+    c = _mp.constants.light_speed
+    rad_cgamma = _mp.constants.rad_cgamma
     e0 = accelerator.energy
-    gamma = e0/E0
-    beta = _math.sqrt(1 - 1/gamma)
+    gamma = accelerator.gamma_factor
+    beta = accelerator.beta_factor
+    harmon = accelerator.harmonic_number
 
-    circumference = _lattice.lengthlat(accelerator)
+    integrals = getradiationintegrals(accelerator)
     rev_freq = getrevolutionfrequency(accelerator)
-
     compaction_factor = getmcf(accelerator)
-    etac = gamma**(-2) - compaction_factor
 
-    natural_energy_spread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
+    etac = gamma**(-2) - compaction_factor
 
     freq = getrffrequency(accelerator)
     v_cav = getrfvoltage(accelerator)
-    harmon = accelerator.harmonic_number
-
     radiation = rad_cgamma*((e0/1e9)**4)*integrals[1]/(2*_math.pi)*1e9
     overvoltage = v_cav/radiation
 
     syncphase = _math.pi - _math.asin(1/overvoltage)
     synctune = _math.sqrt((etac * harmon * v_cav * _math.cos(syncphase))/(2*_math.pi*e0))
+    natural_energy_spread = getnaturalenergyspread(accelerator)
     bunchlength = beta* c *abs(etac)* natural_energy_spread /( synctune * rev_freq *2*_math.pi)
     return bunchlength
