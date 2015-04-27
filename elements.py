@@ -436,11 +436,11 @@ class Element(object):
 
     @property
     def hkick_polynom(self):
-        return self._e.polynom_b[0] * self._e.length
+        return self._e.polynom_b[0] *(- self._e.length)
 
     @hkick_polynom.setter
     def hkick_polynom(self, value):
-        self._e.polynom_b[0] = value / self._e.length
+        self._e.polynom_b[0] = - value / self._e.length
 
     @property
     def vkick_polynom(self):
