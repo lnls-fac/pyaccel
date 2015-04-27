@@ -23,7 +23,6 @@ import sirius.SI_V07 as si_model
 plt.ion()
 
 pyaccel_version = _pyaccel.__version__
-create_accelerator = si_model.create_accelerator
 
 # helpful labels for phase-space coordinates
 (rx, px) = 0, 1
