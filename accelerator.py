@@ -137,6 +137,48 @@ class Accelerator(object):
         r += '\nlattice length : ' + str(self.length) + ' m'
         return r
 
+    def __add__(self, other):
+        if isinstance(other, _elements.Element):
+            a = self[:]
+            a.append(other)
+            return a
+        elif isinstance(other, Accelerator):
+            a = self[:]
+            for e in other:
+                a.append(e)
+            return a
+        else:
+            msg = "unsupported operand type(s) for +: '" + \
+                    self.__class__.__name__ + "' and '" + \
+                    other.__class__.__name__ + "'"
+            raise TypeError(msg)
+
+    def __rmul__(self, other):
+        if isinstance(other, int):
+            if other < 0:
+                raise ValueError('cannot multiply by negative integer')
+            elif other == 0:
+                return Accelerator(
+                        energy=self.energy,
+                        harmonic_number=self.harmonic_number,
+                        cavity_on=self.cavity_on,
+                        radiation_on=self.radiation_on,
+                        vchamber_on=self.vchamber_on
+                )
+            else:
+                a = self[:]
+                other -= 1
+                while other > 0:
+                    a += self[:]
+                    other -= 1
+                return a
+        else:
+            msg = "unsupported operand type(s) for +: '" + \
+                    other.__class__.__name__ + "' and '" + \
+                    self.__class__.__name__ + "'"
+            raise TypeError(msg)
+
+
     def append(self, value):
         if not isinstance(value, _elements.Element):
             raise TypeError('value must be Element')

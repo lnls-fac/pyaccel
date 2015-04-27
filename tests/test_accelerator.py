@@ -72,12 +72,65 @@ class TestAccelerator(unittest.TestCase):
         self.assertAlmostEqual(self.the_ring.brho, 3.3356405164803693, places=10)
 
 
+class TestAcceleratorAuxMethods(unittest.TestCase):
+
+    def setUp(self):
+        self.the_ring = sirius.create_accelerator()
+
+    def test_add_element(self):
+        fam_name = 'test_drift'
+        length = 1.2345
+        d = pyaccel.elements.drift(fam_name, length)
+        a = self.the_ring + d
+        self.assertEqual(len(a), len(self.the_ring)+1)
+        self.assertEqual(a[-1].fam_name, fam_name)
+        self.assertEqual(a[-1].length, length)
+
+    def test_add_accelerators(self):
+        n = round(len(self.the_ring)/2)
+        a = self.the_ring[:n] + self.the_ring[n:]
+        self.assertEqual(a.energy, self.the_ring.energy)
+        self.assertEqual(len(a), len(self.the_ring))
+        self.assertEqual(a[329].fam_name, self.the_ring[329].fam_name)
+        self.assertEqual(a[329].length, self.the_ring[329].length)
+
+    def test_add_unsupported_type(self):
+        self.assertRaises(TypeError, self.add_the_ring_and_value, (1))
+
+    def test_rmul_zero(self):
+        a = 0*self.the_ring
+        self.assertEqual(a.__class__, pyaccel.accelerator.Accelerator)
+        self.assertEqual(len(a), 0)
+
+    def test_rmul_positive_int(self):
+        n = len(self.the_ring)
+        a = 2*self.the_ring
+        self.assertEqual(len(a), 2*len(self.the_ring))
+        self.assertEqual(a[329+n].fam_name, self.the_ring[329].fam_name)
+        self.assertEqual(a[329+n].length, self.the_ring[329].length)
+
+    def test_rmul_unsupported_type(self):
+        self.assertRaises(TypeError, self.rmul_the_ring_and_value, (1.0))
+
+    def add_the_ring_and_value(self, value):
+        return self.the_ring + value
+
+    def rmul_the_ring_and_value(self, value):
+        return value*self.the_ring
+
+
 def accelerator_suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestAccelerator)
+    return suite
+
+
+def accelerator_aux_methods_suite():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestAcceleratorAuxMethods)
     return suite
 
 
 def get_suite():
     suite_list = []
     suite_list.append(accelerator_suite())
+    suite_list.append(accelerator_aux_methods_suite())
     return unittest.TestSuite(suite_list)
