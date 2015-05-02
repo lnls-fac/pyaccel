@@ -171,41 +171,49 @@ def getrevolutionfrequency(accelerator):
 
 
 @_interactive
-def getfractunes(accelerator, closed_orbit = None):
-    m66 = _tracking.findm66(accelerator, indices = 'm66')
+def gettraces(accelerator, closed_orbit = None):
+    """Return traces of 6D one-turn transfer matrix"""
+    m66 = _tracking.findm66(accelerator,
+                            indices = 'm66', closed_orbit = closed_orbit)
     trace_x = m66[0,0] + m66[1,1]
     trace_y = m66[2,2] + m66[3,3]
     trace_z = m66[4,4] + m66[5,5]
+    return trace_x, trace_y, trace_z
+
+@_interactive
+def getfractunes(accelerator, closed_orbit = None):
+    """Return fractional tunes of the accelerator"""
+    trace_x, trace_y, trace_z = gettraces(accelerator,
+                                          closed_orbit = closed_orbit)
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
     tune_z = _math.acos(trace_z/2.0)/2.0/_math.pi
     return tune_x, tune_y, tune_z
 
+
 @_interactive
-def gettunes(accelerator):
+def getchromaticities(accelerator):
     raise OpticsException('not implemented')
 
 
 @_interactive
-def getchromaticities(lattice):
-    raise OpticsException('not implemented')
+def getmcf(accelerator, order=1, energy_offset=None):
+    """Return momentum compaction factor of the accelerator"""
+    if energy_offset is None:
+        energy_offset = _np.linspace(-1e-3,1e-3,11)
 
-
-@_interactive
-def getmcf(accelerator,order=1):
     accel=accelerator[:]
     _tracking.set4dtracking(accel)
     ring_length = _lattice.lengthlat(accel)
 
-    dp = _np.linspace(-1e-3,1e-3,11)
     dl = _np.zeros(_np.size(dp))
     for i in range(len(dp)):
-        fp = _tracking.findorbit4(accel,dp[i])
-        X0 = _np.concatenate([fp,[dp[i],0]]).tolist()
+        fp = _tracking.findorbit4(accel,energy_offset[i])
+        X0 = _np.concatenate([fp,[energy_offset[i],0]]).tolist()
         T = _tracking.ringpass(accel,X0)
         dl[i] = T[0][5]/ring_length
 
-    polynom = _np.polyfit(dp,dl,order)
+    polynom = _np.polyfit(energy_offset,dl,order)
     a = _np.fliplr([polynom])[0].tolist()
     a = a[1:]
     if len(a) == 1:
@@ -305,7 +313,7 @@ def getequilibriumparameters(accelerator):
     rev_freq = getrevolutionfrequency(accelerator)
 
     compaction_factor = getmcf(accelerator)
-    etac = gamma**(-2) - compaction_factor
+    etac = gamma**(-2) - compaction_factor
 
     integrals = getradiationintegrals(accelerator)
 
@@ -338,3 +346,22 @@ def getequilibriumparameters(accelerator):
         natural_emittance = natural_emittance, overvoltage = overvoltage, syncphase = syncphase,
         synctune = synctune, energy_acceptance = energy_acceptance, bunchlength = bunchlength)
     return summary
+
+@_interactive
+def getbeamsize(accelerator, coupling=0.0, closed_orbit=None):
+    """Return beamsizes (stddev) along ring"""
+    summary = getequilibriumparameters(accelerator)
+    twiss = calctwiss(accelerator,closed_orbit=closed_orbit)
+    betax, alphax, etax, etaxl = gettwiss(twiss, {'betax','alphax','etax','etaxl'})
+    betay, alphay, etay, etayl = gettwiss(twiss, {'betay','alphay','etay','etayl'})
+    gammax = (1.0 + alphax**2)/betax
+    gammay = (1.0 + alphay**2)/betay
+    e0 = summary['natural_emittance']
+    sigmae = summary['natural_energy_spread']
+    ey = e0 * coupling / (1.0 + coupling)
+    ex = e0 * 1 / (1.0 + coupling)
+    sigmax  = _np.sqrt(ex * betax + (sigmae * etax)**2)
+    sigmay  = _np.sqrt(ey * betay + (sigmae * etay)**2)
+    sigmaxl = _np.sqrt(ex * gammax + (sigmae * etaxl)**2)
+    sigmayl = _np.sqrt(ey * gammay + (sigmae * etayl)**2)
+    return sigmax, sigmay, sigmaxl, sigmayl
