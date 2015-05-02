@@ -1,4 +1,4 @@
-""" Pyaccel mtracking module
+""" Pyaccel tracking module
 
 This module concentrates all tracking routines of the accelerator.
 Most of them take a structure called 'positions' as an argument which
@@ -9,7 +9,7 @@ as native python lists or numpy arrays. Depending on the routine these position
 objects may have one, two, three or four indices. These indices are used to
 select particle's inices (p), coordinates(c), lattice element indices(e) or
 turn number (n). For example, v = pos[p,c,e,n]. Routines in these module may
-return particle positions structure missing one or more indices but but the
+return particle positions structure missing one or more indices but the
 PCEN ordering is preserved.
 """
 import numpy as _numpy

@@ -178,17 +178,17 @@ def gettraces(accelerator, closed_orbit = None):
     trace_x = m66[0,0] + m66[1,1]
     trace_y = m66[2,2] + m66[3,3]
     trace_z = m66[4,4] + m66[5,5]
-    return trace_x, trace_y, trace_z
+    return trace_x, trace_y, trace_z, m66, closed_orbit
 
 @_interactive
 def getfractunes(accelerator, closed_orbit = None):
     """Return fractional tunes of the accelerator"""
-    trace_x, trace_y, trace_z = gettraces(accelerator,
-                                          closed_orbit = closed_orbit)
+    trace_x, trace_y, trace_z, m66, closed_orbit = gettraces(accelerator,
+                                                   closed_orbit = closed_orbit)
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
     tune_z = _math.acos(trace_z/2.0)/2.0/_math.pi
-    return tune_x, tune_y, tune_z
+    return tune_x, tune_y, tune_z, trace_x, trace_y, trace_z, m66, closed_orbit
 
 
 @_interactive
@@ -206,8 +206,8 @@ def getmcf(accelerator, order=1, energy_offset=None):
     _tracking.set4dtracking(accel)
     ring_length = _lattice.lengthlat(accel)
 
-    dl = _np.zeros(_np.size(dp))
-    for i in range(len(dp)):
+    dl = _np.zeros(_np.size(energy_offset))
+    for i in range(len(energy_offset)):
         fp = _tracking.findorbit4(accel,energy_offset[i])
         X0 = _np.concatenate([fp,[energy_offset[i],0]]).tolist()
         T = _tracking.ringpass(accel,X0)
@@ -222,8 +222,9 @@ def getmcf(accelerator, order=1, energy_offset=None):
 
 
 @_interactive
-def getradiationintegrals(accelerator):
-    tw,*_ = calctwiss(accelerator)
+def getradiationintegrals(accelerator, closed_orbit=None):
+    tw, m66, transfer_matrices, closed_orbit = \
+        calctwiss(accelerator, closed_orbit=closed_orbit)
     D_x, D_x_ = gettwiss(tw,('etax','etaxl'))
     gamma = _np.zeros(len(accelerator))
     integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -244,14 +245,14 @@ def getradiationintegrals(accelerator):
             H0 = tw[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*tw[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
             integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
             integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
-    return integrals
+    return integrals, tw, m66, transfer_matrices, closed_orbit
 
 
 @_interactive
 def getnaturalenergyspread(accelerator):
     Cq = _mp.constants.Cq
     gamma = accelerator.gamma_factor
-    integrals = getradiationintegrals(accelerator)
+    integrals, *_ = getradiationintegrals(accelerator)
     natural_energy_spread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
     return natural_energy_spread
 
@@ -260,12 +261,12 @@ def getnaturalenergyspread(accelerator):
 def getnaturalemittance(accelerator):
     Cq = _mp.constants.Cq
     gamma = accelerator.gamma_factor
-    integrals = getradiationintegrals(accelerator)
+    integrals, *_ = getradiationintegrals(accelerator)
 
     damping = _np.zeros(3)
-    damping[0] = 1 - integrals[3]/integrals[1]
-    damping[1] = 1
-    damping[2] = 2 + integrals[3]/integrals[1]
+    damping[0] = 1.0 - integrals[3]/integrals[1]
+    damping[1] = 1.0
+    damping[2] = 2.0 + integrals[3]/integrals[1]
 
     natural_emittance = Cq*(gamma**2)*integrals[4]/(damping[0]*integrals[1])
     return natural_emittance
@@ -280,7 +281,7 @@ def getnaturalbunchlength(accelerator):
     beta = accelerator.beta_factor
     harmon = accelerator.harmonic_number
 
-    integrals = getradiationintegrals(accelerator)
+    integrals, *_ = getradiationintegrals(accelerator)
     rev_freq = getrevolutionfrequency(accelerator)
     compaction_factor = getmcf(accelerator)
 
@@ -313,19 +314,19 @@ def getequilibriumparameters(accelerator):
     rev_freq = getrevolutionfrequency(accelerator)
 
     compaction_factor = getmcf(accelerator)
-    etac = gamma**(-2) - compaction_factor
+    etac = gamma**(-2) - compaction_factor
 
-    integrals = getradiationintegrals(accelerator)
+    integrals, *_ = getradiationintegrals(accelerator)
 
     damping = _np.zeros(3)
-    damping[0] = 1 - integrals[3]/integrals[1]
-    damping[1] = 1
-    damping[2] = 2 + integrals[3]/integrals[1]
+    damping[0] = 1.0 - integrals[3]/integrals[1]
+    damping[1] = 1.0
+    damping[2] = 2.0 + integrals[3]/integrals[1]
 
     radiation_damping = _np.zeros(3)
-    radiation_damping[0] = 1/(Ca*((e0/1e9)**3)*integrals[1]*damping[0]/circumference)
-    radiation_damping[1] = 1/(Ca*((e0/1e9)**3)*integrals[1]*damping[1]/circumference)
-    radiation_damping[2] = 1/(Ca*((e0/1e9)**3)*integrals[1]*damping[2]/circumference)
+    radiation_damping[0] = 1.0/(Ca*((e0/1e9)**3)*integrals[1]*damping[0]/circumference)
+    radiation_damping[1] = 1.0/(Ca*((e0/1e9)**3)*integrals[1]*damping[1]/circumference)
+    radiation_damping[2] = 1.0/(Ca*((e0/1e9)**3)*integrals[1]*damping[2]/circumference)
 
     radiation = rad_cgamma*((e0/1e9)**4)*integrals[1]/(2*_math.pi)*1e9
     natural_energy_spread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
@@ -335,10 +336,10 @@ def getequilibriumparameters(accelerator):
     v_cav = getrfvoltage(accelerator)
     overvoltage = v_cav/radiation
 
-    syncphase = _math.pi - _math.asin(1/overvoltage)
+    syncphase = _math.pi - _math.asin(1.0/overvoltage)
     synctune = _math.sqrt((etac * harmon * v_cav * _math.cos(syncphase))/(2*_math.pi*e0))
-    energy_acceptance = _math.sqrt(v_cav*_math.sin(syncphase)*2*(_math.sqrt((overvoltage**2)-1)
-                        - _math.acos(1/overvoltage))/(_math.pi*harmon*abs(etac)*e0))
+    energy_acceptance = _math.sqrt(v_cav*_math.sin(syncphase)*2*(_math.sqrt((overvoltage**2)-1.0)
+                        - _math.acos(1.0/overvoltage))/(_math.pi*harmon*abs(etac)*e0))
     bunchlength = beta* c *abs(etac)* natural_energy_spread /( synctune * rev_freq *2*_math.pi)
 
     summary=dict(compaction_factor = compaction_factor, radiation_integrals = integrals, damping_numbers = damping,
@@ -352,9 +353,9 @@ def getbeamsize(accelerator, coupling=0.0, closed_orbit=None):
     """Return beamsizes (stddev) along ring"""
 
     # twiss parameters
-    twiss = calctwiss(accelerator,closed_orbit=closed_orbit)
-    betax, alphax, etax, etaxl = gettwiss(twiss, {'betax','alphax','etax','etaxl'})
-    betay, alphay, etay, etayl = gettwiss(twiss, {'betay','alphay','etay','etayl'})
+    twiss, *_ = calctwiss(accelerator,closed_orbit=closed_orbit)
+    betax, alphax, etax, etaxl = gettwiss(twiss, ('betax','alphax','etax','etaxl'))
+    betay, alphay, etay, etayl = gettwiss(twiss, ('betay','alphay','etay','etayl'))
     gammax = (1.0 + alphax**2)/betax
     gammay = (1.0 + alphay**2)/betay
     # emittances and energy spread
