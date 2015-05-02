@@ -350,16 +350,20 @@ def getequilibriumparameters(accelerator):
 @_interactive
 def getbeamsize(accelerator, coupling=0.0, closed_orbit=None):
     """Return beamsizes (stddev) along ring"""
-    summary = getequilibriumparameters(accelerator)
+
+    # twiss parameters
     twiss = calctwiss(accelerator,closed_orbit=closed_orbit)
     betax, alphax, etax, etaxl = gettwiss(twiss, {'betax','alphax','etax','etaxl'})
     betay, alphay, etay, etayl = gettwiss(twiss, {'betay','alphay','etay','etayl'})
     gammax = (1.0 + alphax**2)/betax
     gammay = (1.0 + alphay**2)/betay
+    # emittances and energy spread
+    summary = getequilibriumparameters(accelerator)
     e0 = summary['natural_emittance']
     sigmae = summary['natural_energy_spread']
     ey = e0 * coupling / (1.0 + coupling)
     ex = e0 * 1 / (1.0 + coupling)
+    # beamsizes per se
     sigmax  = _np.sqrt(ex * betax + (sigmae * etax)**2)
     sigmay  = _np.sqrt(ey * betay + (sigmae * etay)**2)
     sigmaxl = _np.sqrt(ex * gammax + (sigmae * etaxl)**2)
