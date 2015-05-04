@@ -199,10 +199,10 @@ def refine_lattice(accelerator,
                    fam_names=None,
                    pass_methods=None):
 
-    raise Exception('not implemented yet')
-
     if max_length is None:
         max_length = 0.05
+
+    acc = accelerator[:]
 
     # builds list with indices of elements to be affected
     if indices is None:
@@ -210,36 +210,41 @@ def refine_lattice(accelerator,
         # adds specified fam_names
         if fam_names is not None:
             for fam_name in fam_names:
-                indices.extend(findcells(accelerator, 'fam_name', fam_name))
+                indices.extend(findcells(acc, 'fam_name', fam_name))
         # adds specified pass_methods
         if pass_methods is not None:
             for pass_method in pass_methods:
-                indices.extend(findcells(accelerator, 'pass_method', pass_method))
+                indices.extend(findcells(acc, 'pass_method', pass_method))
+        if fam_names is None and pass_methods is None:
+            indices = list(range(len(acc)))
 
     new_accelerator = _pyaccel.accelerator.Accelerator(
-        energy = accelerator.energy,
-        harmonic_number = accelerator.harmonic_number,
-        cavity_on = accelerator.cavity_on,
-        radiation_on = accelerator.radiation_on,
-        vchamber_on = accelerator.vchamber_on)
+        energy = acc.energy,
+        harmonic_number = acc.harmonic_number,
+        cavity_on = acc.cavity_on,
+        radiation_on = acc.radiation_on,
+        vchamber_on = acc.vchamber_on)
 
-    for i in range(len(accelerator)):
+    for i in range(len(acc)):
         if i in indices:
-            if accelerator[i].length == max_length:
-                new_accelerator.append(accelerator[i])
+            if acc[i].length <= max_length:
+                new_accelerator.append(acc[i])
             else:
 
-                nr_segs = 1+int(accelerator[i].length/max_length)
+                nr_segs = 1+int(acc[i].length/max_length)
 
-                if (accelerator[i].angle_in != 0) or (accelerator[i].angle_out != 0):
+                if (acc[i].angle_in != 0) or (acc[i].angle_out != 0):
                     # for dipoles (special case due to fringe fields)
-                    nr_segs = max(3,nr_segs)
-                    length  = accelerator[i].length
-                    angle   = accelerator[i].angle
+                    #new_accelerator.append(acc[i])
+                    #break
 
-                    e     = _pyaccel.elements.Element(element = accelerator[i]._e)
-                    e_in  = _pyaccel.elements.Element(element = accelerator[i]._e)
-                    e_out = _pyaccel.elements.Element(element = accelerator[i]._e)
+                    nr_segs = max(3,nr_segs)
+                    length  = acc[i].length
+                    angle   = acc[i].angle
+
+                    e     = _pyaccel.elements.Element(element = acc[i]._e)
+                    e_in  = _pyaccel.elements.Element(element = acc[i]._e)
+                    e_out = _pyaccel.elements.Element(element = acc[i]._e)
 
                     e_in.angle_out, e.angle_out, e.angle_in, e_out.angle_in = 4*(0,)
                     e_in.length, e_length, e_out.length = 3*(length/nr_segs,)
@@ -249,16 +254,16 @@ def refine_lattice(accelerator,
                     for k in range(nr_segs-2):
                         new_accelerator.append(e)
                     new_accelerator.append(e_out)
-                elif accelerator[i].kicktable is not None:
+                elif acc[i].kicktable is not None:
                     raise Exception('no refinement implemented for IDs yet')
                 else:
-                    e = _pyaccel.elements.Element(element = accelerator[i]._e)
+                    e = _pyaccel.elements.Element(element = acc[i]._e)
                     e.length = e.length / nr_segs
                     for k in range(nr_segs):
                         new_accelerator.append(e)
 
         else:
-            new_accelerator.append(accelerator[i])
+            new_accelerator.append(acc[i])
 
     return new_accelerator
 
