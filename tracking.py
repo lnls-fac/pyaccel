@@ -1,4 +1,4 @@
-""" Pyaccel mtracking module
+""" Pyaccel tracking module
 
 This module concentrates all tracking routines of the accelerator.
 Most of them take a structure called 'positions' as an argument which
