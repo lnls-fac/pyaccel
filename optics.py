@@ -369,4 +369,20 @@ def getbeamsize(accelerator, coupling=0.0, closed_orbit=None):
     sigmay  = _np.sqrt(ey * betay + (sigmae * etay)**2)
     sigmaxl = _np.sqrt(ex * gammax + (sigmae * etaxl)**2)
     sigmayl = _np.sqrt(ey * gammay + (sigmae * etayl)**2)
-    return sigmax, sigmay, sigmaxl, sigmayl
+    return sigmax, sigmay, sigmaxl, sigmayl, ex, ey, summary, twiss, closed_orbit
+
+@_interactive
+def getbeamstayclear(accelerator, closed_orbit=None):
+    # beta functions
+    twiss, *_ = calctwiss(accelerator, closed_orbit=closed_orbit)
+    betax, betay = gettwiss(twiss, ('betax', 'betay'))
+    # physical apertures
+    hmax = _lattice.getcellstruct(accelerator, 'hmax')
+    vmax = _lattice.getcellstruct(accelerator, 'vmax')
+    # calcs local linear acceptances
+    local_accepx = _np.array(hmax)**2 / betax
+    local_accepy = _np.array(vmax)**2 / betay
+    accepx, accepy = local_accepx.min(), local_accepy.min()
+    idx_accepx, idx_accepy = local_accepx.argmin(), local_accepy.argmin()
+    bscx, bscy = _np.sqrt(accepx * betax), _np.sqrt(accepy * betay)
+    return bscx, bscy, accepx, accepy, idx_accepx, idx_accepy, twiss, closed_orbit
