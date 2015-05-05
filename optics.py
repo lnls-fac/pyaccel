@@ -56,11 +56,16 @@ def gettwiss(twiss_list, attribute_list):
          Twiss parameter vectors:
             betax, betay = gettwiss(twiss, ('betax','betay'))
     """
+    if isinstance(attribute_list, str):
+        attribute_list = (attribute_list,)
     values = _np.zeros((len(attribute_list),len(twiss_list)))
     for i in range(len(twiss_list)):
         for j in range(len(attribute_list)):
             values[j,i] = getattr(twiss_list[i], attribute_list[j])
-    return values
+    if values.shape[0] == 1:
+        return values[0,:]
+    else:
+        return values
 
 
 @_interactive
