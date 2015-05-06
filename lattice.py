@@ -88,7 +88,7 @@ def findcells(lattice, attribute_name, value=None):
 
 
 @_interactive
-def getcellstruct(lattice, attribute_name, indices = None, m=None, n=None):
+def getattributelat(lattice, attribute_name, indices = None, m=None, n=None):
     """Return a list with requested lattice data"""
     if indices is None:
         indices = range(len(lattice))
@@ -115,7 +115,7 @@ def getcellstruct(lattice, attribute_name, indices = None, m=None, n=None):
 
 
 @_interactive
-def setcellstruct(lattice, attribute_name, indices, values):
+def setattributelat(lattice, attribute_name, indices, values):
     """ sets elements data and returns a new updated lattice """
     try:
         indices[0]

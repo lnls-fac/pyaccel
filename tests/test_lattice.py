@@ -68,39 +68,39 @@ class TestLattice(unittest.TestCase):
         for i in range(len(mia)):
             self.assertEqual(indices_mia[i], mia[i])
 
-    def test_getcellstruct(self):
-        length = pyaccel.lattice.getcellstruct(self.the_ring, 'length')
+    def test_getattributelat(self):
+        length = pyaccel.lattice.getattributelat(self.the_ring, 'length')
         self.assertAlmostEqual(sum(length),518.396)
 
-        fam_name = pyaccel.lattice.getcellstruct(self.the_ring, 'fam_name', range(20))
+        fam_name = pyaccel.lattice.getattributelat(self.the_ring, 'fam_name', range(20))
         for i in range(20):
             self.assertEqual(fam_name[i], self.the_ring[i].fam_name)
 
-        polynom_b = pyaccel.lattice.getcellstruct(self.the_ring,'polynom_b',range(20),m=1)
+        polynom_b = pyaccel.lattice.getattributelat(self.the_ring,'polynom_b',range(20),m=1)
         for i in range(20):
             self.assertEqual(polynom_b[i],self.the_ring[i].polynom_b[1])
 
-        r_in = pyaccel.lattice.getcellstruct(self.the_ring,'r_in',range(20),m=1,n=1)
+        r_in = pyaccel.lattice.getattributelat(self.the_ring,'r_in',range(20),m=1,n=1)
         for i in range(20):
             self.assertEqual(r_in[i],self.the_ring[i].r_in[1,1])
 
-    def test_setcellstruct(self):
-        self.the_ring = pyaccel.lattice.setcellstruct(self.the_ring, 'length', 1, 1)
+    def test_setattributelat(self):
+        self.the_ring = pyaccel.lattice.setattributelat(self.the_ring, 'length', 1, 1)
         self.assertEqual(self.the_ring[1].length, 1)
 
-        self.the_ring = pyaccel.lattice.setcellstruct(self.the_ring, 'fam_name', [1,2], ['test1','test2'])
+        self.the_ring = pyaccel.lattice.setattributelat(self.the_ring, 'fam_name', [1,2], ['test1','test2'])
         self.assertEqual(self.the_ring[1].fam_name, 'test1')
         self.assertEqual(self.the_ring[2].fam_name, 'test2')
 
-        self.the_ring = pyaccel.lattice.setcellstruct(self.the_ring, 'polynom_b', [1,2], [[1,1,1],[2,2,2]] )
+        self.the_ring = pyaccel.lattice.setattributelat(self.the_ring, 'polynom_b', [1,2], [[1,1,1],[2,2,2]] )
         self.assertEqual(self.the_ring[1].polynom_b[0], 1)
         self.assertEqual(self.the_ring[2].polynom_b[0], 2)
 
-        self.the_ring = pyaccel.lattice.setcellstruct(self.the_ring, 'polynom_b', [1,2], [[1,1,1]] )
+        self.the_ring = pyaccel.lattice.setattributelat(self.the_ring, 'polynom_b', [1,2], [[1,1,1]] )
         self.assertEqual(self.the_ring[1].polynom_b[0], 1)
         self.assertEqual(self.the_ring[2].polynom_b[0], 1)
 
-        self.the_ring = pyaccel.lattice.setcellstruct(self.the_ring, 'r_in', 1, [numpy.zeros((6,6))] )
+        self.the_ring = pyaccel.lattice.setattributelat(self.the_ring, 'r_in', 1, [numpy.zeros((6,6))] )
         self.assertEqual(self.the_ring[1].r_in[0,0], 0)
 
     def test_finddict(self):

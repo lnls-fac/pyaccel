@@ -92,6 +92,11 @@ def calctwiss(
 
     ''' calcs twiss at first element '''
     mx, my = m66[0:2,0:2], m66[2:4,2:4] # decoupled transfer matrices
+    trace_x, trace_y, *_ = gettraces(accelerator, m66 = m66, closed_orbit = closed_orbit)
+    if not (-2.0 < trace_x < 2.0):
+        raise OpticsException('horizontal dynamics is unstable')
+    if not (-2.0 < trace_y < 2.0):
+        raise OpticsException('vertical dynamics is unstable')
     sin_nux = _math.copysign(1,mx[0,1]) * _math.sqrt(-mx[0,1] * mx[1,0] - ((mx[0,0] - mx[1,1])**2)/4);
     sin_nuy = _math.copysign(1,my[0,1]) * _math.sqrt(-my[0,1] * my[1,0] - ((my[0,0] - my[1,1])**2)/4);
 
@@ -176,10 +181,11 @@ def getrevolutionfrequency(accelerator):
 
 
 @_interactive
-def gettraces(accelerator, closed_orbit = None):
+def gettraces(accelerator, m66 = None, closed_orbit = None):
     """Return traces of 6D one-turn transfer matrix"""
-    m66 = _tracking.findm66(accelerator,
-                            indices = 'm66', closed_orbit = closed_orbit)
+    if m66 is None:
+        m66 = _tracking.findm66(accelerator,
+                                indices = 'm66', closed_orbit = closed_orbit)
     trace_x = m66[0,0] + m66[1,1]
     trace_y = m66[2,2] + m66[3,3]
     trace_z = m66[4,4] + m66[5,5]
@@ -227,15 +233,20 @@ def getmcf(accelerator, order=1, energy_offset=None):
 
 
 @_interactive
-def getradiationintegrals(accelerator, closed_orbit=None):
-    tw, m66, transfer_matrices, closed_orbit = \
-        calctwiss(accelerator, closed_orbit=closed_orbit)
-    D_x, D_x_ = gettwiss(tw,('etax','etaxl'))
+def getradiationintegrals(accelerator=None,
+                          twiss=None,
+                          m66=None,
+                          transfer_matrices=None,
+                          closed_orbit=None):
+    if twiss is None or m66 is None or transfer_matrices is None:
+        twiss, m66, transfer_matrices, closed_orbit = \
+            calctwiss(accelerator, closed_orbit=closed_orbit)
+    D_x, D_x_ = gettwiss(twiss,('etax','etaxl'))
     gamma = _np.zeros(len(accelerator))
     integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     for i in range(len(accelerator)-1):
-        gamma[i] = (1 + tw[i].alphax**2) / tw[i].betax
-        gamma[i+1] = (1 + tw[i+1].alphax**2) / tw[i+1].betax
+        gamma[i] = (1 + twiss[i].alphax**2) / twiss[i].betax
+        gamma[i+1] = (1 + twiss[i+1].alphax**2) / twiss[i+1].betax
         if accelerator[i].angle != 0.0:
             rho = accelerator[i].length/accelerator[i].angle
             dispersion = 0.5*(D_x[i]+D_x[i+1])
@@ -246,11 +257,11 @@ def getradiationintegrals(accelerator, closed_orbit=None):
                 D_x[i]*_math.tan(accelerator[i].angle_in)/(rho**2) + \
                 (1 + 2*(rho**2)*accelerator[i].polynom_b[1])*(D_x[i]+D_x[i+1])*accelerator[i].length/(2*(rho**3)) + \
                 D_x[i+1]*_math.tan(accelerator[i].angle_out)/(rho**2)
-            H1 = tw[i].betax*D_x_[i]*D_x_[i] + 2*tw[i].alphax*D_x[i]*D_x_[i] + gamma[i]*D_x[i]*D_x[i];
-            H0 = tw[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*tw[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
+            H1 = twiss[i].betax*D_x_[i]*D_x_[i] + 2*twiss[i].alphax*D_x[i]*D_x_[i] + gamma[i]*D_x[i]*D_x[i];
+            H0 = twiss[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*twiss[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
             integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
             integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
-    return integrals, tw, m66, transfer_matrices, closed_orbit
+    return integrals, twiss, m66, transfer_matrices, closed_orbit
 
 
 @_interactive
@@ -304,7 +315,12 @@ def getnaturalbunchlength(accelerator):
     return bunchlength
 
 @_interactive
-def getequilibriumparameters(accelerator):
+def getequilibriumparameters(accelerator,
+                             twiss=None,
+                             m66=None,
+                             transfer_matrices=None,
+                             closed_orbit=None):
+
     c = _mp.constants.light_speed
     Cq = _mp.constants.Cq
     Ca = _mp.constants.Ca
@@ -321,7 +337,11 @@ def getequilibriumparameters(accelerator):
     compaction_factor = getmcf(accelerator)
     etac = gamma**(-2) - compaction_factor
 
-    integrals, *_ = getradiationintegrals(accelerator)
+    integrals, *_ = getradiationintegrals(accelerator,
+                                          twiss,
+                                          m66,
+                                          transfer_matrices,
+                                          closed_orbit)
 
     damping = _np.zeros(3)
     damping[0] = 1.0 - integrals[3]/integrals[1]
