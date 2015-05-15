@@ -34,10 +34,7 @@ class Twiss:
         r += 'etaxl     : ' + '{0:+10.3e}'.format(self.etaxl) + '\n'
         r += 'muy       : ' + '{0:+10.3e}'.format(self.muy) + '\n'
         r += 'betay     : ' + '{0:+10.3e}'.format(self.betay) + '\n'
-        r += 'alphay    : ' + '{0:+10.3e}'.format(self.alphay) + '\n'
-        r += 'etay      : ' + '{0:+10.3e}'.format(self.etay) + '\n'
-        r += 'etayl     : ' + '{0:+10.3e}'.format(self.etayl) + '\n'
-        return r
+        r += 'alphay    : ' + '{0:+10.3e}'.formatexcep
 
 
 @_interactive
@@ -192,9 +189,10 @@ def gettraces(accelerator, m66 = None, closed_orbit = None):
     return trace_x, trace_y, trace_z, m66, closed_orbit
 
 @_interactive
-def getfractunes(accelerator, closed_orbit = None):
+def getfractunes(accelerator, m66 = None, closed_orbit = None):
     """Return fractional tunes of the accelerator"""
     trace_x, trace_y, trace_z, m66, closed_orbit = gettraces(accelerator,
+                                                   m66 = m66,
                                                    closed_orbit = closed_orbit)
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
