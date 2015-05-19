@@ -3,6 +3,7 @@ import numpy as _numpy
 import mathphys as _mp
 import trackcpp as _trackcpp
 import pyaccel as _pyaccel
+import math as _math
 from pyaccel.utils import interactive as _interactive
 
 
@@ -266,6 +267,77 @@ def refine_lattice(accelerator,
             new_accelerator.append(acc[i])
 
     return new_accelerator
+
+
+@_interactive
+def add_error_misalignment_x(lattice, indices, values):
+    """Add horizontal misalignment errors to lattice"""
+
+    ''' processes arguments '''
+    indices, values = _process_args_errors(indices, values)
+
+    ''' loops over elements and sets its T1 and T2 fields '''
+    for i in range(indices.shape[0]):
+        error = values[i]
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            lattice[index].t_in[0]  -=  values[i]
+            lattice[index].t_out[0] -= -values[i]
+
+    return lattice
+
+@_interactive
+def add_error_misalignment_y(lattice, indices, values):
+    """Add vertical misalignment errors to lattice"""
+
+    ''' processes arguments '''
+    indices, values = _process_args_errors(indices, values)
+
+    ''' loops over elements and sets its T1 and T2 fields '''
+    for i in range(indices.shape[0]):
+        error = values[i]
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            lattice[index].t_in[2]  -=  values[i]
+            lattice[index].t_out[2] -= -values[i]
+
+    return lattice
+
+@_interactive
+def add_error_rotation_roll(lattice, indices, values):
+    """Add roll rotation errors to lattice"""
+
+    ''' processes arguments '''
+    indices, values = _process_args_errors(indices, values)
+
+    ''' loops over elements and sets its T1 and T2 fields '''
+    for i in range(indices.shape[0]):
+        c, s = _math.cos(values[i]), _math.sin(values[i])
+        rot = _numpy.diag([c,c,c,c,1.0,1.0])
+        rot[0,2], rot[1,3], rot[2,0], rot[3,1] = s, s, -s, -s
+
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            if lattice[index].angle != 0 and lattice[index].length != 0:
+                rho    = lattice[index].length / lattice[index].angle
+                orig_s = lattice[index].polynom_a[0] * rho
+                orig_c = lattice[index].polynom_b[0] * rho + 1.0  # look at bndpolysymplectic4pass
+                lattice[index].polynom_a[0] = (orig_s * c + orig_c * s) / rho     # sin(teta)/rho
+                lattice[index].polynom_b[0] = ((orig_c*c - orig_s*s) - 1.0) / rho # (cos(teta)-1)/rho
+            else:
+                lattice[index].r_in  = _numpy.dot(rot, lattice[index].r_in)
+                lattice[index].r_out = _numpy.dot(lattice[index].r_out, rot.transpose())
+    return lattice
+
+
+def _process_args_errors(indices, values):
+    if isinstance(indices,int):
+        indices = _numpy.array([[indices]])
+    elif len(indices) == 1:
+        indices = _numpy.array([indices]).transpose()
+    if isinstance(values,(int,float)):
+        values = values * _numpy.ones(indices.shape[0])
+    return indices, values
 
 
 def _is_equal(a,b):

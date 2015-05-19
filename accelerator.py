@@ -1,4 +1,5 @@
 
+import numpy as _np
 import trackcpp as _trackcpp
 import pyaccel.lattice as _lattice
 import pyaccel.elements as _elements
@@ -65,8 +66,8 @@ class Accelerator(object):
         object.__setattr__(self, key, value)
 
     def __delitem__(self, index):
-        if isinstance(index,int):
-            self._accelerator.lattice.erase(self._accelerator.lattice.begin() + index);
+        if isinstance(index,(int,_np.int_)):
+            self._accelerator.lattice.erase(self._accelerator.lattice.begin() + int(index));
         elif isinstance(index, (list,tuple)):
             for i in index:
                 self._accelerator.lattice.erase(self._accelerator.lattice.begin() + i);
@@ -77,8 +78,8 @@ class Accelerator(object):
                 self._accelerator.lattice.erase(self._accelerator.lattice.begin() + i);
 
     def __getitem__(self, index):
-        if isinstance(index,int):
-            return _elements.Element(element=self._accelerator.lattice[index])
+        if isinstance(index,(int,_np.int_)):
+            return _elements.Element(element=self._accelerator.lattice[int(index)])
         elif isinstance(index, (list,tuple)):
             lattice = _trackcpp.CppElementVector()
             for i in index:
@@ -98,8 +99,8 @@ class Accelerator(object):
 
     def __setitem__(self, index, value):
 
-        if isinstance(index,int):
-            self._accelerator.lattice[index] = value._e
+        if isinstance(index,(int,_np.int_)):
+            self._accelerator.lattice[int(index)] = value._e
         elif isinstance(index, (list, tuple)):
             if isinstance(value, (list,tuple)):
                 for i in range(len(value)):

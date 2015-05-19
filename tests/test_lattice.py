@@ -54,7 +54,7 @@ class TestLattice(unittest.TestCase):
         self.assertEqual(len(lattice), len(self.the_ring))
         self.assertEqual(lattice[0].fam_name, fam_name)
 
-    @unittest.skip("long test")
+    #@unittest.skip("long test")
     def test_findcells(self):
         indices_pb = pyaccel.lattice.findcells(self.the_ring, 'polynom_b')
         self.assertEqual(len(indices_pb),len(self.the_ring))
