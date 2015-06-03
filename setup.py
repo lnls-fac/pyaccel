@@ -34,10 +34,5 @@ setup(
     ],
     packages=['pyaccel'],
     package_data={'pyaccel': ['VERSION']},
-
-    # install_requires=[
-    #     'numpy>=1.8.2',
-    #     'mathphys>=0.1.0',
-    # ],
-    # dependency_links=['https://github.com/lnls-fac/mathphys/archive/v0.1.0.tar.gz#egg=mathphys-0.1.0']
+    zip_safe=False
 )
