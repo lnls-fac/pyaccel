@@ -270,6 +270,41 @@ def refine_lattice(accelerator,
 
 
 @_interactive
+def get_error_misalignment_x(lattice, indices):
+    """Set horizontal misalignment errors to lattice"""
+
+    ''' processes arguments '''
+    indices, *_ = _process_args_errors(indices, 0.0)
+
+    ''' loops over elements and gets error from T_IN '''
+    values = []
+    for i in range(indices.shape[0]):
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            values.append(-lattice[index].t_in[0])
+    if len(values) == 1:
+        return values[0]
+    else:
+        return values
+
+@_interactive
+def set_error_misalignment_x(lattice, indices, values):
+    """Set horizontal misalignment errors to lattice"""
+
+    ''' processes arguments '''
+    indices, values = _process_args_errors(indices, values)
+
+    ''' loops over elements and sets its T1 and T2 fields '''
+    for i in range(indices.shape[0]):
+        error = values[i]
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            lattice[index].t_in[0]  =  -values[i]
+            lattice[index].t_out[0] =  +values[i]
+
+    return lattice
+
+@_interactive
 def add_error_misalignment_x(lattice, indices, values):
     """Add horizontal misalignment errors to lattice"""
 
@@ -285,6 +320,42 @@ def add_error_misalignment_x(lattice, indices, values):
             lattice[index].t_out[0] -= -values[i]
 
     return lattice
+
+@_interactive
+def get_error_misalignment_y(lattice, indices):
+    """Set horizontal misalignment errors to lattice"""
+
+    ''' processes arguments '''
+    indices, *_ = _process_args_errors(indices, 0.0)
+
+    ''' loops over elements and gets error from T_IN '''
+    values = []
+    for i in range(indices.shape[0]):
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            values.append(-lattice[index].t_in[2])
+    if len(values) == 1:
+        return values[0]
+    else:
+        return values
+
+@_interactive
+def set_error_misalignment_y(lattice, indices, values):
+    """Set vertical misalignment errors to lattice"""
+
+    ''' processes arguments '''
+    indices, values = _process_args_errors(indices, values)
+
+    ''' loops over elements and sets its T1 and T2 fields '''
+    for i in range(indices.shape[0]):
+        error = values[i]
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            lattice[index].t_in[2]  =  -values[i]
+            lattice[index].t_out[2] =  +values[i]
+
+    return lattice
+
 
 @_interactive
 def add_error_misalignment_y(lattice, indices, values):
