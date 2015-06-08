@@ -235,8 +235,12 @@ class Element(object):
     _r_valid_types = (_numpy.ndarray, )
 
     def __init__(self, **kwargs):
+        copy = kwargs.get('copy',False)
         if 'element' in kwargs:
-            self._e = kwargs['element']
+            if copy:
+                self._e = _trackcpp.Element(kwargs['element']._e)
+            else:
+                self._e = kwargs['element']
         else:
             fam_name = kwargs.get('fam_name', "")
             length = kwargs.get('length', 0.0)
