@@ -243,12 +243,12 @@ def refine_lattice(accelerator,
                     length  = acc[i].length
                     angle   = acc[i].angle
 
-                    e     = _pyaccel.elements.Element(element = acc[i]._e)
-                    e_in  = _pyaccel.elements.Element(element = acc[i]._e)
-                    e_out = _pyaccel.elements.Element(element = acc[i]._e)
+                    e     = _pyaccel.elements.Element(element = acc[i], copy = True)
+                    e_in  = _pyaccel.elements.Element(element = acc[i], copy = True)
+                    e_out = _pyaccel.elements.Element(element = acc[i], copy = True)
 
                     e_in.angle_out, e.angle_out, e.angle_in, e_out.angle_in = 4*(0,)
-                    e_in.length, e_length, e_out.length = 3*(length/nr_segs,)
+                    e_in.length, e.length, e_out.length = 3*(length/nr_segs,)
                     e_in.angle, e.angle, e_out.angle = 3*(angle/nr_segs,)
 
                     new_accelerator.append(e_in)
@@ -260,6 +260,7 @@ def refine_lattice(accelerator,
                 else:
                     e = _pyaccel.elements.Element(element = acc[i]._e)
                     e.length = e.length / nr_segs
+                    e.angle  = e.angle / nr_segs
                     for k in range(nr_segs):
                         new_accelerator.append(e)
 
