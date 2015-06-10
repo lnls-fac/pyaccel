@@ -22,6 +22,14 @@ _COLOURS = {
 def plottwiss(accelerator, twiss=None, offset=None, height=1.0,
             draw_edges=False, family_data=None, family_mapping=None,
             colours=None, selection=None):
+    """Plot Twiss parameters and draw lattice.
+
+    Keyword arguments:
+    accelerator -- Accelerator instance
+    twiss -- Twiss parameters (output from pyaccel.optics.calctwiss)
+    For the other arguments, see drawlattice documentation.
+
+    Raises RuntimeError"""
     if twiss is None:
         twiss = _pyaccel.optics.calctwiss(accelerator)
 
@@ -31,7 +39,7 @@ def plottwiss(accelerator, twiss=None, offset=None, height=1.0,
     )
 
     _pyplot.plot(spos, betax, spos, betay)
-    
+
     drawlattice(accelerator, offset, height, draw_edges, family_data,
         family_mapping, colours, selection, gca=True)
 
@@ -67,7 +75,7 @@ def drawlattice(lattice, offset=None, height=1.0, draw_edges=False,
     fig -- matplotlib Figure object
     ax -- matplotlib AxesSubplot object
 
-    Raises LatticeError
+    Raises RuntimeError
     """
     if selection is None:
         selection = [
@@ -173,7 +181,7 @@ class _LatticeDrawer(object):
         else:
             # family_data is not None; we need a family_mapping to proceed
             if family_mapping is None:
-                raise LatticeError('missing family_mapping argument')
+                raise RuntimeError('missing family_mapping argument')
 
             for key in family_mapping.keys():
                 et = family_mapping[key]
