@@ -19,35 +19,89 @@ _COLOURS = {
 
 
 @_interactive
-def plottwiss(accelerator, twiss=None, offset=None, height=1.0,
-            draw_edges=False, family_data=None, family_mapping=None,
-            colours=None, selection=None):
+def plottwiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
+        offset=None, height=1.0, draw_edges=False, family_data=None,
+        family_mapping=None, colours=None, selection=None, symmetry=None,
+        gca=False):
     """Plot Twiss parameters and draw lattice.
 
     Keyword arguments:
     accelerator -- Accelerator instance
     twiss -- Twiss parameters (output from pyaccel.optics.calctwiss)
+    plot_eta -- Plot dispersion (default: True)
+    draw_lattice -- Add lattice drawing (default: True)
     For the other arguments, see drawlattice documentation.
 
     Raises RuntimeError"""
     if twiss is None:
         twiss = _pyaccel.optics.calctwiss(accelerator)
 
-    spos, betax, betay = _pyaccel.optics.gettwiss(
+    spos, betax, betay, etax = _pyaccel.optics.gettwiss(
         twiss[0],
-        ('spos', 'betax', 'betay')
+        ('spos', 'betax', 'betay', 'etax')
     )
 
-    _pyplot.plot(spos, betax, spos, betay)
+    if symmetry is not None:
+        max_length = accelerator.length/symmetry
+        s = 0
+        for i in range(len(accelerator)):
+            s += accelerator[i].length
+            if s >= max_length:
+                break
 
-    drawlattice(accelerator, offset, height, draw_edges, family_data,
-        family_mapping, colours, selection, gca=True)
+        accelerator = accelerator[:i]
+        spos = spos[:i+1]
+        betax = betax[:i+1]
+        betay = betay[:i+1]
+        etax = etax[:i+1]
+
+    is_interactive = _pyplot.isinteractive()
+    _pyplot.interactive(False)
+
+    if gca:
+        fig = _pyplot.gcf()
+        ax = _pyplot.gca()
+    else:
+        fig, ax = _pyplot.subplots()
+
+    _pyplot.plot(spos, betax, spos, betay)
+    _pyplot.xlabel('s [m]')
+    _pyplot.ylabel('$\\beta$ [m]')
+    if draw_lattice:
+        _, y_max = _pyplot.ylim()
+
+    legend = ax.legend(('$\\beta_x$', '$\\beta_y$'))
+
+    if plot_eta:
+        eta_ax = ax.twinx()
+        eta_colour = 'red'
+        eta_ax.plot(spos, etax, color=eta_colour)
+        eta_ax.set_ylabel('$\\eta_x$ [m]', color=eta_colour)
+        eta_ax.spines['right'].set_color(eta_colour)
+        eta_ax.tick_params(axis='y', colors=eta_colour)
+        eta_ax.add_artist(legend)
+        ax.legend = None
+        _pyplot.sca(ax)
+
+    if draw_lattice:
+        fig, ax = drawlattice(accelerator, offset, height, draw_edges,
+            family_data, family_mapping, colours, selection, gca=True)
+
+    if is_interactive:
+        if draw_lattice:
+            y_min, _ = _pyplot.ylim()
+            _pyplot.ylim(y_min, y_max)
+        _pyplot.interactive(True)
+        _pyplot.draw()
+        _pyplot.show()
+
+    return fig, ax
 
 
 @_interactive
 def drawlattice(lattice, offset=None, height=1.0, draw_edges=False,
         family_data=None, family_mapping=None, colours=None, selection=None,
-        gca=False):
+        symmetry=None, gca=False):
     """Draw lattice elements along longitudinal position
 
     Keyword arguments:
@@ -69,6 +123,7 @@ def drawlattice(lattice, offset=None, height=1.0, draw_edges=False,
         'skew_quadrupole'
         'bpm'
         'magnets' (equivalent to 'dipole', 'quadrupole' and 'sextupole')
+    symmetry -- lattice symmetry (draw only one period)
     gca -- use current pyplot Axes instance (default: False)
 
     Returns:
@@ -123,6 +178,17 @@ def drawlattice(lattice, offset=None, height=1.0, draw_edges=False,
         if offset is None:
             offset = 0.0
 
+    if symmetry is not None:
+        max_length = lattice.length/symmetry
+        s = 0
+        for i in range(len(lattice)):
+            s += lattice[i].length
+            if s >= max_length:
+                break
+
+        lattice = lattice[:i]
+
+
     line = _lines.Line2D([0, lattice.length], [offset, offset],
         color='#444444', linewidth=1)
     line.set_zorder(0)
@@ -137,15 +203,14 @@ def drawlattice(lattice, offset=None, height=1.0, draw_edges=False,
     for s in selection:
         ax.add_collection(drawer.patch_collections[s])
 
-    if not is_interactive:
-        return fig, ax
-    else:
+    if is_interactive:
         if gca:
             _pyplot.ylim(offset-height, y_max)
         _pyplot.interactive(True)
         _pyplot.draw()
         _pyplot.show()
-        return fig, ax
+
+    return fig, ax
 
 
 class _LatticeDrawer(object):
