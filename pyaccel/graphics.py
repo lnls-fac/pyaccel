@@ -13,8 +13,9 @@ _COLOURS = {
     'sextupole': '#89ac76',
     'corrector': '#bbbbbb',
     'skew_quadupole': '#aa1b1b',
-    'coil': '#641b1b',
-    'bpm': '#111111'
+    'coil': '#444444',
+    'bpm': '#444444',
+    'vacuum_chamber': '#444444'
 }
 
 
@@ -190,7 +191,7 @@ def drawlattice(lattice, offset=None, height=1.0, draw_edges=False,
 
 
     line = _lines.Line2D([0, lattice.length], [offset, offset],
-        color='#444444', linewidth=1)
+        color=_COLOURS['vacuum_chamber'], linewidth=1)
     line.set_zorder(0)
     ax.add_line(line)
 
@@ -352,11 +353,11 @@ class _LatticeDrawer(object):
         elif element_type == 'fast_corrector':
             pass
         elif element_type == 'slow_horizontal_corrector':
-            r1, r2 = self._get_slow_horizontal_corrector(element, pos)
-            self._slow_corrector_coil_patches.extend([r1, r2])
+            r = self._get_slow_horizontal_corrector(element, pos)
+            self._slow_corrector_coil_patches.append(r)
         elif element_type == 'slow_vertical_corrector':
-            r1, r2 = self._get_slow_vertical_corrector(element, pos)
-            self._slow_corrector_coil_patches.extend([r1, r2])
+            r = self._get_slow_vertical_corrector(element, pos)
+            self._slow_corrector_coil_patches.append(r)
         elif element_type == 'skew_quadrupole':
             r = self._get_skew_quadrupole(element, pos)
             self._skew_quadrupole_coil_patches.append(r)
@@ -392,25 +393,21 @@ class _LatticeDrawer(object):
     def _get_slow_horizontal_corrector(self, element, pos):
         w = element.length + 2*self._coil_length
         h = self._height/10
-        c1 = (pos-self._coil_length, self._offset+4*self._height/10)
-        c2 = (pos-self._coil_length, self._offset-5*self._height/10)
-        r1 = _patches.Rectangle(xy=c1, width=w, height=h)
-        r2 = _patches.Rectangle(xy=c2, width=w, height=h)
-        return r1, r2
+        corner = (pos-self._coil_length, self._offset+4*self._height/10)
+        r = _patches.Rectangle(xy=corner, width=w, height=h)
+        return r
 
     def _get_slow_vertical_corrector(self, element, pos):
         w = element.length + 2*self._coil_length
         h = self._height/10
-        c1 = (pos-self._coil_length, self._offset+2*self._height/10)
-        c2 = (pos-self._coil_length, self._offset-3*self._height/10)
-        r1 = _patches.Rectangle(xy=c1, width=w, height=h)
-        r2 = _patches.Rectangle(xy=c2, width=w, height=h)
-        return r1, r2
+        corner = (pos-self._coil_length, self._offset-5*self._height/10)
+        r = _patches.Rectangle(xy=corner, width=w, height=h)
+        return r
 
     def _get_skew_quadrupole(self, element, pos):
         w = element.length + 2*self._coil_length
-        h = 2*self._height/10
-        corner = (pos-self._coil_length, self._offset+-1*self._height/10)
+        h = self._height/10
+        corner = (pos-self._coil_length, self._offset+-1*self._height/20)
         r = _patches.Rectangle(xy=corner, width=w, height=h)
         return r
 
