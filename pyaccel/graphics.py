@@ -262,6 +262,8 @@ class _LatticeDrawer(object):
                     indices = family_data[key]['index']
 
                 for i in indices:
+                    if i > len(lattice):
+                        break
                     self._create_element_patch(lattice[i], pos[i], et)
 
         ec = 'black'
