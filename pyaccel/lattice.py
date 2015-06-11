@@ -1,22 +1,10 @@
 
 import math as _math
 import numpy as _numpy
-import matplotlib.pyplot as _pyplot
-import matplotlib.collections as _collections
-import matplotlib.patches as _patches
 import mathphys as _mp
 import trackcpp as _trackcpp
 import pyaccel as _pyaccel
 from pyaccel.utils import interactive as _interactive
-
-
-_COLOURS = {
-    'dipole': '#3b83bd',
-    'quadrupole': '#f75e25',
-    'sextupole': '#89ac76',
-    'corrector': '#cccccc',
-    'coil': '#641b1b'
-}
 
 
 class LatticeError(Exception):
@@ -415,73 +403,6 @@ def add_error_rotation_roll(lattice, indices, values):
     return lattice
 
 
-@_interactive
-def draw_lattice(lattice, offset=0.0, height=1.0, draw_edges=False,
-        family_data=None, family_mapping=None, colours=None,
-        selection='magnets'):
-    """Draw lattice elements along longitudinal position
-
-    Keyword arguments:
-    lattice -- Accelerator or Element list
-    offset -- Element center vertical offset
-    height -- Element height
-    draw_edges -- If True, draw element edges in black
-    family_data -- dict with family data; if supplied, family_mapping must also
-        be passed
-    family_mapping -- dict with mapping from family names to element types
-    colours -- dict with element colours
-    selection -- string or list of strings with element selection to be drawn;
-        valid single string options are:
-            'magnets': the same as ['dipole', 'quadrupole', 'sextupole']
-            'all': draw all elements
-        in lists, options are:
-            'dipole'
-            'quadrupole'
-            'sextupole'
-            'corrector'
-            'bpm'
-
-    Returns:
-    fig -- matplotlib Figure object
-    ax -- matplotlib AxesSubplot object
-
-    Raises LatticeError
-    """
-    if isinstance(selection, str):
-        if selection == 'magnets':
-            selection = ['dipole', 'quadrupole', 'sextupole']
-        elif selection == 'all':
-            selection = [
-                'dipole',
-                'quadrupole',
-                'sextupole',
-                'corrector',
-                'bpm'
-            ]
-        else:
-            raise LatticeError("invalid selection: '" + selection + "'")
-
-    is_interactive = _pyplot.isinteractive()
-    _pyplot.interactive(False)
-
-    fig, ax = _pyplot.subplots()
-    drawer = _LatticeDrawer(lattice, offset, height, draw_edges, family_data,
-        family_mapping, colours)
-
-    ax.set_xlim(0, lattice.length)
-    ax.set_ylim(offset-height, offset+19*height)
-
-    for s in selection:
-        ax.add_collection(drawer.patch_collections[s])
-
-    if not is_interactive:
-        return fig, ax
-    else:
-        _pyplot.interactive(is_interactive)
-        fig.show()
-        return fig, ax
-
-
 def _process_args_errors(indices, values):
     if isinstance(indices,int):
         indices = _numpy.array([[indices]])
@@ -530,114 +451,3 @@ def _is_equal(a,b):
         except:
             # neither 'a' nor 'b' are iterables
             return a == b
-
-
-class _LatticeDrawer(object):
-
-    def __init__(self, lattice, offset, height, draw_edges, family_data,
-            family_mapping, colours):
-        self._offset = offset
-        self._height = height
-
-        if colours is None:
-            colours = _COLOURS
-
-        self._dipole_patches = []
-        self._quadrupole_patches = []
-        self._sextupole_patches = []
-        self._bpm_patches = []
-        self._corrector_patches = []
-
-        pos = findspos(lattice)
-
-        if family_data is None:
-            # Guess element type; draw only magnetic lattice
-            for i in range(len(lattice)):
-                self._create_element_patch(lattice[i], pos[i])
-        else:
-            # family_data is not None; we need a family_mapping to proceed
-            if family_mapping is None:
-                raise LatticeError('missing family_mapping argument')
-
-            for key in family_mapping.keys():
-                et = family_mapping[key]
-
-                # Flatten index list for segmented elements, if necessary
-                if 'nr_segs' in family_data:
-                    indices = []
-                    for v in family_data['index']:
-                        for j in v:
-                            indices.append(j)
-                else:
-                    indices = family_data['index']
-
-                for i in indices:
-                    self._create_element_patch(element[i], pos[i], et)
-
-        ec = 'black'
-        self.patch_collections = {
-            'dipole': _collections.PatchCollection(
-                self._dipole_patches,
-                edgecolor=(ec if draw_edges else colours['dipole']),
-                facecolor=colours['dipole']
-            ),
-            'quadrupole': _collections.PatchCollection(
-                self._quadrupole_patches,
-                edgecolor=(ec if draw_edges else colours['quadrupole']),
-                facecolor=colours['quadrupole']
-            ),
-            'sextupole': _collections.PatchCollection(
-                self._sextupole_patches,
-                edgecolor=(ec if draw_edges else colours['sextupole']),
-                facecolor=colours['sextupole']
-            ),
-        }
-
-    def _create_element_patch(self, element, pos, element_type=None):
-        if element_type is None:
-            element_type = self._guess_element_type(element)
-
-        if element_type in ('marker', 'drift'):
-            pass
-        elif element_type == 'dipole':
-            r = self._get_rectangle(element, pos)
-            self._dipole_patches.append(r)
-        elif element_type == 'quadrupole':
-            r = self._get_rectangle(element, pos)
-            self._quadrupole_patches.append(r)
-        elif element_type == 'sextupole':
-            r = self._get_rectangle(element, pos)
-            self._sextupole_patches.append(r)
-        elif element_type == 'bpm':
-            pass
-        elif element_type == 'horizontal_corrector':
-            pass
-        elif element_type == 'vertical_corrector':
-            pass
-        elif element_type == 'fast_corrector':
-            pass
-        else:
-            pass
-
-    def _guess_element_type(self, element):
-        if element.pass_method == 'identity_pass':
-            return 'marker'
-        elif element.pass_method == 'drift_pass':
-            return 'drift'
-        elif element.angle != 0:
-            return 'dipole'
-        elif element.polynom_b[1] != 0:
-            return 'quadrupole'
-        elif element.polynom_b[2] != 0:
-            return 'sextupole'
-        else:
-            return 'unknown'
-
-    def _get_rectangle(self, element, pos):
-        corner = (pos, self._offset-self._height/2)
-        rectangle = _patches.Rectangle(
-            xy=corner,
-            width=element.length,
-            height=self._height,
-        )
-        return rectangle

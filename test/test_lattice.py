@@ -114,7 +114,8 @@ class TestLattice(unittest.TestCase):
 class TestFlatFile(unittest.TestCase):
 
     def setUp(self):
-        filename = os.path.join(pyaccel.__path__[0], 'tests', 'flatfile.txt')
+        self.test_dir = os.path.join(pyaccel.__path__[0], '..', 'test')
+        filename = os.path.join(self.test_dir, 'flatfile.txt')
         self.a = pyaccel.lattice.read_flat_file(filename)
 
     def test_read_flat_file(self):
@@ -137,7 +138,7 @@ class TestFlatFile(unittest.TestCase):
         self.a.energy = 1.5e9
         self.a[1].t_in = t
         self.a[1].t_out = -t
-        filename = os.path.join(pyaccel.__path__[0], 'tests', 'flatfile2.txt')
+        filename = os.path.join(self.test_dir, 'flatfile2.txt')
         pyaccel.lattice.write_flat_file(self.a, filename)
         a = pyaccel.lattice.read_flat_file(filename)
 
