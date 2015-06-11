@@ -217,16 +217,14 @@ class _LatticeDrawer(object):
 
     def __init__(self, lattice, offset, height, draw_edges, family_data,
             family_mapping, colours):
-        self._bpm_length = 0.1
-
-        self._coil_height_factor = 0.1
-        self._bpm_height_factor = 0.1
+        self._bpm_length = 0.10
 
         self._offset = offset
         self._height = height
 
-        self._coil_height = self._coil_height_factor*height
-        self._bpm_height = self._bpm_height_factor*height
+        self._fast_corrector_height = 0.42*height
+        self._coil_height = 0.10*height
+        self._bpm_height = 0.10*height
 
         if colours is None:
             colours = _COLOURS
@@ -342,35 +340,35 @@ class _LatticeDrawer(object):
         if element_type in ('marker', 'drift'):
             pass
         elif element_type == 'dipole':
-            r = self._get_magnet(element, pos)
+            r = self._get_magnet_core(element, pos)
             self._dipole_patches.append(r)
         elif element_type == 'quadrupole':
-            r = self._get_magnet(element, pos)
+            r = self._get_magnet_core(element, pos)
             self._quadrupole_patches.append(r)
         elif element_type == 'sextupole':
-            r = self._get_magnet(element, pos)
+            r = self._get_magnet_core(element, pos)
             self._sextupole_patches.append(r)
         elif element_type == 'fast_horizontal_corrector':
-            r1 = self._get_magnet(element, pos)
+            r1 = self._get_corrector_core(element, pos)
             self._fast_corrector_core_patches.append(r1)
-            r2 = self._get_horizontal_corrector_coil(element, pos)
+            r2 = self._get_fast_horizontal_corrector_coil(element, pos)
             self._fast_corrector_coil_patches.append(r2)
         elif element_type == 'fast_vertical_corrector':
-            r1 = self._get_magnet(element, pos)
+            r1 = self._get_corrector_core(element, pos)
             self._fast_corrector_core_patches.append(r1)
-            r2 = self._get_vertical_corrector_coil(element, pos)
+            r2 = self._get_fast_vertical_corrector_coil(element, pos)
             self._fast_corrector_coil_patches.append(r2)
         elif element_type == 'fast_corrector':
-            r1 = self._get_magnet(element, pos)
+            r1 = self._get_corrector_core(element, pos)
             self._fast_corrector_core_patches.append(r1)
-            r2 = self._get_horizontal_corrector_coil(element, pos)
-            r3 = self._get_vertical_corrector_coil(element, pos)
+            r2 = self._get_fast_horizontal_corrector_coil(element, pos)
+            r3 = self._get_fast_vertical_corrector_coil(element, pos)
             self._fast_corrector_coil_patches.extend([r2, r3])
         elif element_type == 'slow_horizontal_corrector':
-            r = self._get_horizontal_corrector_coil(element, pos)
+            r = self._get_slow_horizontal_corrector_coil(element, pos)
             self._slow_corrector_coil_patches.append(r)
         elif element_type == 'slow_vertical_corrector':
-            r = self._get_vertical_corrector_coil(element, pos)
+            r = self._get_slow_vertical_corrector_coil(element, pos)
             self._slow_corrector_coil_patches.append(r)
         elif element_type == 'skew_quadrupole':
             r = self._get_skew_quadrupole(element, pos)
@@ -395,7 +393,7 @@ class _LatticeDrawer(object):
         else:
             return 'unknown'
 
-    def _get_magnet(self, element, pos):
+    def _get_magnet_core(self, element, pos):
         corner = (pos, self._offset-self._height/2)
         r = _patches.Rectangle(
             xy=corner,
@@ -404,16 +402,35 @@ class _LatticeDrawer(object):
         )
         return r
 
-    def _get_horizontal_corrector_coil(self, element, pos):
-        corner = (pos, self._offset+4*self._coil_height)
+    def _get_corrector_core(self, element, pos):
+        corner = (pos, self._offset-self._fast_corrector_height/2)
+        r = _patches.Rectangle(
+            xy=corner,
+            width=element.length,
+            height=self._fast_corrector_height,
+        )
+        return r
+
+    def _get_slow_horizontal_corrector_coil(self, element, pos):
+        corner = (pos, self._offset+self._height/2-self._coil_height)
         return self._get_coil(element, corner)
 
-    def _get_vertical_corrector_coil(self, element, pos):
-        corner = (pos, self._offset-5*self._coil_height)
+    def _get_slow_vertical_corrector_coil(self, element, pos):
+        corner = (pos, self._offset-self._height/2)
+        return self._get_coil(element, corner)
+
+    def _get_fast_horizontal_corrector_coil(self, element, pos):
+        y = self._offset + self._fast_corrector_height/2 - self._coil_height
+        corner = (pos, y)
+        return self._get_coil(element, corner)
+
+    def _get_fast_vertical_corrector_coil(self, element, pos):
+        y = self._offset - self._fast_corrector_height/2
+        corner = (pos, y)
         return self._get_coil(element, corner)
 
     def _get_skew_quadrupole(self, element, pos):
-        corner = (pos, self._offset+-self._coil_height/2)
+        corner = (pos, self._offset-self._coil_height/2)
         return self._get_coil(element, corner)
 
     def _get_coil(self, element, corner):
