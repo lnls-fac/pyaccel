@@ -37,6 +37,17 @@ class Twiss:
         r += 'alphay    : ' + '{0:+10.3e}'.format(self.alphay)
         return r
 
+    def make_copy(self):
+        n = Twiss()
+        n.spos = self.spos
+        n.corx, n.copx = self.corx, self.copx
+        n.cory, n.copy = self.cory, self.copy
+        n.code, n.codl = self.code, self.codl
+        n.etax, n.etaxl = self.etax, self.etaxl
+        n.etay, n.etayl = self.etay, self.etayl
+        n.mux, n.betax, n.alphax = self.mux, self.betax, self.alphax
+        n.muy, n.betay, n.alphay = self.muy, self.betay, self.alphay
+        return n
 
 @_interactive
 def set_twiss_in( spos = 0, orbit = [0,0,0,0,0,0], mu=[0,0], alpha=[None,None], beta=[None,None], eta=[0,0], etal=[0,0]):
@@ -79,57 +90,40 @@ def gettwiss(twiss_list, attribute_list):
         return values
 
 @_interactive
-def calctwiss(
-        accelerator=None,
-        indices=None,
-        closed_orbit=None,
-        twiss_in=None,
-        refine_lattice=False):
+def calctwiss( accelerator=None, twiss_in=None):
     """Return Twiss parameters of uncoupled dynamics."""
 
-    if refine_lattice:
-        new_accelerator = _lattice.refine_lattice(accelerator)
-    else:
-        new_accelerator = accelerator[:]
-
-    ''' process arguments '''
-    if indices is None:
-        indices = range(len(new_accelerator))
-
-    try:
-        indices[0]
-    except:
-        indices = [indices]
-
     if twiss_in is not None:
-        if closed_orbit is None:
-            new_accelerator.radiation_on = True
-            closed_orbit = _tracking.linepass(new_accelerator, particles = [0,0,0,0,0,0], indices = 'open')[0]
+        fix_point = [twiss_in.corx, twiss_in.copx, twiss_in.cory, twiss_in.copy, twiss_in.code, twiss_in.codl]
+        closed_orbit = _tracking.linepass(accelerator, fix_point, indices = 'open')[0]
 
-        m66, transfer_matrices, *_ = _tracking.findm66(new_accelerator, closed_orbit = closed_orbit )
+        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit )
         mx, my = m66[0:2,0:2], m66[2:4,2:4]
         t = twiss_in
+        t.etax = _np.array([[t.etax], [t.etaxl]])
+        t.etay = _np.array([[t.etay], [t.etayl]])
 
     else:
-        if closed_orbit is None:
-            try:
-                _tracking.set6dtracking(new_accelerator)
-            except:
-                raise OpticsException('Either harmonic number was not set or calctwiss was invoked for transport line without initial twiss')
-            closed_orbit = _tracking.findorbit6(accelerator=new_accelerator, indices='open', fixed_point_guess=None)
+        if accelerator.cavity_on == False and accelerator.radiation_on == False:
+            if accelerator.harmonic_number == 0:
+                raise OpticsException('Either harmonic number was not set or calctwiss was\
+                invoked for transport line without initial twiss')
+            closed_orbit = _np.zeros((6,len(accelerator)))
+            closed_orbit[:4,:] = _tracking.findorbit4(accelerator = accelerator, indices='open')
+        else:
+            closed_orbit = _tracking.findorbit6(accelerator = accelerator, indices='open')
 
-        m66, transfer_matrices, *_ = _tracking.findm66(accelerator = new_accelerator, closed_orbit = closed_orbit)
+        m66, transfer_matrices, *_ = _tracking.findm66(accelerator = accelerator, closed_orbit = closed_orbit)
 
         ''' calcs twiss at first element '''
         mx, my = m66[0:2,0:2], m66[2:4,2:4] # decoupled transfer matrices
-        trace_x, trace_y, *_ = gettraces(new_accelerator, m66 = m66, closed_orbit = closed_orbit)
+        trace_x, trace_y, *_ = gettraces(accelerator, m66 = m66, closed_orbit = closed_orbit)
         if not (-2.0 < trace_x < 2.0):
             raise OpticsException('horizontal dynamics is unstable')
         if not (-2.0 < trace_y < 2.0):
             raise OpticsException('vertical dynamics is unstable')
         sin_nux = _math.copysign(1,mx[0,1]) * _math.sqrt(-mx[0,1] * mx[1,0] - ((mx[0,0] - mx[1,1])**2)/4);
         sin_nuy = _math.copysign(1,my[0,1]) * _math.sqrt(-my[0,1] * my[1,0] - ((my[0,0] - my[1,1])**2)/4);
-
         fp = closed_orbit[:,0]
         t = Twiss()
         t.spos = 0
@@ -140,31 +134,22 @@ def calctwiss(
         t.betax  = mx[0,1] / sin_nux
         t.alphay = (my[0,0] - my[1,1]) / 2 / sin_nuy
         t.betay  = my[0,1] / sin_nuy
-
         ''' dispersion function based on eta = (1 - M)^(-1) D'''
         Dx = _np.array([[m66[0,4]],[m66[1,4]]])
         Dy = _np.array([[m66[2,4]],[m66[3,4]]])
         t.etax = _np.linalg.solve(_np.eye(2,2) - mx, Dx)
         t.etay = _np.linalg.solve(_np.eye(2,2) - my, Dy)
-        ''' converts eta format '''
-        t.etaxl, t.etayl = (t.etax[1,0], t.etay[1,0])
-        t.etax,  t.etay  = (t.etax[0,0], t.etay[0,0])
-
-
-    if 0 in indices:
-        tw = [t]
-    else:
-        tw = []
 
     ''' propagates twiss through line '''
-    mt = _np.eye(6,6)
+    tw = [t]
     m_previous = _np.eye(6,6)
-    for i in range(1, len(new_accelerator)):
+    for i in range(1, len(accelerator)):
         m = transfer_matrices[i-1]
-        mt = _np.dot(m, mt)
         mx, my = m[0:2,0:2], m[2:4,2:4] # decoupled transfer matrices
+        Dx = _np.array([[m[0,4]],[m[1,4]]])
+        Dy = _np.array([[m[2,4]],[m[3,4]]])
         n = Twiss()
-        n.spos   = t.spos + new_accelerator[i-1].length
+        n.spos   = t.spos + accelerator[i-1].length
         fp = closed_orbit[:,i]
         n.corx, n.copx = fp[0], fp[1]
         n.cory, n.copy = fp[2], fp[3]
@@ -177,14 +162,16 @@ def calctwiss(
         n.mux = t.mux + _math.asin(mx[0,1]/_math.sqrt(n.betax * t.betax))
         n.muy = t.muy + _math.asin(my[0,1]/_math.sqrt(n.betay * t.betay))
         ''' dispersion function'''
-        n.etax  = mt[0,4]
-        n.etaxl = mt[1,4]
-        n.etay  = mt[2,4]
-        n.etayl = mt[3,4]
+        n.etax = Dx + _np.dot(mx, t.etax)
+        n.etay = Dy + _np.dot(my, t.etay)
 
-        if i in indices:
-            tw.append(n)
-        t = _copy.deepcopy(n)
+        tw.append(n)
+        t = n.make_copy()
+
+    ''' converts eta format '''
+    for t in tw:
+        t.etaxl, t.etayl = (t.etax[1,0], t.etay[1,0])
+        t.etax,  t.etay  = (t.etax[0,0], t.etay[0,0])
 
     return tw, m66, transfer_matrices, closed_orbit
 
