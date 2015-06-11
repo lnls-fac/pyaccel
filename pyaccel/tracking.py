@@ -369,6 +369,7 @@ def ringpass(accelerator, particles, nr_turns = 1,
                     particles_out[i,:,n] = _CppDoublePos2Numpy(p_out[n-1])
 
         else:
+            print(p_out.size())
             particles_out[i,:] = _CppDoublePos2Numpy(p_out[0])
 
         # fills vectors with info about particle loss
@@ -594,14 +595,25 @@ def _CppDoublePosVector2Numpy(orbit, indices):
         return orbit_out
 
 def _Numpy2CppDoublePosVector(orbit):
-    orbit_out = _trackcpp.CppDoublePosVector()
-    for i in range(orbit.shape[1]):
+    if isinstance(orbit, _trackcpp.CppDoublePosVector):
+        return orbit
+    if isinstance(orbit, _numpy.ndarray):
+        orbit_out = _trackcpp.CppDoublePosVector()
+        for i in range(n):
+            orbit_out.push_back(_trackcpp.CppDoublePos(
+                orbit[0,i], orbit[1,i],
+                orbit[2,i], orbit[3,i],
+                orbit[4,i], orbit[5,i]))
+    if isinstance(orbit, (list,tuple)):
+        orbit_out = _trackcpp.CppDoublePosVector()
         orbit_out.push_back(_trackcpp.CppDoublePos(
-            orbit[0,i], orbit[1,i],
-            orbit[2,i], orbit[3,i],
-            orbit[4,i], orbit[5,i]))
+            orbit[0], orbit[1],
+            orbit[2], orbit[3],
+            orbit[4], orbit[5]))
+    else:
+        raise TrackingException('invalid orbit argument')
     return orbit_out
-
+    
 def _process_args(accelerator, pos, indices=None):
 
     # checks whether single or multiple particles

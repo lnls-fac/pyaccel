@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyaccel as _pyaccel
 import sirius.SI_V07 as si_model
-
+import sirius.BO_V901 as bo_model
 
 plt.ion()
 

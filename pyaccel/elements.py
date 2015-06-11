@@ -235,8 +235,8 @@ class Element(object):
     _r_valid_types = (_numpy.ndarray, )
 
     def __init__(self, **kwargs):
-        copy = kwargs.get('copy',False)
         if 'element' in kwargs:
+            copy = kwargs.get('copy',False)
             if copy:
                 self._e = _trackcpp.Element(kwargs['element']._e)
             else:
