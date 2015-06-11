@@ -189,7 +189,6 @@ def drawlattice(lattice, offset=None, height=1.0, draw_edges=False,
 
         lattice = lattice[:i]
 
-
     line = _lines.Line2D([0, lattice.length], [offset, offset],
         color=_COLOURS['vacuum_chamber'], linewidth=1)
     line.set_zorder(0)
@@ -218,11 +217,16 @@ class _LatticeDrawer(object):
 
     def __init__(self, lattice, offset, height, draw_edges, family_data,
             family_mapping, colours):
-        self._coil_length = 0.0
         self._bpm_length = 0.1
+
+        self._coil_height_factor = 0.1
+        self._bpm_height_factor = 0.1
 
         self._offset = offset
         self._height = height
+
+        self._coil_height = self._coil_height_factor*height
+        self._bpm_height = self._bpm_height_factor*height
 
         if colours is None:
             colours = _COLOURS
@@ -241,7 +245,7 @@ class _LatticeDrawer(object):
         pos = _pyaccel.lattice.findspos(lattice)
 
         if family_data is None:
-            # Guess element type; draw only magnetic lattice
+            # Guess element type
             for i in range(len(lattice)):
                 self._create_element_patch(lattice[i], pos[i])
         else:
@@ -401,24 +405,23 @@ class _LatticeDrawer(object):
         return r
 
     def _get_horizontal_corrector_coil(self, element, pos):
-        w = element.length + 2*self._coil_length
-        h = self._height/10
-        corner = (pos-self._coil_length, self._offset+4*self._height/10)
-        r = _patches.Rectangle(xy=corner, width=w, height=h)
-        return r
+        corner = (pos, self._offset+4*self._coil_height)
+        return self._get_coil(element, corner)
 
     def _get_vertical_corrector_coil(self, element, pos):
-        w = element.length + 2*self._coil_length
-        h = self._height/10
-        corner = (pos-self._coil_length, self._offset-5*self._height/10)
-        r = _patches.Rectangle(xy=corner, width=w, height=h)
-        return r
+        corner = (pos, self._offset-5*self._coil_height)
+        return self._get_coil(element, corner)
 
     def _get_skew_quadrupole(self, element, pos):
-        w = element.length + 2*self._coil_length
-        h = self._height/10
-        corner = (pos-self._coil_length, self._offset+-1*self._height/20)
-        r = _patches.Rectangle(xy=corner, width=w, height=h)
+        corner = (pos, self._offset+-self._coil_height/2)
+        return self._get_coil(element, corner)
+
+    def _get_coil(self, element, corner):
+        r = _patches.Rectangle(
+            xy=corner,
+            width=element.length,
+            height=self._coil_height
+        )
         return r
 
     def _get_bpm(self, element, pos):
