@@ -347,16 +347,26 @@ class _LatticeDrawer(object):
             r = self._get_magnet(element, pos)
             self._sextupole_patches.append(r)
         elif element_type == 'fast_horizontal_corrector':
-            pass
+            r1 = self._get_magnet(element, pos)
+            self._fast_corrector_core_patches.append(r1)
+            r2 = self._get_horizontal_corrector_coil(element, pos)
+            self._fast_corrector_coil_patches.append(r2)
         elif element_type == 'fast_vertical_corrector':
-            pass
+            r1 = self._get_magnet(element, pos)
+            self._fast_corrector_core_patches.append(r1)
+            r2 = self._get_vertical_corrector_coil(element, pos)
+            self._fast_corrector_coil_patches.append(r2)
         elif element_type == 'fast_corrector':
-            pass
+            r1 = self._get_magnet(element, pos)
+            self._fast_corrector_core_patches.append(r1)
+            r2 = self._get_horizontal_corrector_coil(element, pos)
+            r3 = self._get_vertical_corrector_coil(element, pos)
+            self._fast_corrector_coil_patches.extend([r2, r3])
         elif element_type == 'slow_horizontal_corrector':
-            r = self._get_slow_horizontal_corrector(element, pos)
+            r = self._get_horizontal_corrector_coil(element, pos)
             self._slow_corrector_coil_patches.append(r)
         elif element_type == 'slow_vertical_corrector':
-            r = self._get_slow_vertical_corrector(element, pos)
+            r = self._get_vertical_corrector_coil(element, pos)
             self._slow_corrector_coil_patches.append(r)
         elif element_type == 'skew_quadrupole':
             r = self._get_skew_quadrupole(element, pos)
@@ -390,14 +400,14 @@ class _LatticeDrawer(object):
         )
         return r
 
-    def _get_slow_horizontal_corrector(self, element, pos):
+    def _get_horizontal_corrector_coil(self, element, pos):
         w = element.length + 2*self._coil_length
         h = self._height/10
         corner = (pos-self._coil_length, self._offset+4*self._height/10)
         r = _patches.Rectangle(xy=corner, width=w, height=h)
         return r
 
-    def _get_slow_vertical_corrector(self, element, pos):
+    def _get_vertical_corrector_coil(self, element, pos):
         w = element.length + 2*self._coil_length
         h = self._height/10
         corner = (pos-self._coil_length, self._offset-5*self._height/10)
