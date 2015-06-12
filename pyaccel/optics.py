@@ -49,18 +49,34 @@ class Twiss:
         n.muy, n.betay, n.alphay = self.muy, self.betay, self.alphay
         return n
 
-@_interactive
-def set_twiss_in( spos = 0, orbit = [0,0,0,0,0,0], mu=[0,0], alpha=[None,None], beta=[None,None], eta=[0,0], etal=[0,0]):
-    twiss_in = Twiss()
-    twiss_in.spos = spos
-    twiss_in.corx, twiss_in.copx  = orbit[0], orbit[1]
-    twiss_in.cory, twiss_in.copy  = orbit[2], orbit[3]
-    twiss_in.code, twiss_in.codl  = orbit[4], orbit[5]
-    twiss_in.etax, twiss_in.etaxl = eta[0], etal[0]
-    twiss_in.etay, twiss_in.etayl = eta[1], etal[1]
-    twiss_in.mux, twiss_in.betax, twiss_in.alphax = mu[0], beta[0], alpha[0]
-    twiss_in.muy, twiss_in.betay, twiss_in.alphay = mu[1], beta[1], alpha[1]
-    return twiss_in
+    @staticmethod
+    def make_new(spos=0.0, fixed_point=None, mu=None, beta=None, alpha=None, eta=None, etal=None):
+        n = Twiss()
+        if fixed_point is None:
+            n.corx, n.copx, n.cory, n.copy, n.code, n.codl = (0.0,) * 6
+        else:
+            n.corx, n.copx, n.cory, n.copy, n.code, n.codl = fixed_point
+        if mu is None:
+            n.mux, n.muy = 0.0, 0.0
+        else:
+            n.mux, n.muy = mu
+        if beta is None:
+            n.betax, n.betay = None, None
+        else:
+            n.betax, n.betay = beta
+        if alpha is None:
+            n.alphax, n.alphay = 0.0, 0.0
+        else:
+            n.alphax, n.alphay = alpha
+        if eta is None:
+            n.etax, n.etay = 0.0, 0.0
+        else:
+            n.etax, n.etay = eta
+        if etal is None:
+            n.etalx, n.etaly = 0.0, 0.0
+        else:
+            n.etalx, n.etaly = etal
+        return n
 
 @_interactive
 def gettwiss(twiss_list, attribute_list):
@@ -90,34 +106,39 @@ def gettwiss(twiss_list, attribute_list):
         return values
 
 @_interactive
-def calctwiss( accelerator=None, twiss_in=None):
+def calctwiss(accelerator=None, init_twiss=None, fixed_point=None):
     """Return Twiss parameters of uncoupled dynamics."""
 
-    if twiss_in is not None:
-        fix_point = [twiss_in.corx, twiss_in.copx, twiss_in.cory, twiss_in.copy, twiss_in.code, twiss_in.codl]
-        closed_orbit = _tracking.linepass(accelerator, fix_point, indices = 'open')[0]
-
-        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit )
+    if init_twiss is not None:
+        ''' as a transport line: uses init_twiss '''
+        if fixed_point is None:
+            fixed_point = [init_twiss.corx, init_twiss.copx, init_twiss.cory, init_twiss.copy, init_twiss.code, init_twiss.codl]
+        else:
+            raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
+        closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices = 'open')
+        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit[0])
         mx, my = m66[0:2,0:2], m66[2:4,2:4]
-        t = twiss_in
+        t = init_twiss
         t.etax = _np.array([[t.etax], [t.etaxl]])
         t.etay = _np.array([[t.etay], [t.etayl]])
-
     else:
-        if accelerator.cavity_on == False and accelerator.radiation_on == False:
-            if accelerator.harmonic_number == 0:
-                raise OpticsException('Either harmonic number was not set or calctwiss was\
-                invoked for transport line without initial twiss')
-            closed_orbit = _np.zeros((6,len(accelerator)))
-            closed_orbit[:4,:] = _tracking.findorbit4(accelerator = accelerator, indices='open')
+        ''' as a periodic system: try to find periodic solution '''
+        if fixed_point is None:
+            if not accelerator.cavity_on and not accelerator.radiation_on:
+                if accelerator.harmonic_number == 0:
+                    raise OpticsException('Either harmonic number was not set or calctwiss was\
+                    invoked for transport line without initial twiss')
+                closed_orbit = _np.zeros((6,len(accelerator)))
+                closed_orbit[:4,:] = _tracking.findorbit4(accelerator, indices='open')
+            else:
+                closed_orbit, *_ = _tracking.findorbit6(accelerator, indices='open')
         else:
-            closed_orbit = _tracking.findorbit6(accelerator = accelerator, indices='open')
-
-        m66, transfer_matrices, *_ = _tracking.findm66(accelerator = accelerator, closed_orbit = closed_orbit)
+            closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
 
         ''' calcs twiss at first element '''
+        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit=closed_orbit)
         mx, my = m66[0:2,0:2], m66[2:4,2:4] # decoupled transfer matrices
-        trace_x, trace_y, *_ = gettraces(accelerator, m66 = m66, closed_orbit = closed_orbit)
+        trace_x, trace_y, *_ = gettraces(accelerator, m66 = m66, closed_orbit=closed_orbit)
         if not (-2.0 < trace_x < 2.0):
             raise OpticsException('horizontal dynamics is unstable')
         if not (-2.0 < trace_y < 2.0):
@@ -134,7 +155,7 @@ def calctwiss( accelerator=None, twiss_in=None):
         t.betax  = mx[0,1] / sin_nux
         t.alphay = (my[0,0] - my[1,1]) / 2 / sin_nuy
         t.betay  = my[0,1] / sin_nuy
-        ''' dispersion function based on eta = (1 - M)^(-1) D'''
+        ''' dispersion function based on eta = (1 - M)^(-1) D '''
         Dx = _np.array([[m66[0,4]],[m66[1,4]]])
         Dy = _np.array([[m66[2,4]],[m66[3,4]]])
         t.etax = _np.linalg.solve(_np.eye(2,2) - mx, Dx)
@@ -179,7 +200,7 @@ def calctwiss( accelerator=None, twiss_in=None):
 def getrffrequency(accelerator):
     """Return the frequency of the first RF cavity in the lattice"""
     for e in accelerator:
-        if e.frequency != 0:
+        if e.frequency != 0.0:
             return e.frequency
     else:
         raise OpticsException('no cavity element in the lattice')
@@ -187,9 +208,15 @@ def getrffrequency(accelerator):
 @_interactive
 def getrfvoltage(accelerator):
     """Return the voltage of the first RF cavity in the lattice"""
+    voltages = []
     for e in accelerator:
-        if e.voltage != 0:
-            return e.voltage
+        if e.voltage != 0.0:
+            voltages.append(e.voltage)
+    if voltages:
+        if len(voltages) == 1:
+            return voltages[0]
+        else:
+            return voltages
     else:
         raise OpticsException('no cavity element in the lattice')
 

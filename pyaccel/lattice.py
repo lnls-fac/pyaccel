@@ -80,7 +80,7 @@ def findcells(lattice, attribute_name, value=None):
     for i in range(len(lattice)):
         if hasattr(lattice[i], attribute_name):
             if value == None:
-                if getattr(lattice[i], attribute_name) != None:
+                if getattr(lattice[i], attribute_name) is not None:
                     indices.append(i)
             else:
                 if _is_equal(getattr(lattice[i], attribute_name), value):

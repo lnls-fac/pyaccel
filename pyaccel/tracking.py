@@ -108,7 +108,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
                         ex.3: particles = numpy.zeros((Np,6))
     indices     -- list of indices corresponding to accelerator elements at
                    whose entrances, tracked particles positions are to be
-                   stored; string 'all' corresponds to selecting all elements.
+                   stored; string 'open' corresponds to selecting all elements.
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
 
@@ -180,6 +180,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
     # checks whether single or multiple particles, reformats particles
     particles, return_ndarray, indices = _process_args(accelerator, particles,
                                                        indices)
+
     # initialize particles_out tensor according to input options
     if indices is None:
         particles_out = _numpy.ones((particles.shape[0],6))
@@ -623,6 +624,9 @@ def _process_args(accelerator, pos, indices=None):
         else:
             pos = _numpy.array(pos,ndmin=2)
             return_ndarray = False
+    elif isinstance(pos, _numpy.ndarray):
+        if len(pos.shape) == 1:
+            pos = _numpy.array(pos,ndmin=2)
     if indices == 'open':
         indices = list(range(len(accelerator)))
     elif indices == 'closed':
