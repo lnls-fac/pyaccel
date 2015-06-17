@@ -131,7 +131,7 @@ def calctwiss(accelerator=None, init_twiss=None, fixed_point=None):
                 closed_orbit = _np.zeros((6,len(accelerator)))
                 closed_orbit[:4,:] = _tracking.findorbit4(accelerator, indices='open')
             else:
-                closed_orbit, *_ = _tracking.findorbit6(accelerator, indices='open')
+                closed_orbit = _tracking.findorbit6(accelerator, indices='open')
         else:
             closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
 
@@ -289,9 +289,12 @@ def getradiationintegrals(accelerator=None,
                           m66=None,
                           transfer_matrices=None,
                           closed_orbit=None):
+
     if twiss is None or m66 is None or transfer_matrices is None:
+        fixed_point = closed_orbit if closed_orbit is None else closed_orbit[:,0]
         twiss, m66, transfer_matrices, closed_orbit = \
-            calctwiss(accelerator, closed_orbit=closed_orbit)
+            calctwiss(accelerator, fixed_point=fixed_point)
+
     D_x, D_x_ = gettwiss(twiss,('etax','etaxl'))
     gamma = _np.zeros(len(accelerator))
     integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -388,11 +391,7 @@ def getequilibriumparameters(accelerator,
     compaction_factor = getmcf(accelerator)
     etac = gamma**(-2) - compaction_factor
 
-    integrals, *_ = getradiationintegrals(accelerator,
-                                          twiss,
-                                          m66,
-                                          transfer_matrices,
-                                          closed_orbit)
+    integrals, *_ = getradiationintegrals(accelerator,twiss,m66,transfer_matrices,closed_orbit)
 
     damping = _np.zeros(3)
     damping[0] = 1.0 - integrals[3]/integrals[1]
@@ -414,14 +413,14 @@ def getequilibriumparameters(accelerator,
 
     syncphase = _math.pi - _math.asin(1.0/overvoltage)
     synctune = _math.sqrt((etac * harmon * v_cav * _math.cos(syncphase))/(2*_math.pi*e0))
-    energy_acceptance = _math.sqrt(v_cav*_math.sin(syncphase)*2*(_math.sqrt((overvoltage**2)-1.0)
+    rf_energy_acceptance = _math.sqrt(v_cav*_math.sin(syncphase)*2*(_math.sqrt((overvoltage**2)-1.0)
                         - _math.acos(1.0/overvoltage))/(_math.pi*harmon*abs(etac)*e0))
     bunchlength = beta* c *abs(etac)* natural_energy_spread /( synctune * rev_freq *2*_math.pi)
 
     summary=dict(compaction_factor = compaction_factor, radiation_integrals = integrals, damping_numbers = damping,
         damping_times = radiation_damping, natural_energy_spread = natural_energy_spread, etac = etac,
         natural_emittance = natural_emittance, overvoltage = overvoltage, syncphase = syncphase,
-        synctune = synctune, energy_acceptance = energy_acceptance, bunchlength = bunchlength)
+        synctune = synctune, rf_energy_acceptance = rf_energy_acceptance, bunchlength = bunchlength)
     return summary
 
 @_interactive
@@ -448,17 +447,53 @@ def getbeamsize(accelerator, coupling=0.0, closed_orbit=None):
     return sigmax, sigmay, sigmaxl, sigmayl, ex, ey, summary, twiss, closed_orbit
 
 @_interactive
-def getbeamstayclear(accelerator, closed_orbit=None):
-    # beta functions
-    twiss, *_ = calctwiss(accelerator, closed_orbit=closed_orbit)
-    betax, betay = gettwiss(twiss, ('betax', 'betay'))
+def gettransverseacceptance(accelerator, twiss=None, init_twiss=None, fixed_point=None, energy_offset=0.0):
+
+    m66 = None
+    if twiss is None:
+        twiss, m66, transfer_matrices, closed_orbit = calctwiss(accelerator, init_twiss=init_twiss, fixed_point=fixed_point)
+    else:
+        closed_orbit = _np.zeros((6,len(accelerator)))
+        closed_orbit[0,:], closed_orbit[2,:] = gettwiss(twiss, ('corx','cory'))
+    betax, betay, etax, etay = gettwiss(twiss, ('betax', 'betay', 'etax', 'etay'))
     # physical apertures
-    hmax = _lattice.getcellstruct(accelerator, 'hmax')
-    vmax = _lattice.getcellstruct(accelerator, 'vmax')
+    hmax = _np.array(_lattice.getattributelat(accelerator, 'hmax'))
+    vmax = _np.array(_lattice.getattributelat(accelerator, 'vmax'))
     # calcs local linear acceptances
-    local_accepx = _np.array(hmax)**2 / betax
-    local_accepy = _np.array(vmax)**2 / betay
-    accepx, accepy = local_accepx.min(), local_accepy.min()
-    idx_accepx, idx_accepy = local_accepx.argmin(), local_accepy.argmin()
-    bscx, bscy = _np.sqrt(accepx * betax), _np.sqrt(accepy * betay)
-    return bscx, bscy, accepx, accepy, idx_accepx, idx_accepy, twiss, closed_orbit
+    co_x, co_y = closed_orbit[(0,2),:]
+
+    n = len(accelerator)
+
+    # calcs acceptance with beta at entrance of elements
+    betax_sqrt, betay_sqrt = _np.sqrt(betax), _np.sqrt(betay)
+    local_accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
+    local_accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
+    local_accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
+    local_accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
+    local_accepx_pos[local_accepx_pos < 0] = 0
+    local_accepx_neg[local_accepx_neg < 0] = 0
+    local_accepx_pos[local_accepy_pos < 0] = 0
+    local_accepx_neg[local_accepy_neg < 0] = 0
+    accepx_in = [min(local_accepx_pos[i],local_accepx_neg[i])**2 for i in range(n)]
+    accepy_in = [min(local_accepy_pos[i],local_accepy_neg[i])**2 for i in range(n)]
+
+    # calcs acceptance with beta at exit of elements
+    betax_sqrt, betay_sqrt = _np.roll(betax_sqrt,-1), _np.roll(betay_sqrt,-1)
+    local_accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
+    local_accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
+    local_accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
+    local_accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
+    local_accepx_pos[local_accepx_pos < 0] = 0
+    local_accepx_neg[local_accepx_neg < 0] = 0
+    local_accepx_pos[local_accepy_pos < 0] = 0
+    local_accepx_neg[local_accepy_neg < 0] = 0
+    accepx_out = [min(local_accepx_pos[i],local_accepx_neg[i])**2 for i in range(n)]
+    accepy_out = [min(local_accepy_pos[i],local_accepy_neg[i])**2 for i in range(n)]
+
+    accepx = [min(accepx_in[i],accepx_out[i]) for i in range(n)]
+    accepy = [min(accepy_in[i],accepy_out[i]) for i in range(n)]
+
+    if m66 is None:
+        return accepx, accepy, twiss, closed_orbit
+    else:
+        return accepx, accepy, twiss, m66, transfer_matrices, closed_orbit
