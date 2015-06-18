@@ -12,7 +12,7 @@ class OpticsException(Exception):
 
 class Twiss:
     def __init__(self):
-        self.spos = None
+        self.spos = 0
         self.corx, self.copx  = 0, 0
         self.cory, self.copy  = 0, 0
         self.code, self.codl  = 0, 0
@@ -52,6 +52,7 @@ class Twiss:
     @staticmethod
     def make_new(spos=0.0, fixed_point=None, mu=None, beta=None, alpha=None, eta=None, etal=None):
         n = Twiss()
+        n.spos = spos
         if fixed_point is None:
             n.corx, n.copx, n.cory, n.copy, n.code, n.codl = (0.0,) * 6
         else:
@@ -77,6 +78,20 @@ class Twiss:
         else:
             n.etalx, n.etaly = etal
         return n
+
+    @property
+    def fixed_point(self):
+        corx, copx = self.corx, self.copx
+        cory, copy = self.cory, self.copy
+        code, codl = self.code, self.codl
+        fixed_point = [corx, copx, cory, copy, code, codl]
+        return fixed_point
+
+    @fixed_point.setter
+    def fixed_point(self, value):
+        self.corx, self.copx  = value[0], value[1]
+        self.cory, self.copy  = value[2], value[3]
+        self.code, self.codl  = value[4], value[5]
 
 @_interactive
 def gettwiss(twiss_list, attribute_list):
