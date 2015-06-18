@@ -284,7 +284,7 @@ def getmcf(accelerator, order=1, energy_offset=None):
 
 
 @_interactive
-def getradiationintegrals(accelerator=None,
+def getradiationintegrals(accelerator,
                           twiss=None,
                           m66=None,
                           transfer_matrices=None,
@@ -315,6 +315,68 @@ def getradiationintegrals(accelerator=None,
             H0 = twiss[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*twiss[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
             integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
             integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
+    return integrals, twiss, m66, transfer_matrices, closed_orbit
+
+@_interactive
+def getradiationintegrals2(accelerator,
+                          twiss=None,
+                          m66=None,
+                          transfer_matrices=None,
+                          closed_orbit=None):
+
+    if twiss is None or m66 is None or transfer_matrices is None:
+        fixed_point = closed_orbit if closed_orbit is None else closed_orbit[:,0]
+        twiss, m66, transfer_matrices, closed_orbit = \
+            calctwiss(accelerator, fixed_point=fixed_point)
+
+    angle = _np.array([element.angle for element in accelerator])
+    idx = _np.nonzero(angle)
+
+    rho  = 1/angle(idx)
+    etax = 0 
+
+
+    spos, etax = gettwiss(twiss,('spos','etax'))
+    if len(spos) != len(accelerator) + 1:
+        spos = _np.resize(len(spos)+1); spos[-1] = spos[-2] + accelerator[-1].length
+        etax = _np.resize(len(etax)+1); etax[-1] = etax[-2]
+
+
+    integrals = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    inf = float('inf')
+    n = len(spos)
+    angle = _np.zeros(n)
+    length = _np.zeros(n)
+    rho = _np.zeros(n)
+    for i in range(n):
+        angle[i] = accelerator[i].angle
+        length[i] = accelerator[i].length
+        if accelerator[i].angle == 0:
+            rho[i] = inf
+        else:
+            rho[i] = accelerator[i].length / accelerator[i].angle
+
+    integrals[0] = _np.trapz(etax/rho, spos)
+
+
+    # for i in range(len(accelerator)-1):
+    #     gamma[i] = (1 + twiss[i].alphax**2) / twiss[i].betax
+    #     gamma[i+1] = (1 + twiss[i+1].alphax**2) / twiss[i+1].betax
+    #     if accelerator[i].angle != 0.0:
+    #         rho = accelerator[i].length/accelerator[i].angle
+    #         dispersion = 0.5*(D_x[i]+D_x[i+1])
+    #         integrals[0] = integrals[0] + dispersion*accelerator[i].length /rho
+    #         integrals[1] = integrals[1] + accelerator[i].length/(rho**2)
+    #         integrals[2] = integrals[2] + accelerator[i].length/abs(rho**3)
+    #         integrals[3] = integrals[3] + \
+    #             D_x[i]*_math.tan(accelerator[i].angle_in)/(rho**2) + \
+    #             (1 + 2*(rho**2)*accelerator[i].polynom_b[1])*(D_x[i]+D_x[i+1])*accelerator[i].length/(2*(rho**3)) + \
+    #             D_x[i+1]*_math.tan(accelerator[i].angle_out)/(rho**2)
+    #         H1 = twiss[i].betax*D_x_[i]*D_x_[i] + 2*twiss[i].alphax*D_x[i]*D_x_[i] + gamma[i]*D_x[i]*D_x[i];
+    #         H0 = twiss[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*twiss[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
+    #         integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
+    #         integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
     return integrals, twiss, m66, transfer_matrices, closed_orbit
 
 

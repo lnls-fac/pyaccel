@@ -163,6 +163,7 @@ def knobvalue_set(lattice, fam_name, attribute_name, value):
     for i in idx:
         setattr(lattice[i], attribute_name, value)
 
+
 @_interactive
 def knobvalue_add(lattice, fam_name, attribute_name, value):
 
@@ -177,6 +178,7 @@ def knobvalue_add(lattice, fam_name, attribute_name, value):
         new_value = original_values + value
         setattr(lattice[i], attribute_name, new_value)
 
+
 @_interactive
 def read_flat_file(filename):
     e = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
@@ -187,11 +189,13 @@ def read_flat_file(filename):
 
     return a
 
+
 @_interactive
 def write_flat_file(accelerator, filename):
     r = _trackcpp.write_flat_file(filename, accelerator._accelerator)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
+
 
 @_interactive
 def refine_lattice(accelerator,
@@ -288,6 +292,7 @@ def get_error_misalignment_x(lattice, indices):
     else:
         return values
 
+
 @_interactive
 def set_error_misalignment_x(lattice, indices, values):
     """Set horizontal misalignment errors to lattice"""
@@ -304,6 +309,7 @@ def set_error_misalignment_x(lattice, indices, values):
             lattice[index].t_out[0] =  +values[i]
 
     return lattice
+
 
 @_interactive
 def add_error_misalignment_x(lattice, indices, values):
@@ -322,6 +328,7 @@ def add_error_misalignment_x(lattice, indices, values):
 
     return lattice
 
+
 @_interactive
 def get_error_misalignment_y(lattice, indices):
     """Set horizontal misalignment errors to lattice"""
@@ -339,6 +346,7 @@ def get_error_misalignment_y(lattice, indices):
         return values[0]
     else:
         return values
+
 
 @_interactive
 def set_error_misalignment_y(lattice, indices, values):
@@ -377,13 +385,60 @@ def add_error_misalignment_y(lattice, indices, values):
 
 
 @_interactive
+def get_error_rotation_roll(lattice, indices):
+    """Get roll rotation errors from lattice"""
+
+    ''' processes arguments '''
+    indices, *_ = _process_args_errors(indices, 0.0)
+
+    ''' loops over elements and gets error from R_IN '''
+    values = []
+    for i in range(indices.shape[0]):
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            angle = _math.asin(lattice[index].r_in[0,2])
+            values.append(angle)
+    if len(values) == 1:
+        return values[0]
+    else:
+        return values
+
+
+@_interactive
+def set_error_rotation_roll(lattice, indices, values):
+    """Add roll rotation errors to lattice"""
+
+    ''' processes arguments '''
+    indices, values = _process_args_errors(indices, values)
+
+    ''' loops over elements and sets its R1 and R2 fields '''
+    for i in range(indices.shape[0]):
+        c, s = _math.cos(values[i]), _math.sin(values[i])
+        rot = _numpy.diag([c,c,c,c,1.0,1.0])
+        rot[0,2], rot[1,3], rot[2,0], rot[3,1] = s, s, -s, -s
+
+        for j in range(indices.shape[1]):
+            index = indices[i,j]
+            if lattice[index].angle != 0 and lattice[index].length != 0:
+                rho    = lattice[index].length / lattice[index].angle
+                orig_s = lattice[index].polynom_a[0] * rho
+                orig_c = lattice[index].polynom_b[0] * rho + 1.0  # look at bndpolysymplectic4pass
+                lattice[index].polynom_a[0] = (orig_s * c + orig_c * s) / rho     # sin(teta)/rho
+                lattice[index].polynom_b[0] = ((orig_c*c - orig_s*s) - 1.0) / rho # (cos(teta)-1)/rho
+            else:
+                lattice[index].r_in  = rot
+                lattice[index].r_out = rot.transpose()
+    return lattice
+
+
+@_interactive
 def add_error_rotation_roll(lattice, indices, values):
     """Add roll rotation errors to lattice"""
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
 
-    ''' loops over elements and sets its T1 and T2 fields '''
+    ''' loops over elements and sets its R1 and R2 fields '''
     for i in range(indices.shape[0]):
         c, s = _math.cos(values[i]), _math.sin(values[i])
         rot = _numpy.diag([c,c,c,c,1.0,1.0])
