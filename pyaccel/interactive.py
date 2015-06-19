@@ -17,8 +17,7 @@ module, import it from pyaccel.utils with
 import numpy as np
 import matplotlib.pyplot as plt
 import pyaccel as _pyaccel
-import sirius.SI_V07 as si_model
-import sirius.BO_V901 as bo_model
+
 
 plt.ion()
 
@@ -36,5 +35,3 @@ for f in _pyaccel.utils.interactive_list:
     module = getattr(_pyaccel, f['module'].split('.')[1])
     globals()[name] = getattr(module, name)
     __all__.append(name)
-
-print('Names defined in pyaccel.interactive: ' + ', '.join(__all__) + '.\n')
