@@ -6,6 +6,7 @@ import mathphys as _mp
 import pyaccel.lattice as _lattice
 import pyaccel.tracking as _tracking
 from pyaccel.utils import interactive as _interactive
+import time
 
 class OpticsException(Exception):
     pass
@@ -246,7 +247,7 @@ def getrevolutionfrequency(accelerator):
 
 
 @_interactive
-def gettraces(accelerator, m66 = None, closed_orbit = None):
+def gettraces(accelerator, m66=None, closed_orbit=None):
     """Return traces of 6D one-turn transfer matrix"""
     if m66 is None:
         m66 = _tracking.findm66(accelerator,
@@ -257,7 +258,7 @@ def gettraces(accelerator, m66 = None, closed_orbit = None):
     return trace_x, trace_y, trace_z, m66, closed_orbit
 
 @_interactive
-def getfractunes(accelerator, m66 = None, closed_orbit = None):
+def getfractunes(accelerator, m66=None, closed_orbit=None):
     """Return fractional tunes of the accelerator"""
     trace_x, trace_y, trace_z, m66, closed_orbit = gettraces(accelerator,
                                                    m66 = m66,
@@ -299,7 +300,7 @@ def getmcf(accelerator, order=1, energy_offset=None):
 
 
 @_interactive
-def getradiationintegrals(accelerator,
+def getradiationintegrals2(accelerator,
                           twiss=None,
                           m66=None,
                           transfer_matrices=None,
@@ -310,6 +311,7 @@ def getradiationintegrals(accelerator,
         twiss, m66, transfer_matrices, closed_orbit = \
             calctwiss(accelerator, fixed_point=fixed_point)
 
+    t0 = time.time()
     D_x, D_x_ = gettwiss(twiss,('etax','etaxl'))
     gamma = _np.zeros(len(accelerator))
     integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -330,68 +332,68 @@ def getradiationintegrals(accelerator,
             H0 = twiss[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*twiss[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
             integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
             integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
+    t1 = time.time()
+    print(t1-t0)
     return integrals, twiss, m66, transfer_matrices, closed_orbit
 
 @_interactive
-def getradiationintegrals2(accelerator,
+def getradiationintegrals(accelerator,
                           twiss=None,
                           m66=None,
                           transfer_matrices=None,
                           closed_orbit=None):
+    """Calculate radiation integrals for periodic systems"""
 
     if twiss is None or m66 is None or transfer_matrices is None:
         fixed_point = closed_orbit if closed_orbit is None else closed_orbit[:,0]
         twiss, m66, transfer_matrices, closed_orbit = \
             calctwiss(accelerator, fixed_point=fixed_point)
 
-    angle = _np.array([element.angle for element in accelerator])
-    idx = _np.nonzero(angle)
-
-    rho  = 1/angle(idx)
-    etax = 0 
-
-
-    spos, etax = gettwiss(twiss,('spos','etax'))
+    #t0 = time.time()
+    spos,etax,etaxl,betax,alphax = gettwiss(twiss,('spos','etax','etaxl','betax','alphax'))
     if len(spos) != len(accelerator) + 1:
-        spos = _np.resize(len(spos)+1); spos[-1] = spos[-2] + accelerator[-1].length
-        etax = _np.resize(len(etax)+1); etax[-1] = etax[-2]
-
-
-    integrals = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-    inf = float('inf')
-    n = len(spos)
-    angle = _np.zeros(n)
-    length = _np.zeros(n)
-    rho = _np.zeros(n)
+        spos = _np.resize(spos,len(accelerator)+1); spos[-1] = spos[-2] + accelerator[-1].length
+        etax = _np.resize(etax,len(accelerator)+1); etax[-1] = etax[0]
+        etaxl = _np.resize(etaxl,len(accelerator)+1); etaxl[-1] = etaxl[0]
+        betax = _np.resize(betax,len(accelerator)+1); betax[-1] = betax[0]
+        alphax = _np.resize(alphax,len(accelerator)+1); alphax[-1] = alphax[0]
+    gammax = (1+alphax**2)/betax
+    n = len(accelerator)
+    angle, angle_in, angle_out, K = _np.zeros((4,n))
     for i in range(n):
-        angle[i] = accelerator[i].angle
-        length[i] = accelerator[i].length
-        if accelerator[i].angle == 0:
-            rho[i] = inf
-        else:
-            rho[i] = accelerator[i].length / accelerator[i].angle
+        angle[i] = accelerator._accelerator.lattice[i].angle
+        angle_in[i] = accelerator._accelerator.lattice[i].angle_in
+        angle_out[i] = accelerator._accelerator.lattice[i].angle_out
+        K[i] = accelerator._accelerator.lattice[i].polynom_b[1]
+    idx, *_ = _np.nonzero(angle)
+    leng = spos[idx+1]-spos[idx]
+    rho  = leng/angle[idx]
+    angle_in = angle_in[idx]
+    angle_out = angle_out[idx]
+    K = K[idx]
+    etax_in, etax_out = etax[idx], etax[idx+1]
+    etaxl_in, etaxl_out = etaxl[idx], etaxl[idx+1]
+    betax_in, betax_out = betax[idx], betax[idx+1]
+    alphax_in, alphax_out = alphax[idx], alphax[idx+1]
+    gammax_in, gammax_out = gammax[idx], gammax[idx+1]
+    H_in = betax_in*etaxl_in**2 + 2*alphax_in*etax_in*etaxl_in+gammax_in*etax_in**2
+    H_out = betax_out*etaxl_out**2 + 2*alphax_out*etax_out*etaxl_out+gammax_out*etax_out**2
 
-    integrals[0] = _np.trapz(etax/rho, spos)
+    etax_avg = 0.5*(etax_in+etax_out)
+    rho2, rho3 = rho**2, rho**3
+    rho3abs = _np.abs(rho3)
 
+    integrals = [0.0]*6
+    integrals[0] = _np.dot(etax_avg/rho, leng)
+    integrals[1] = _np.dot(1/rho2, leng)
+    integrals[2] = _np.dot(1/rho3abs, leng)
+    integrals[3] = sum((etax_in/rho2)*_np.tan(angle_in)) + \
+                   sum((etax_out/rho2)*_np.tan(angle_out)) + \
+                   _np.dot((etax_avg/rho3)*(1+2*rho2*K), leng)
+    integrals[4] = _np.dot(0.5*(H_in+H_out)/rho3abs, leng)
+    integrals[5] = _np.dot((K*etax_avg)**2, leng)
 
-    # for i in range(len(accelerator)-1):
-    #     gamma[i] = (1 + twiss[i].alphax**2) / twiss[i].betax
-    #     gamma[i+1] = (1 + twiss[i+1].alphax**2) / twiss[i+1].betax
-    #     if accelerator[i].angle != 0.0:
-    #         rho = accelerator[i].length/accelerator[i].angle
-    #         dispersion = 0.5*(D_x[i]+D_x[i+1])
-    #         integrals[0] = integrals[0] + dispersion*accelerator[i].length /rho
-    #         integrals[1] = integrals[1] + accelerator[i].length/(rho**2)
-    #         integrals[2] = integrals[2] + accelerator[i].length/abs(rho**3)
-    #         integrals[3] = integrals[3] + \
-    #             D_x[i]*_math.tan(accelerator[i].angle_in)/(rho**2) + \
-    #             (1 + 2*(rho**2)*accelerator[i].polynom_b[1])*(D_x[i]+D_x[i+1])*accelerator[i].length/(2*(rho**3)) + \
-    #             D_x[i+1]*_math.tan(accelerator[i].angle_out)/(rho**2)
-    #         H1 = twiss[i].betax*D_x_[i]*D_x_[i] + 2*twiss[i].alphax*D_x[i]*D_x_[i] + gamma[i]*D_x[i]*D_x[i];
-    #         H0 = twiss[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*twiss[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
-    #         integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
-    #         integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
+    #t1 = time.time(); print(t1-t0)
     return integrals, twiss, m66, transfer_matrices, closed_orbit
 
 
@@ -468,7 +470,7 @@ def getequilibriumparameters(accelerator,
     compaction_factor = getmcf(accelerator)
     etac = gamma**(-2) - compaction_factor
 
-    integrals, *_ = getradiationintegrals(accelerator,twiss,m66,transfer_matrices,closed_orbit)
+    integrals, *args = getradiationintegrals(accelerator,twiss,m66,transfer_matrices,closed_orbit)
 
     damping = _np.zeros(3)
     damping[0] = 1.0 - integrals[3]/integrals[1]
@@ -498,7 +500,8 @@ def getequilibriumparameters(accelerator,
         damping_times = radiation_damping, natural_energy_spread = natural_energy_spread, etac = etac,
         natural_emittance = natural_emittance, overvoltage = overvoltage, syncphase = syncphase,
         synctune = synctune, rf_energy_acceptance = rf_energy_acceptance, bunchlength = bunchlength)
-    return summary
+        
+    return [summary, integrals] + args
 
 @_interactive
 def getbeamsize(accelerator, coupling=0.0, closed_orbit=None):
@@ -511,7 +514,7 @@ def getbeamsize(accelerator, coupling=0.0, closed_orbit=None):
     gammax = (1.0 + alphax**2)/betax
     gammay = (1.0 + alphay**2)/betay
     # emittances and energy spread
-    summary = getequilibriumparameters(accelerator)
+    summary, *_ = getequilibriumparameters(accelerator)
     e0 = summary['natural_emittance']
     sigmae = summary['natural_energy_spread']
     ey = e0 * coupling / (1.0 + coupling)
@@ -534,8 +537,8 @@ def gettransverseacceptance(accelerator, twiss=None, init_twiss=None, fixed_poin
         closed_orbit[0,:], closed_orbit[2,:] = gettwiss(twiss, ('corx','cory'))
     betax, betay, etax, etay = gettwiss(twiss, ('betax', 'betay', 'etax', 'etay'))
     # physical apertures
-    hmax = _np.array(_lattice.getattributelat(accelerator, 'hmax'))
-    vmax = _np.array(_lattice.getattributelat(accelerator, 'vmax'))
+    lattice = accelerator._accelerator.lattice
+    hmax, vmax = _np.array([(lattice[i].hmax,lattice[i].vmax) for i in range(len(accelerator))]).transpose()
     # calcs local linear acceptances
     co_x, co_y = closed_orbit[(0,2),:]
 
