@@ -24,18 +24,15 @@ class Twiss:
 
     def __str__(self):
         r = ''
-        r += 'spos      : ' + '{0:+10.3e}'.format(self.spos) + '\n'
-        r += 'corx,copx : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.corx, self.copx) + '\n'
-        r += 'cory,copy : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.cory, self.copy) + '\n'
-        r += 'code,codl : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.code, self.codl) + '\n'
-        r += 'mux       : ' + '{0:+10.3e}'.format(self.mux) + '\n'
-        r += 'betax     : ' + '{0:+10.3e}'.format(self.betax) + '\n'
-        r += 'alphax    : ' + '{0:+10.3e}'.format(self.alphax) + '\n'
-        r += 'etax      : ' + '{0:+10.3e}'.format(self.etax) + '\n'
-        r += 'etaxl     : ' + '{0:+10.3e}'.format(self.etaxl) + '\n'
-        r += 'muy       : ' + '{0:+10.3e}'.format(self.muy) + '\n'
-        r += 'betay     : ' + '{0:+10.3e}'.format(self.betay) + '\n'
-        r += 'alphay    : ' + '{0:+10.3e}'.format(self.alphay)
+        r += 'spos          : ' + '{0:+10.3e}'.format(self.spos) + '\n'
+        r += 'rx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.corx, self.cory) + '\n'
+        r += 'px, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.copx, self.copy) + '\n'
+        r += 'de, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.code, self.codl) + '\n'
+        r += 'mux, muy      : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.mux, self.muy) + '\n'
+        r += 'betax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay) + '\n'
+        r += 'alphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay) + '\n'
+        r += 'etax, etay    : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etay) + '\n'
+        r += 'etaxl, etayl  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etaxl, self.etayl) + '\n'
         return r
 
     def make_copy(self):
@@ -132,7 +129,7 @@ def calctwiss(accelerator=None, init_twiss=None, fixed_point=None):
         else:
             raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
         closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices = 'open')
-        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit[0])
+        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit)
         mx, my = m66[0:2,0:2], m66[2:4,2:4]
         t = init_twiss
         t.etax = _np.array([[t.etax], [t.etaxl]])
@@ -500,7 +497,7 @@ def getequilibriumparameters(accelerator,
         damping_times = radiation_damping, natural_energy_spread = natural_energy_spread, etac = etac,
         natural_emittance = natural_emittance, overvoltage = overvoltage, syncphase = syncphase,
         synctune = synctune, rf_energy_acceptance = rf_energy_acceptance, bunchlength = bunchlength)
-        
+
     return [summary, integrals] + args
 
 @_interactive
