@@ -12,7 +12,7 @@ class LatticeError(Exception):
 
 
 @_interactive
-def flatlat(elist):
+def flatten(elist):
     """Take a list-of-list-of-... elements and flattens it: a simple list of lattice elements"""
     flat_elist = []
     for element in elist:
@@ -20,22 +20,22 @@ def flatlat(elist):
             famname = element.fam_name
             flat_elist.append(element)
         except:
-            flat_elist.extend(flatlat(element))
+            flat_elist.extend(flatten(element))
     return flat_elist
 
 
 @_interactive
-def buildlat(elist):
+def build(elist):
     """Build lattice from a list of elements and lines"""
     lattice = _trackcpp.CppElementVector()
-    elist = flatlat(elist)
+    elist = flatten(elist)
     for e in elist:
         lattice.append(e._e)
     return lattice
 
 
 @_interactive
-def shiftlat(lattice, start):
+def shift(lattice, start):
     """Shift periodically the lattice so that it starts at element whose index
     is 'start'.
 
@@ -52,13 +52,13 @@ def shiftlat(lattice, start):
 
 
 @_interactive
-def lengthlat(lattice):
+def length(lattice):
     length = [e.length for e in lattice]
     return sum(length)
 
 
 @_interactive
-def findspos(lattice, indices=None):
+def find_spos(lattice, indices=None):
     """Return longitudinal position of the entrance for all lattice elements"""
     length = [0] + [e.length for e in lattice]
     pos = _numpy.cumsum(length)
@@ -74,7 +74,7 @@ def findspos(lattice, indices=None):
 
 
 @_interactive
-def findcells(lattice, attribute_name, value=None):
+def find_indices(lattice, attribute_name, value=None):
     """Returns a list with indices of elements that match criteria 'attribute_name=value'"""
     indices = []
     for i in range(len(lattice)):
@@ -89,7 +89,7 @@ def findcells(lattice, attribute_name, value=None):
 
 
 @_interactive
-def getattributelat(lattice, attribute_name, indices = None, m=None, n=None):
+def get_attribute(lattice, attribute_name, indices = None, m=None, n=None):
     """Return a list with requested lattice data"""
     if indices is None:
         indices = range(len(lattice))
@@ -116,7 +116,7 @@ def getattributelat(lattice, attribute_name, indices = None, m=None, n=None):
 
 
 @_interactive
-def setattributelat(lattice, attribute_name, indices, values):
+def set_attribute(lattice, attribute_name, indices, values):
     """ sets elements data and returns a new updated lattice """
     try:
         indices[0]
@@ -138,7 +138,7 @@ def setattributelat(lattice, attribute_name, indices, values):
 
 
 @_interactive
-def finddict(lattice, attribute_name):
+def find_dict(lattice, attribute_name):
     """Return a dict which correlates values of 'attribute_name' and a list of indices corresponding to matching elements"""
     latt_dict = {}
     for i in range(len(lattice)):
@@ -152,27 +152,27 @@ def finddict(lattice, attribute_name):
 
 
 @_interactive
-def knobvalue_set(lattice, fam_name, attribute_name, value):
+def set_knob(lattice, fam_name, attribute_name, value):
 
     if isinstance(fam_name,str):
-        idx = findcells(lattice, 'fam_name', fam_name)
+        idx = find_indices(lattice, 'fam_name', fam_name)
     else:
         idx = []
         for famname in fam_name:
-            idx.append(findcells(lattice, 'fam_name', fam_name))
+            idx.append(find_indices(lattice, 'fam_name', fam_name))
     for i in idx:
         setattr(lattice[i], attribute_name, value)
 
 
 @_interactive
-def knobvalue_add(lattice, fam_name, attribute_name, value):
+def add_knob(lattice, fam_name, attribute_name, value):
 
     if isinstance(fam_name,str):
-        idx = findcells(lattice, 'fam_name', fam_name)
+        idx = find_indices(lattice, 'fam_name', fam_name)
     else:
         idx = []
         for famname in fam_name:
-            idx.append(findcells(lattice, 'fam_name', fam_name))
+            idx.append(find_indices(lattice, 'fam_name', fam_name))
     for i in idx:
         original_value = getattr(lattice[i], attribute_name)
         new_value = original_values + value
@@ -215,11 +215,11 @@ def refine_lattice(accelerator,
         # adds specified fam_names
         if fam_names is not None:
             for fam_name in fam_names:
-                indices.extend(findcells(acc, 'fam_name', fam_name))
+                indices.extend(find_indices(acc, 'fam_name', fam_name))
         # adds specified pass_methods
         if pass_methods is not None:
             for pass_method in pass_methods:
-                indices.extend(findcells(acc, 'pass_method', pass_method))
+                indices.extend(find_indices(acc, 'pass_method', pass_method))
         if fam_names is None and pass_methods is None:
             indices = list(range(len(acc)))
 
