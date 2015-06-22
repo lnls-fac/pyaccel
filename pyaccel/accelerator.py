@@ -188,7 +188,7 @@ class Accelerator(object):
     @property
     def length(self):
         """Lattice length in m"""
-        return _lattice.lengthlat(self._accelerator.lattice)
+        return _lattice.length(self._accelerator.lattice)
 
     @property
     def energy(self):

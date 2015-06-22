@@ -20,7 +20,7 @@ _COLOURS = {
 
 
 @_interactive
-def plottwiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
+def plot_twiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
         offset=None, height=1.0, draw_edges=False, family_data=None,
         family_mapping=None, colours=None, selection=None, symmetry=None,
         gca=False):
@@ -28,16 +28,16 @@ def plottwiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
 
     Keyword arguments:
     accelerator -- Accelerator instance
-    twiss -- Twiss parameters (output from pyaccel.optics.calctwiss)
+    twiss -- Twiss parameters (output from pyaccel.optics.calc_twiss)
     plot_eta -- Plot dispersion (default: True)
     draw_lattice -- Add lattice drawing (default: True)
-    For the other arguments, see drawlattice documentation.
+    For the other arguments, see draw_lattice documentation.
 
     Raises RuntimeError"""
     if twiss is None:
-        twiss = _pyaccel.optics.calctwiss(accelerator)
+        twiss = _pyaccel.optics.calc_twiss(accelerator)
 
-    spos, betax, betay, etax = _pyaccel.optics.gettwiss(
+    spos, betax, betay, etax = _pyaccel.optics.get_twiss(
         twiss[0],
         ('spos', 'betax', 'betay', 'etax')
     )
@@ -85,7 +85,7 @@ def plottwiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
         _pyplot.sca(ax)
 
     if draw_lattice:
-        fig, ax = drawlattice(accelerator, offset, height, draw_edges,
+        fig, ax = draw_lattice(accelerator, offset, height, draw_edges,
             family_data, family_mapping, colours, selection, gca=True)
 
     if is_interactive:
@@ -100,7 +100,7 @@ def plottwiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
 
 
 @_interactive
-def drawlattice(lattice, offset=None, height=1.0, draw_edges=False,
+def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
         family_data=None, family_mapping=None, colours=None, selection=None,
         symmetry=None, gca=False):
     """Draw lattice elements along longitudinal position
@@ -240,7 +240,7 @@ class _LatticeDrawer(object):
         self._skew_quadrupole_coil_patches = []
         self._bpm_patches = []
 
-        pos = _pyaccel.lattice.findspos(lattice)
+        pos = _pyaccel.lattice.find_spos(lattice)
 
         if family_data is None:
             # Guess element type

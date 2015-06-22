@@ -255,11 +255,11 @@ def create_lattice():
     S20 = [GIRDER_20M1, GIRDER_20S, GIRDER_20M2, B1, GIRDER_20C1, B2, GIRDER_20C2, B3, GIRDER_20C3, B3, GIRDER_20C4, B2, GIRDER_20C5, B1];
 
     anel = [S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S12,S13,S14,S15,S16,S17,S18,S19,S20];
-    the_ring = _pyaccel.lattice.buildlat(anel)
+    the_ring = _pyaccel.lattice.build(anel)
 
     # -- shifts model to marker 'start'
-    idx = _pyaccel.lattice.findcells(the_ring, 'fam_name', 'start')
-    the_ring = _pyaccel.lattice.shiftlat(the_ring, idx[0])
+    idx = _pyaccel.lattice.find_indices(the_ring, 'fam_name', 'start')
+    the_ring = _pyaccel.lattice.shift(the_ring, idx[0])
 
     # -- sets rf frequency
     set_rf_frequency(the_ring)
@@ -271,11 +271,11 @@ def create_lattice():
 
 def set_rf_frequency(the_ring):
 
-    circumference = _pyaccel.lattice.lengthlat(the_ring)
+    circumference = _pyaccel.lattice.length(the_ring)
     velocity = _mp.constants.light_speed
     rev_frequency = velocity / circumference
     rf_frequency  = _harmonic_number * rev_frequency
-    idx = _pyaccel.lattice.findcells(the_ring, 'fam_name', 'cav')
+    idx = _pyaccel.lattice.find_indices(the_ring, 'fam_name', 'cav')
     for i in idx:
         the_ring[i].frequency = rf_frequency
 

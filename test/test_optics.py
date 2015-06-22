@@ -13,14 +13,14 @@ class TestTwiss(unittest.TestCase):
         self.accelerator.cavity_on = True
         self.accelerator.radiation_on = False
         #pyaccel.tracking.set6dtracking(self.accelerator)
-        twiss, *_ = pyaccel.optics.calctwiss(self.accelerator)
+        twiss, *_ = pyaccel.optics.calc_twiss(self.accelerator)
         (self.spos, #self.closed_orbit,
-         self.mux, self.betax, self.alphax, self.etax, self.etaxl,
-         self.muy, self.betay, self.alphay, self.etay, self.etayl) = \
-        pyaccel.optics.gettwiss(twiss,
+         self.mux, self.betax, self.alphax, self.etax, self.etapx,
+         self.muy, self.betay, self.alphay, self.etay, self.etapy) = \
+        pyaccel.optics.get_twiss(twiss,
                 ('spos', #'closed_orbit',
-                 'mux', 'betax', 'alphax', 'etax', 'etaxl',
-                 'muy', 'betay', 'alphay', 'etay', 'etayl')
+                 'mux', 'betax', 'alphax', 'etax', 'etapx',
+                 'muy', 'betay', 'alphay', 'etay', 'etapy')
         )
 
     def test_twiss(self):
@@ -86,7 +86,7 @@ class TestTwiss(unittest.TestCase):
             1.629205898120782e-02,
             4.595731539083780e-06
         ]
-        etaxl = [
+        etapx = [
             2.309267029925114e-11,
             4.107002861987864e-02,
             6.884952477154262e-03,
@@ -141,7 +141,7 @@ class TestTwiss(unittest.TestCase):
             0.0,
             0.0
         ]
-        etayl = [
+        etapy = [
             0.0,
             0.0,
             0.0,
@@ -183,14 +183,14 @@ class TestTwiss(unittest.TestCase):
             self.assertAlmostEqual(diff, 0.0, 3)
             # self.assertAlmostEqual(self.etax[i], x, 8)
 
-        # Test etaxl
-        for i, x in zip(indices, etaxl):
+        # Test etapx
+        for i, x in zip(indices, etapx):
             if x > tol:
-                diff = (self.etaxl[i] - x)/x
+                diff = (self.etapx[i] - x)/x
             else:
-                diff = self.etaxl[i] - x
+                diff = self.etapx[i] - x
             self.assertAlmostEqual(diff, 0.0, 3)
-            # self.assertAlmostEqual(self.etaxl[i], x, 8)
+            # self.assertAlmostEqual(self.etapx[i], x, 8)
 
         # Test muy
         for i, x in zip(indices, muy):
@@ -215,9 +215,9 @@ class TestTwiss(unittest.TestCase):
         for i, x in zip(indices, etay):
             self.assertAlmostEqual(self.etay[i], x, 8)
 
-        # Test etayl
-        for i, x in zip(indices, etayl):
-            self.assertAlmostEqual(self.etayl[i], x, 8)
+        # Test etapy
+        for i, x in zip(indices, etapy):
+            self.assertAlmostEqual(self.etapy[i], x, 8)
 
 
 class TestOptics(unittest.TestCase):
@@ -225,22 +225,22 @@ class TestOptics(unittest.TestCase):
     def setUp(self):
         self.accelerator = sirius.create_accelerator()
 
-    def test_getrffrequency(self):
-        f = pyaccel.optics.getrffrequency(self.accelerator)
+    def test_get_rf_frequency(self):
+        f = pyaccel.optics.get_rf_frequency(self.accelerator)
         self.assertAlmostEqual(f, 4.996579520521069e+08, 6)
 
-    def test_getrevolutionperiod(self):
-        t = pyaccel.optics.getrevolutionperiod(self.accelerator)
+    def test_get_revolution_period(self):
+        t = pyaccel.optics.get_revolution_period(self.accelerator)
         self.assertAlmostEqual(t, 1.7291829520280572e-06, 15)
 
-    def test_getrevolutionfrequency(self):
-        f = pyaccel.optics.getrevolutionfrequency(self.accelerator)
+    def test_get_revolution_frequency(self):
+        f = pyaccel.optics.get_revolution_frequency(self.accelerator)
         self.assertAlmostEqual(f, 1.0/1.7291829520280572e-06, 15)
 
-    def test_getfractunes(self):
+    def test_get_frac_tunes(self):
         self.accelerator.cavity_on = True
         self.accelerator.radiation_on = False
-        tunes = pyaccel.optics.getfractunes(self.accelerator)
+        tunes = pyaccel.optics.get_frac_tunes(self.accelerator)
         self.assertAlmostEqual(tunes[0], 0.130792736910679, 10)
         self.assertAlmostEqual(tunes[1], 0.116371351207661, 10)
 
