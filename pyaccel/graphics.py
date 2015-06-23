@@ -20,7 +20,7 @@ _COLOURS = {
 
 
 @_interactive
-def plot_twiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
+def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         offset=None, height=1.0, draw_edges=False, family_data=None,
         family_mapping=None, colours=None, selection=None, symmetry=None,
         gca=False):
@@ -30,7 +30,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
     accelerator -- Accelerator instance
     twiss -- Twiss parameters (output from pyaccel.optics.calc_twiss)
     plot_eta -- Plot dispersion (default: True)
-    draw_lattice -- Add lattice drawing (default: True)
+    add_lattice -- Add lattice drawing (default: True)
     For the other arguments, see draw_lattice documentation.
 
     Raises RuntimeError"""
@@ -68,7 +68,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
     _pyplot.plot(spos, betax, spos, betay)
     _pyplot.xlabel('s [m]')
     _pyplot.ylabel('$\\beta$ [m]')
-    if draw_lattice:
+    if add_lattice:
         _, y_max = _pyplot.ylim()
 
     legend = ax.legend(('$\\beta_x$', '$\\beta_y$'))
@@ -84,12 +84,12 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, draw_lattice=True,
         ax.legend = None
         _pyplot.sca(ax)
 
-    if draw_lattice:
+    if add_lattice:
         fig, ax = draw_lattice(accelerator, offset, height, draw_edges,
             family_data, family_mapping, colours, selection, gca=True)
 
     if is_interactive:
-        if draw_lattice:
+        if add_lattice:
             y_min, _ = _pyplot.ylim()
             _pyplot.ylim(y_min, y_max)
         _pyplot.interactive(True)
