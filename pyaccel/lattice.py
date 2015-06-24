@@ -461,8 +461,12 @@ def add_error_rotation_roll(lattice, indices, values):
 def _process_args_errors(indices, values):
     if isinstance(indices,int):
         indices = _numpy.array([[indices]])
-    elif len(indices) == 1:
-        indices = _numpy.array([indices]).transpose()
+    else:
+        try:
+            indices[0][0]
+            indices = _numpy.array(indices).transpose()
+        except:
+            indices = _numpy.array([indices]).transpose()
     if isinstance(values,(int,float)):
         values = values * _numpy.ones(indices.shape[0])
     return indices, values
