@@ -407,12 +407,28 @@ class Element(object):
         self._e.hmax = value
 
     @property
+    def hmin(self):
+        return self._e.hmin
+
+    @hmin.setter
+    def hmin(self, value):
+        self._e.hmin = value
+
+    @property
     def vmax(self):
         return self._e.vmax
 
     @vmax.setter
     def vmax(self, value):
         self._e.vmax = value
+
+    @property
+    def vmin(self):
+        return self._e.vmin
+
+    @vmin.setter
+    def vmin(self, value):
+        self._e.vmin = value
 
     @property
     def K(self):
@@ -591,8 +607,12 @@ class Element(object):
             r += fmtstr.format('frequency', self.frequency, 'Hz')
         if self.voltage != 0:
             r += fmtstr.format('voltage', self.voltage, 'V')
+        if self.hmin < _DBL_MAX:
+            r += fmtstr.format('hmin', self.hmin, 'm')
         if self.hmax < _DBL_MAX:
             r += fmtstr.format('hmax', self.hmax, 'm')
+        if self.vmin < _DBL_MAX:
+            r += fmtstr.format('vmin', self.vmin, 'm')
         if self.vmax < _DBL_MAX:
             r += fmtstr.format('vmax', self.vmax, 'm')
         if self.kicktable is not None:
