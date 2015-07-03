@@ -34,7 +34,7 @@ class Twiss:
         r += 'betax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay) + '\n'
         r += 'alphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay) + '\n'
         r += 'etax, etay    : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etay) + '\n'
-        r += 'etaxl, etayl  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etaxl, self.etayl) + '\n'
+        r += 'etapx, etapy  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etapx, self.etapy) + '\n'
         return r
 
     def make_copy(self):
