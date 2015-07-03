@@ -94,8 +94,7 @@ def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
     # Check whether we have an Accelerator object
     # if (hasattr(lattice, '_accelerator') and
     #         hasattr(lattice._accelerator, 'lattice')):
-    #     # lattice = lattice._accelerator.lattice
-    #     lattice = lattice._accelerator
+    #     lattice = lattice._accelerator.lattice
 
     if indices is None:
         indices = range(len(lattice))
@@ -106,18 +105,35 @@ def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
             indices = [indices]
 
     data = []
-    for idx in indices:
-        tdata = getattr(lattice[idx], attribute_name)
-        if n is None:
-            if m is None:
-                data.append(tdata)
-            else:
-                data.append(tdata[m])
-        else:
-            if m is None:
-                data.append(tdata)
-            else:
-                data.append(tdata[m][n])
+    # for idx in indices:
+    #     tdata = getattr(lattice[idx], attribute_name)
+    #     if n is None:
+    #         if m is None:
+    #             data.append(tdata)
+    #         else:
+    #             data.append(tdata[m])
+    #     else:
+    #         if m is None:
+    #             data.append(tdata)
+    #         else:
+    #             data.append(tdata[m][n])
+    if (m is not None) and (n is not None):
+        for idx in indices:
+            tdata = getattr(lattice[idx], attribute_name)
+            data.append(tdata[m][n])
+    elif (m is not None) and (n is None):
+        for idx in indices:
+            tdata = getattr(lattice[idx], attribute_name)
+            data.append(tdata[m])
+    else:
+        # Check whether we have an Accelerator object
+        if (hasattr(lattice, '_accelerator') and
+                hasattr(lattice._accelerator, 'lattice') and
+                hasattr(lattice._accelerator.lattice[0], attribute_name)):
+            lattice = lattice._accelerator.lattice
+        for idx in indices:
+            tdata = getattr(lattice[idx], attribute_name)
+            data.append(tdata)
 
     return data
 

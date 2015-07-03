@@ -76,11 +76,11 @@ class TestLattice(unittest.TestCase):
         for i in range(20):
             self.assertEqual(fam_name[i], self.the_ring[i].fam_name)
 
-        polynom_b = pyaccel.lattice.get_attribute(self.the_ring,'polynom_b',range(20),m=1)
+        polynom_b = pyaccel.lattice.get_attribute(self.the_ring, 'polynom_b', range(20), m=1)
         for i in range(20):
             self.assertEqual(polynom_b[i],self.the_ring[i].polynom_b[1])
 
-        r_in = pyaccel.lattice.get_attribute(self.the_ring,'r_in',range(20),m=1,n=1)
+        r_in = pyaccel.lattice.get_attribute(self.the_ring,'r_in',range(20), m=1, n=1)
         for i in range(20):
             self.assertEqual(r_in[i],self.the_ring[i].r_in[1,1])
 
