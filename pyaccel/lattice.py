@@ -89,12 +89,13 @@ def find_indices(lattice, attribute_name, value=None):
 
 
 @_interactive
-def get_attribute(lattice, attribute_name, indices = None, m=None, n=None):
+def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
     """Return a list with requested lattice data"""
     # Check whether we have an Accelerator object
-    if (hasattr(lattice, '_accelerator') and
-            hasattr(lattice._accelerator, 'lattice')):
-        lattice = lattice._accelerator.lattice
+    # if (hasattr(lattice, '_accelerator') and
+    #         hasattr(lattice._accelerator, 'lattice')):
+    #     # lattice = lattice._accelerator.lattice
+    #     lattice = lattice._accelerator
 
     if indices is None:
         indices = range(len(lattice))

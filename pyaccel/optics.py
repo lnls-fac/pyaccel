@@ -1,4 +1,5 @@
 
+import time as _time
 import copy as _copy
 import math as _math
 import numpy as _np
@@ -6,10 +7,11 @@ import mathphys as _mp
 import pyaccel.lattice as _lattice
 import pyaccel.tracking as _tracking
 from pyaccel.utils import interactive as _interactive
-import time
+
 
 class OpticsException(Exception):
     pass
+
 
 class Twiss:
     def __init__(self):
@@ -139,8 +141,8 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None):
         if fixed_point is None:
             if not accelerator.cavity_on and not accelerator.radiation_on:
                 if accelerator.harmonic_number == 0:
-                    raise OpticsException('Either harmonic number was not set or calc_twiss was\
-                    invoked for transport line without initial twiss')
+                    raise OpticsException('Either harmonic number was not set or calc_twiss was'
+                    'invoked for transport line without initial twiss')
                 closed_orbit = _np.zeros((6,len(accelerator)))
                 closed_orbit[:4,:] = _tracking.findorbit4(accelerator, indices='open')
             else:
@@ -308,7 +310,7 @@ def get_radiation_integrals2(accelerator,
         twiss, m66, transfer_matrices, closed_orbit = \
             calc_twiss(accelerator, fixed_point=fixed_point)
 
-    t0 = time.time()
+    t0 = _time.time()
     D_x, D_x_ = get_twiss(twiss,('etax','etapx'))
     gamma = _np.zeros(len(accelerator))
     integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -329,7 +331,7 @@ def get_radiation_integrals2(accelerator,
             H0 = twiss[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*twiss[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
             integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
             integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
-    t1 = time.time()
+    t1 = _time.time()
     print(t1-t0)
     return integrals, twiss, m66, transfer_matrices, closed_orbit
 
@@ -346,7 +348,7 @@ def get_radiation_integrals(accelerator,
         twiss, m66, transfer_matrices, closed_orbit = \
             calc_twiss(accelerator, fixed_point=fixed_point)
 
-    #t0 = time.time()
+    #t0 = _time.time()
     spos,etax,etapx,betax,alphax = get_twiss(twiss,('spos','etax','etapx','betax','alphax'))
     if len(spos) != len(accelerator) + 1:
         spos = _np.resize(spos,len(accelerator)+1); spos[-1] = spos[-2] + accelerator[-1].length
@@ -390,7 +392,7 @@ def get_radiation_integrals(accelerator,
     integrals[4] = _np.dot(0.5*(H_in+H_out)/rho3abs, leng)
     integrals[5] = _np.dot((K*etax_avg)**2, leng)
 
-    #t1 = time.time(); print(t1-t0)
+    #t1 = _time.time(); print(t1-t0)
     return integrals, twiss, m66, transfer_matrices, closed_orbit
 
 
