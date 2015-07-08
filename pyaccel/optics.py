@@ -121,8 +121,22 @@ def get_twiss(twiss_list, attribute_list):
         return values
 
 @_interactive
-def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None):
-    """Return Twiss parameters of uncoupled dynamics."""
+def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open'):
+    """Return Twiss parameters of uncoupled dynamics.
+
+    Keyword arguments:
+    accelerator -- Accelerator object
+    init_twiss  -- Twiss parameters at the start of first element
+    fixed_point -- 6D position at the start of first element
+    indices     -- Open or closed
+    """
+
+    if indices == 'open':
+        length = len(accelerator)
+    elif indices == 'closed':
+        length = len(accelerator)+1
+    else:
+        raise OpticsException("invalid value for 'indices' in calc_twiss")
 
     if init_twiss is not None:
         ''' as a transport line: uses init_twiss '''
@@ -130,7 +144,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None):
             fixed_point = init_twiss.fixed_point
         else:
             raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
-        closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices = 'open')
+        closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices = indices)
         m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit)
         mx, my = m66[0:2,0:2], m66[2:4,2:4]
         t = init_twiss
@@ -143,12 +157,12 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None):
                 if accelerator.harmonic_number == 0:
                     raise OpticsException('Either harmonic number was not set or calc_twiss was'
                     'invoked for transport line without initial twiss')
-                closed_orbit = _np.zeros((6,len(accelerator)))
-                closed_orbit[:4,:] = _tracking.findorbit4(accelerator, indices='open')
+                closed_orbit = _np.zeros((6,length))
+                closed_orbit[:4,:] = _tracking.findorbit4(accelerator, indices=indices)
             else:
-                closed_orbit = _tracking.findorbit6(accelerator, indices='open')
+                closed_orbit = _tracking.findorbit6(accelerator, indices=indices)
         else:
-            closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
+            closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices=indices)
 
         ''' calcs twiss at first element '''
         m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit=closed_orbit)
@@ -179,7 +193,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None):
     ''' propagates twiss through line '''
     tw = [t]
     m_previous = _np.eye(6,6)
-    for i in range(1, len(accelerator)):
+    for i in range(1, length):
         m = transfer_matrices[i-1]
         mx, my = m[0:2,0:2], m[2:4,2:4] # decoupled transfer matrices
         Dx = _np.array([[m[0,4]],[m[1,4]]])
@@ -202,6 +216,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None):
         n.etay = Dy + _np.dot(my, t.etay)
 
         tw.append(n)
+
         t = n.make_copy()
 
     ''' converts eta format '''

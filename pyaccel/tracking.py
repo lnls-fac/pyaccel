@@ -452,6 +452,11 @@ def findorbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=N
         if indices == 'open':
             for i in range(closed_orbit.shape[1]):
                 closed_orbit[:,i] = _CppDoublePos24Numpy(_closed_orbit[i])
+        elif indices =='closed':
+            for i in range(closed_orbit.shape[1]):
+                closed_orbit[:,i] = _CppDoublePos24Numpy(_closed_orbit[i])
+            closed_orbit_0 = _numpy.array([closed_orbit[:,0]])
+            closed_orbit = _numpy.append(closed_orbit,closed_orbit_0.transpose(),axis=1)
         else:
             raise TrackingException("invalid value for 'indices' in findorbit4")
 
@@ -503,6 +508,11 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
         if indices == 'open':
             for i in range(closed_orbit.shape[1]):
                 closed_orbit[:,i] = _CppDoublePos2Numpy(_closed_orbit[i])
+        elif indices =='closed':
+            for i in range(closed_orbit.shape[1]):
+                closed_orbit[:,i] = _CppDoublePos2Numpy(_closed_orbit[i])
+            closed_orbit_0 = _numpy.array([closed_orbit[:,0]])
+            closed_orbit = _numpy.append(closed_orbit,closed_orbit_0.transpose(),axis=1)
         else:
             raise TrackingException("invalid value for 'indices' in findorbit6")
 
