@@ -1,6 +1,4 @@
 
-import time as _time
-import copy as _copy
 import math as _math
 import numpy as _np
 import mathphys as _mp
@@ -49,34 +47,43 @@ class Twiss:
         n.muy, n.betay, n.alphay = self.muy, self.betay, self.alphay
         return n
 
+    def make_dict(self):
+        spos        = self.spos
+        fixed_point = self.fixed_point
+        beta        = [self.betax, self.betay]
+        alpha       = [self.alphax, self.alphay]
+        eta         = [self.etax, self.etay]
+        etap        = [self.etapx, self.etapy]
+        mu          = [self.mux, self.muy]
+        _dict = {'spos': spos, 'fixed_point': fixed_point, 'beta': beta,
+                 'alpha': alpha, 'eta': eta, 'etap': etap, 'mu': mu}
+        return _dict
+
     @staticmethod
-    def make_new(spos=0.0, fixed_point=None, mu=None, beta=None, alpha=None, eta=None, etal=None):
+    def make_new(*args, **kwargs):
+        """Build a Twiss object.
+
+        Keyword arguments:
+        spos -- Initial s position
+        fixed_point -- Initial 6D particle position
+        mu    -- List of Twiss attributes [mux, muy]
+        alpha -- List of Twiss attributes [alphax, alphay]
+        beta  -- List of Twiss attributes [betax, betay]
+        eta   -- List of Twiss attributes [etax, etay]
+        etap  -- List of Twiss attributes [etapx, etapy]
+
+        """
+        if args:
+            if isinstance(args[0], dict):
+                kwargs = args[0]
         n = Twiss()
-        n.spos = spos
-        if fixed_point is None:
-            n.rx, n.px, n.ry, n.py, n.de, n.dl = (0.0,) * 6
-        else:
-            n.rx, n.px, n.ry, n.py, n.de, n.dl = fixed_point
-        if mu is None:
-            n.mux, n.muy = 0.0, 0.0
-        else:
-            n.mux, n.muy = mu
-        if beta is None:
-            n.betax, n.betay = None, None
-        else:
-            n.betax, n.betay = beta
-        if alpha is None:
-            n.alphax, n.alphay = 0.0, 0.0
-        else:
-            n.alphax, n.alphay = alpha
-        if eta is None:
-            n.etax, n.etay = 0.0, 0.0
-        else:
-            n.etax, n.etay = eta
-        if etal is None:
-            n.etalx, n.etaly = 0.0, 0.0
-        else:
-            n.etalx, n.etaly = etal
+        n.spos = kwargs['spos'] if 'spos' in kwargs else 0.0
+        n.fixed_point = kwargs['fixed_point'] if 'fixed_point' in kwargs else (0.0,)*6
+        n.mux, n.muy = kwargs['mu'] if 'mu' in kwargs else (0.0, 0.0)
+        n.betax, n.betay = kwargs['beta'] if 'beta' in kwargs else (None, None)
+        n.alphax, n.alphay = kwargs['alpha'] if 'alpha' in kwargs else (0.0, 0.0)
+        n.etax, n.etay = kwargs['eta'] if 'eta' in kwargs else (0.0, 0.0)
+        n.etapx, n.etapy = kwargs['etap'] if 'etap' in kwargs else (0.0, 0.0)
         return n
 
     @property
@@ -325,7 +332,6 @@ def get_radiation_integrals2(accelerator,
         twiss, m66, transfer_matrices, closed_orbit = \
             calc_twiss(accelerator, fixed_point=fixed_point)
 
-    t0 = _time.time()
     D_x, D_x_ = get_twiss(twiss,('etax','etapx'))
     gamma = _np.zeros(len(accelerator))
     integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -346,8 +352,7 @@ def get_radiation_integrals2(accelerator,
             H0 = twiss[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*twiss[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
             integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
             integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
-    t1 = _time.time()
-    print(t1-t0)
+
     return integrals, twiss, m66, transfer_matrices, closed_orbit
 
 @_interactive
@@ -363,7 +368,6 @@ def get_radiation_integrals(accelerator,
         twiss, m66, transfer_matrices, closed_orbit = \
             calc_twiss(accelerator, fixed_point=fixed_point)
 
-    #t0 = _time.time()
     spos,etax,etapx,betax,alphax = get_twiss(twiss,('spos','etax','etapx','betax','alphax'))
     if len(spos) != len(accelerator) + 1:
         spos = _np.resize(spos,len(accelerator)+1); spos[-1] = spos[-2] + accelerator[-1].length
@@ -407,7 +411,6 @@ def get_radiation_integrals(accelerator,
     integrals[4] = _np.dot(0.5*(H_in+H_out)/rho3abs, leng)
     integrals[5] = _np.dot((K*etax_avg)**2, leng)
 
-    #t1 = _time.time(); print(t1-t0)
     return integrals, twiss, m66, transfer_matrices, closed_orbit
 
 
