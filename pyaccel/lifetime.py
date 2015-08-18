@@ -6,7 +6,7 @@ from pyaccel.utils import interactive as _interactive
 
 
 @_interactive
-def calc_lifetimes(accelerator, twiss=None, eq_parameters=None, n=None, coupling=None, pressure_profile=None):
+def calc_lifetimes(accelerator, n=None, coupling=None, pressure_profile=None, twiss=None, eq_parameters=None):
 
     parameters, twiss = _process_args(accelerator, twiss, eq_parameters, n, coupling, pressure_profile)
 
