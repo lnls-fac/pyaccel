@@ -179,6 +179,10 @@ class Accelerator(object):
                     self.__class__.__name__ + "'"
             raise TypeError(msg)
 
+    def pop(self, index):
+        elem = self[index]
+        del self[index]
+        return elem
 
     def append(self, value):
         if not isinstance(value, _elements.Element):
