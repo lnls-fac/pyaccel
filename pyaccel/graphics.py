@@ -28,17 +28,17 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
 
     Keyword arguments:
     accelerator -- Accelerator instance
-    twiss -- Twiss parameters (output from pyaccel.optics.calc_twiss)
+    twiss -- Twiss parameters (first output from pyaccel.optics.calc_twiss)
     plot_eta -- Plot dispersion (default: True)
     add_lattice -- Add lattice drawing (default: True)
     For the other arguments, see draw_lattice documentation.
 
     Raises RuntimeError"""
     if twiss is None:
-        twiss = _pyaccel.optics.calc_twiss(accelerator)
+        twiss, *_ = _pyaccel.optics.calc_twiss(accelerator)
 
     spos, betax, betay, etax = _pyaccel.optics.get_twiss(
-        twiss[0],
+        twiss,
         ('spos', 'betax', 'betay', 'etax')
     )
 
