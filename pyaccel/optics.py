@@ -136,6 +136,12 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
     init_twiss  -- Twiss parameters at the start of first element
     fixed_point -- 6D position at the start of first element
     indices     -- Open or closed
+
+    Returns:
+    tw -- list of Twiss objects
+    m66
+    transfer_matrices
+    closed_orbit
     """
 
     if indices == 'open':
