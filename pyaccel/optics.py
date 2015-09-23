@@ -1,4 +1,5 @@
 
+import sys as _sys
 import math as _math
 import numpy as _np
 import mathphys as _mp
@@ -221,9 +222,24 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
         n.alphax = -((mx[0,0] * t.betax - mx[0,1] * t.alphax) * (mx[1,0] * t.betax - mx[1,1] * t.alphax) + mx[0,1] * mx[1,1]) / t.betax
         n.betay  =  ((my[0,0] * t.betay - my[0,1] * t.alphay)**2 + my[0,1]**2) / t.betay
         n.alphay = -((my[0,0] * t.betay - my[0,1] * t.alphay) * (my[1,0] * t.betay - my[1,1] * t.alphay) + my[0,1] * my[1,1]) / t.betay
+
         ''' calcs phase advance based on R(mu) = U(2) M(2|1) U^-1(1) '''
-        n.mux = t.mux + _math.asin(mx[0,1]/_math.sqrt(n.betax * t.betax))
-        n.muy = t.muy + _math.asin(my[0,1]/_math.sqrt(n.betay * t.betay))
+        sint = mx[0,1]/_math.sqrt(n.betax * t.betax)
+        cost = (mx[0,0] * t.betax - mx[0,1] * t.alphax)/_math.sqrt(n.betax * t.betax)
+        dmux = _math.atan2(sint, cost)
+        n.mux = t.mux + dmux
+        sint = my[0,1]/_math.sqrt(n.betay * t.betay)
+        cost = (my[0,0] * t.betay - my[0,1] * t.alphay)/_math.sqrt(n.betay * t.betay)
+        dmuy = _math.atan2(sint, cost)
+        n.muy = t.muy + dmuy
+
+        ''' when phase advance in an element is over PI atan2 returns a
+            negative value that has to be corrected by adding 2*PI'''
+        if dmux < 0 and dmux < -10*_sys.float_info.epsilon:
+            n.mux += 2*_math.pi
+        if dmuy < 0 and dmuy < -10*_sys.float_info.epsilon:
+            n.muy += 2*_math.pi
+
         ''' dispersion function'''
         n.etax = Dx + _np.dot(mx, t.etax)
         n.etay = Dy + _np.dot(my, t.etay)
