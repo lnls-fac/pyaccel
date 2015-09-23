@@ -78,9 +78,9 @@ class Accelerator(object):
                 self._accelerator.lattice.erase(self._accelerator.lattice.begin() + i);
 
     def __getitem__(self, index):
-        if isinstance(index,(int,_np.int_)):
+        if isinstance(index,(int, _np.int_)):
             return _elements.Element(element=self._accelerator.lattice[int(index)])
-        elif isinstance(index, (list,tuple)):
+        elif isinstance(index, (list,tuple)) and all(isinstance(x, (int, _np.int_)) for x in index):
             lattice = _trackcpp.CppElementVector()
             for i in index:
                 lattice.append(self._accelerator.lattice[i])
