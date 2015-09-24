@@ -127,6 +127,7 @@ def get_twiss(twiss_list, attribute_list):
     else:
         return values
 
+
 @_interactive
 def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open'):
     """Return Twiss parameters of uncoupled dynamics.
@@ -233,6 +234,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
 
     return tw, m66, transfer_matrices, closed_orbit
 
+
 @_interactive
 def get_rf_frequency(accelerator):
     """Return the frequency of the first RF cavity in the lattice"""
@@ -241,6 +243,7 @@ def get_rf_frequency(accelerator):
             return e.frequency
     else:
         raise OpticsException('no cavity element in the lattice')
+
 
 @_interactive
 def get_rf_voltage(accelerator):
@@ -256,6 +259,7 @@ def get_rf_voltage(accelerator):
             return voltages
     else:
         raise OpticsException('no cavity element in the lattice')
+
 
 @_interactive
 def get_revolution_period(accelerator):
@@ -278,8 +282,9 @@ def get_traces(accelerator, m66=None, closed_orbit=None):
     trace_z = m66[4,4] + m66[5,5]
     return trace_x, trace_y, trace_z, m66, closed_orbit
 
+
 @_interactive
-def get_frac_tunes(accelerator, m66=None, closed_orbit=None):
+def get_frac_tunes(accelerator, m66=None, closed_orbit=None, coupled=False):
     """Return fractional tunes of the accelerator"""
     trace_x, trace_y, trace_z, m66, closed_orbit = get_traces(accelerator,
                                                    m66 = m66,
@@ -287,6 +292,12 @@ def get_frac_tunes(accelerator, m66=None, closed_orbit=None):
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
     tune_z = _math.acos(trace_z/2.0)/2.0/_math.pi
+    if coupled:
+        tunes = _np.log(_np.linalg.eigvals(m66))/2.0/_math.pi/1j
+        tune_x = tunes[_np.argmin(abs(_np.sin(tunes.real) - _math.sin(tune_x)))]
+        tune_y = tunes[_np.argmin(abs(_np.sin(tunes.real) - _math.sin(tune_y)))]
+        tune_z = tunes[_np.argmin(abs(_np.sin(tunes.real) - _math.sin(tune_z)))]
+
     return tune_x, tune_y, tune_z, trace_x, trace_y, trace_z, m66, closed_orbit
 
 
@@ -354,6 +365,7 @@ def get_radiation_integrals2(accelerator,
             integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
 
     return integrals, twiss, m66, transfer_matrices, closed_orbit
+
 
 @_interactive
 def get_radiation_integrals(accelerator,
@@ -464,6 +476,7 @@ def get_natural_bunch_length(accelerator):
     bunch_length = beta* c *abs(etac)* natural_energy_spread /( synctune * rev_freq *2*_math.pi)
     return bunch_length
 
+
 @_interactive
 def get_equilibrium_parameters(accelerator,
                              twiss=None,
@@ -520,6 +533,7 @@ def get_equilibrium_parameters(accelerator,
 
     return [summary, integrals] + args
 
+
 @_interactive
 def get_beam_size(accelerator, coupling=0.0, closed_orbit=None):
     """Return beamsizes (stddev) along ring"""
@@ -542,6 +556,7 @@ def get_beam_size(accelerator, coupling=0.0, closed_orbit=None):
     sigmaxl = _np.sqrt(ex * gammax + (sigmae * etapx)**2)
     sigmayl = _np.sqrt(ey * gammay + (sigmae * etapy)**2)
     return sigmax, sigmay, sigmaxl, sigmayl, ex, ey, summary, twiss, closed_orbit
+
 
 @_interactive
 def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_point=None, energy_offset=0.0):
