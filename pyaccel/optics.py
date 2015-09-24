@@ -158,8 +158,13 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
             fixed_point = init_twiss.fixed_point
         else:
             raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
-        closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices = indices)
+
+        closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
         m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit)
+        if indices == 'closed':
+            orb, *_ = _tracking.linepass(accelerator, particles=list(fixed_point))
+            orb = _np.array([orb])
+            closed_orbit   = _np.append(closed_orbit,orb.transpose(),axis=1)
         mx, my = m66[0:2,0:2], m66[2:4,2:4]
         t = init_twiss
         t.etax = _np.array([[t.etax], [t.etapx]])
@@ -543,11 +548,11 @@ def get_equilibrium_parameters(accelerator,
     return [summary, integrals] + args
 
 @_interactive
-def get_beam_size(accelerator, coupling=0.0, closed_orbit=None):
+def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, indices='open'):
     """Return beamsizes (stddev) along ring"""
 
     # twiss parameters
-    twiss, *_ = calc_twiss(accelerator,closed_orbit=closed_orbit)
+    twiss, *_ = calc_twiss(accelerator, closed_orbit=closed_orbit, indices=indices)
     betax, alphax, etax, etapx = get_twiss(twiss, ('betax','alphax','etax','etapx'))
     betay, alphay, etay, etapy = get_twiss(twiss, ('betay','alphay','etay','etapy'))
     gammax = (1.0 + alphax**2)/betax
@@ -570,18 +575,28 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
 
     m66 = None
     if twiss is None:
-        twiss, m66, transfer_matrices, closed_orbit = calc_twiss(accelerator, init_twiss=init_twiss, fixed_point=fixed_point)
+        twiss, m66, transfer_matrices, closed_orbit = calc_twiss(accelerator, init_twiss=init_twiss, fixed_point=fixed_point, indices='open')
+        n = len(accelerator)
     else:
-        closed_orbit = _np.zeros((6,len(accelerator)))
+        if len(twiss) == len(accelerator):
+            n = len(accelerator)
+        elif len(twiss) == len(accelerator)+1:
+            n = len(accelerator)+1
+        else:
+            raise OpticsException('Mismatch between size of accelerator and size of twiss object')
+        closed_orbit = _np.zeros((6,n))
         closed_orbit[0,:], closed_orbit[2,:] = get_twiss(twiss, ('rx','ry'))
     betax, betay, etax, etay = get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
+
     # physical apertures
     lattice = accelerator._accelerator.lattice
     hmax, vmax = _np.array([(lattice[i].hmax,lattice[i].vmax) for i in range(len(accelerator))]).transpose()
+    if len(hmax) != n:
+        hmax = _np.append(hmax, hmax[-1])
+        vmax = _np.append(vmax, vmax[-1])
+
     # calcs local linear acceptances
     co_x, co_y = closed_orbit[(0,2),:]
-
-    n = len(accelerator)
 
     # calcs acceptance with beta at entrance of elements
     betax_sqrt, betay_sqrt = _np.sqrt(betax), _np.sqrt(betay)
