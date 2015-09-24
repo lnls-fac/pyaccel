@@ -162,29 +162,34 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
         closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
         m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit)
         if indices == 'closed':
-            orb, *_ = _tracking.linepass(accelerator, particles=list(fixed_point))
-            orb = _np.array([orb])
-            closed_orbit   = _np.append(closed_orbit,orb.transpose(),axis=1)
+            orb, *_ = _tracking.linepass(accelerator[-1:], particles=closed_orbit[:,-1])
+            closed_orbit = _np.append(closed_orbit,orb.transpose(),axis=1)
+
         mx, my = m66[0:2,0:2], m66[2:4,2:4]
         t = init_twiss
         t.etax = _np.array([[t.etax], [t.etapx]])
         t.etay = _np.array([[t.etay], [t.etapy]])
     else:
         ''' as a periodic system: try to find periodic solution '''
+
+        if accelerator.harmonic_number == 0:
+            raise OpticsException('Either harmonic number was not set or calc_twiss was'
+                'invoked for transport line without initial twiss')
+
         if fixed_point is None:
             if not accelerator.cavity_on and not accelerator.radiation_on:
-                if accelerator.harmonic_number == 0:
-                    raise OpticsException('Either harmonic number was not set or calc_twiss was'
-                    'invoked for transport line without initial twiss')
                 closed_orbit = _np.zeros((6,length))
                 closed_orbit[:4,:] = _tracking.findorbit4(accelerator, indices=indices)
+            elif not accelerator.cavity_on and accelerator.radiation_on:
+                raise OpticsException('The radiation is on but the cavity is off')
             else:
                 closed_orbit = _tracking.findorbit6(accelerator, indices=indices)
         else:
             closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices=indices)
 
         ''' calcs twiss at first element '''
-        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit=closed_orbit)
+        orbit = closed_orbit[:,:-1] if indices == 'closed' else closed_orbit
+        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit=orbit)
         mx, my = m66[0:2,0:2], m66[2:4,2:4] # decoupled transfer matrices
         trace_x, trace_y, *_ = get_traces(accelerator, m66 = m66, closed_orbit=closed_orbit)
         if not (-2.0 < trace_x < 2.0):
