@@ -547,9 +547,10 @@ def findm66(accelerator, indices = None, closed_orbit = None):
     transfer_matrices = []
     m66_prev = _numpy.eye(6,6)
     for i in range(len(_m66)):
-        inv_m66_prev = _numpy.linalg.inv(m66_prev)
         m66_this = _CppMatrix2Numpy(_m66[i])
+        inv_m66_prev = _numpy.linalg.inv(m66_prev)
         tm = _numpy.dot(m66_this, inv_m66_prev)
+        #tm = _numpy.linalg.solve(m66_prev.T, m66_this.T).T  # Fernando: you may uncomment this line when running YOUR code! aushuashuahs
         m66_prev = m66_this
         if i in indices:
             transfer_matrices.append(tm)
