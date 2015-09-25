@@ -21,9 +21,14 @@ class Accelerator(object):
         if 'accelerator' in kwargs:
             a = kwargs['accelerator']
             if isinstance(a,_trackcpp.Accelerator):
-                self._accelerator = a
-            else:
-                self._accelerator = kwargs['accelerator']._accelerator
+                self._accelerator = a # points to the same object in memory
+            elif isinstance(a,Accelerator): # creates another object.
+                self._accelerator = _trackcpp.Accelerator()
+                self._accelerator.lattice = a._accelerator.lattice[:]
+                self._accelerator.cavity_on = a.cavity_on
+                self._accelerator.radiation_on = a.radiation_on
+                self._accelerator.vchamber_on = a.vchamber_on
+                self._accelerator.harmonic_number = a.harmonic_number
         else:
             self._accelerator = _trackcpp.Accelerator()
             self._accelerator.cavity_on = False
@@ -179,6 +184,14 @@ class Accelerator(object):
                     self.__class__.__name__ + "'"
             raise TypeError(msg)
 
+    def __eq__(self,other):
+        if not isinstance(other,Accelerator): return NotImplemented
+        if len(self) != len(other): return False
+        for i in range(len(self)):
+            if self[i] != other[i]: return False
+        return True
+
+
     def pop(self, index):
         elem = self[index]
         del self[index]
@@ -188,6 +201,13 @@ class Accelerator(object):
         if not isinstance(value, _elements.Element):
             raise TypeError('value must be Element')
         self._accelerator.lattice.append(value._e)
+
+    def extend(self,value):
+        if not isinstance(value,Accelerator):
+            raise TypeError('value must be Accelerator')
+        if value is self: value = Accelerator(accelerator=value)
+        for el in value:
+            self.append(el)
 
     @property
     def length(self):

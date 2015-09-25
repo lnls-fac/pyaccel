@@ -185,6 +185,12 @@ class Polynom(_numpy.ndarray):
             self._polynom[index] = value
         super().__setitem__(index, value)
 
+    def __eq__(self,other):
+        if not isinstance(other,Polynom): return NotImplemented
+        if len(self) != len(other): return False
+        if (self != other).any(): return False
+        return True
+
 
 @_interactive
 class Kicktable(object):
@@ -195,6 +201,13 @@ class Kicktable(object):
         else:
             filename = kwargs.get('filename', "")
             self._kicktable = _trackcpp.Kicktable(filename)
+
+    def __eq__(self,other):
+        if not isinstance(other,Kicktable): return NotImplemented
+        for attr in self._kicktable.__swig_getmethods__:
+            if getattr(self,attr) != getattr(other,attr):
+                return False
+        return True
 
     @property
     def filename(self):
@@ -245,6 +258,19 @@ class Element(object):
             fam_name = kwargs.get('fam_name', "")
             length = kwargs.get('length', 0.0)
             self._e = _trackcpp.Element(fam_name, length)
+
+    def __eq__(self,other):
+        if not isinstance(other,Element): return NotImplemented
+        for attr in self._e.__swig_getmethods__:
+            self_attr = getattr(self,attr)
+            if isinstance(self_attr,_numpy.ndarray):
+                if (self_attr != getattr(other,attr)).any():
+                    return False
+            else:
+                if self_attr != getattr(other,attr):
+                    return False
+        return True
+
 
     @property
     def fam_name(self):

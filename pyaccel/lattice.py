@@ -43,7 +43,7 @@ def shift(lattice, start):
     lattice -- a list of objects
     start -- index of first element in new list
 
-    Returns a list (not an Accelerator).
+    Returns an Accelerator).
     """
     new_lattice = lattice[start:]
     for i in range(start):
