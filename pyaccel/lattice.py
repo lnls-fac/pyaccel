@@ -83,24 +83,39 @@ def find_spos(lattice, indices='open'):
         raise TypeError('indices type not supported')
 
 @_interactive
-def find_indices(lattice, attribute_name, value=None):
+def find_indices(lattice, attribute_name, value, comparison=None):
     """Returns a list with indices (i) of elements that match criteria
     'lattice[i].attribute_name == value'
 
     INPUTS:
         lattice : accelerator model.
         attribute_name : string identifying the attribute to match
+        value   : can be any data type or collection data type.
+        comparison: function which takes two arguments, the value of the
+            attribute and value, performs a comparison between then and returns
+            a boolean. The default is equality comparison.
 
+    OUTPUTS: list of indices where the comparison returns True.
+
+    EXAMPLES:
+      >> mia_idx = find_indices(lattice,'fam_name',value='mia')
+      >> idx = find_indices(lattice,'polynom_b',value=[0.0,1.5,0.0])
+      >> fun = lambda x,y: x[2] != y
+      >> sext_idx = find_indices(lattice,'polynom_b',value=0.0,comparison=fun)
+      >> fun2=lambda x,y: x.startswith(y)
+      >> mi_idx = find_indices(lattice,'fam_name',value='mi',comparison=fun2)
     """
+
+    if comparison is None: comparison = _is_equal
     indices = []
     for i in range(len(lattice)):
-        if hasattr(lattice[i], attribute_name):
-            if value is None:
-                if getattr(lattice[i], attribute_name) is not None:
-                    indices.append(i)
-            else:
-                if _is_equal(getattr(lattice[i], attribute_name), value):
-                    indices.append(i)
+        attrib = getattr(lattice[i], attribute_name)
+        try:
+            boo = comparison(attrib, value)
+            if not isinstance(boo,(_numpy.bool_,bool)): raise TypeError
+            if boo: indices.append(i)
+        except TypeError:
+            raise TypeError('Comparison must take two arguments and return boolean.')
     return indices
 
 
