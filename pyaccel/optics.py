@@ -304,7 +304,7 @@ def get_revolution_frequency(accelerator):
 
 
 @_interactive
-def get_traces(accelerator, m66=None, closed_orbit=None):
+def get_traces(accelerator=None, m66=None, closed_orbit=None):
     """Return traces of 6D one-turn transfer matrix"""
     if m66 is None:
         m66 = _tracking.findm66(accelerator,
@@ -316,8 +316,9 @@ def get_traces(accelerator, m66=None, closed_orbit=None):
 
 
 @_interactive
-def get_frac_tunes(accelerator, m66=None, closed_orbit=None, coupled=False):
+def get_frac_tunes(accelerator=None, m66=None, closed_orbit=None, coupled=False):
     """Return fractional tunes of the accelerator"""
+
     trace_x, trace_y, trace_z, m66, closed_orbit = get_traces(accelerator,
                                                    m66 = m66,
                                                    closed_orbit = closed_orbit)
