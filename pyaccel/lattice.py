@@ -58,28 +58,44 @@ def length(lattice):
 
 
 @_interactive
-def find_spos(lattice, indices=None):
-    """Return longitudinal position of the entrance for all lattice elements"""
+def find_spos(lattice, indices='open'):
+    """Return longitudinal position of the entrance of lattice elements.
+
+    INPUTS:
+        lattice : accelerator model.
+        indices : may be a string 'closed' or 'open' to return or not the position
+                  at the end of the last element, or a list or tuple to select
+                  some indices or even an integer. Default is 'open'
+
+    """
     length = [0] + [e.length for e in lattice]
     pos = _numpy.cumsum(length)
 
-    if indices is None or indices == 'open':
+    if indices.lower() == 'open':
         return pos[:-1]
-    elif indices == 'closed':
+    elif indices.lower() == 'closed':
         return pos
     elif isinstance(indices, int):
         return pos[indices]
-    else:
+    elif isinstance(indices,(list,tuple)):
         return pos[list(indices)]
-
+    else:
+        raise TypeError('indices type not supported')
 
 @_interactive
 def find_indices(lattice, attribute_name, value=None):
-    """Returns a list with indices of elements that match criteria 'attribute_name=value'"""
+    """Returns a list with indices (i) of elements that match criteria
+    'lattice[i].attribute_name == value'
+
+    INPUTS:
+        lattice : accelerator model.
+        attribute_name : string identifying the attribute to match
+
+    """
     indices = []
     for i in range(len(lattice)):
         if hasattr(lattice[i], attribute_name):
-            if value == None:
+            if value is None:
                 if getattr(lattice[i], attribute_name) is not None:
                     indices.append(i)
             else:
