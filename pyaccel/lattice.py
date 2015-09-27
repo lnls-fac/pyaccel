@@ -188,7 +188,6 @@ def set_attribute(lattice, attribute_name, indices, values):
                 setattr(lattice[indices[idx]], attribute_name, values[idx])
         else:
             setattr(lattice[indices[idx]], attribute_name, values)
-    return lattice
 
 
 @_interactive
@@ -261,7 +260,7 @@ def refine_lattice(accelerator,
     if max_length is None:
         max_length = 0.05
 
-    acc = accelerator[:]
+    acc = accelerator
 
     # builds list with indices of elements to be affected
     if indices is None:
@@ -277,7 +276,7 @@ def refine_lattice(accelerator,
         if fam_names is None and pass_methods is None:
             indices = list(range(len(acc)))
 
-    new_accelerator = _pyaccel.accelerator.Accelerator(
+    new_acc = _pyaccel.accelerator.Accelerator(
         energy = acc.energy,
         harmonic_number = acc.harmonic_number,
         cavity_on = acc.cavity_on,
@@ -287,14 +286,14 @@ def refine_lattice(accelerator,
     for i in range(len(acc)):
         if i in indices:
             if acc[i].length <= max_length:
-                new_accelerator.append(acc[i])
+                new_acc.append(acc[i])
             else:
 
                 nr_segs = 1+int(acc[i].length/max_length)
 
                 if (acc[i].angle_in != 0) or (acc[i].angle_out != 0):
                     # for dipoles (special case due to fringe fields)
-                    #new_accelerator.append(acc[i])
+                    #new_acc.append(acc[i])
                     #break
 
                     nr_segs = max(3,nr_segs)
@@ -309,28 +308,35 @@ def refine_lattice(accelerator,
                     e_in.length, e.length, e_out.length = 3*(length/nr_segs,)
                     e_in.angle, e.angle, e_out.angle = 3*(angle/nr_segs,)
 
-                    new_accelerator.append(e_in)
+                    new_acc.append(e_in)
                     for k in range(nr_segs-2):
-                        new_accelerator.append(e)
-                    new_accelerator.append(e_out)
+                        new_acc.append(e)
+                    new_acc.append(e_out)
                 elif acc[i].kicktable is not None:
                     raise Exception('no refinement implemented for IDs yet')
                 else:
-                    e = _pyaccel.elements.Element(element = acc[i]._e)
+                    e = _pyaccel.elements.Element(element = acc[i], copy = True)
                     e.length = e.length / nr_segs
                     e.angle  = e.angle / nr_segs
                     for k in range(nr_segs):
-                        new_accelerator.append(e)
+                        new_acc.append(e)
 
         else:
-            new_accelerator.append(acc[i])
+            e = _pyaccel.elements.Element(element = acc[i], copy = True)
+            new_acc.append(e)
 
-    return new_accelerator
+    return new_acc
 
 
 @_interactive
 def get_error_misalignment_x(lattice, indices):
-    """Set horizontal misalignment errors to lattice"""
+    """Get horizontal misalignment errors from lattice
+
+
+
+
+
+    """
 
     ''' processes arguments '''
     indices, *_ = _process_args_errors(indices, 0.0)
@@ -339,8 +345,10 @@ def get_error_misalignment_x(lattice, indices):
     values = []
     for i in range(indices.shape[0]):
         for j in range(indices.shape[1]):
-            index = indices[i,j]
-            values.append(-lattice[index].t_in[0])
+            idx = indices[i,j]
+            #it is possible to also have yaw errors,so:
+            values.append(-(lattice[idx].t_in[0]-
+                            lattice[idx].t_out[0])/2)
     if len(values) == 1:
         return values[0]
     else:
@@ -356,13 +364,13 @@ def set_error_misalignment_x(lattice, indices, values):
 
     ''' loops over elements and sets its T1 and T2 fields '''
     for i in range(indices.shape[0]):
-        error = values[i]
         for j in range(indices.shape[1]):
-            index = indices[i,j]
-            lattice[index].t_in[0]  =  -values[i]
-            lattice[index].t_out[0] =  +values[i]
+            idx = indices[i,j]
+            #it is possible to also have yaw errors, so:
+            yaw = (lattice[idx].t_in[0] + lattice[idx].t_out[0])/2
+            lattice[idx].t_in[0]  = yaw - values[i]
+            lattice[idx].t_out[0] = yaw + values[i]
 
-    return lattice
 
 
 @_interactive
@@ -376,11 +384,9 @@ def add_error_misalignment_x(lattice, indices, values):
     for i in range(indices.shape[0]):
         error = values[i]
         for j in range(indices.shape[1]):
-            index = indices[i,j]
-            lattice[index].t_in[0]  -=  values[i]
-            lattice[index].t_out[0] -= -values[i]
-
-    return lattice
+            idx = indices[i,j]
+            lattice[idx].t_in[0]  += -values[i]
+            lattice[idx].t_out[0] += +values[i]
 
 
 @_interactive
@@ -394,8 +400,10 @@ def get_error_misalignment_y(lattice, indices):
     values = []
     for i in range(indices.shape[0]):
         for j in range(indices.shape[1]):
-            index = indices[i,j]
-            values.append(-lattice[index].t_in[2])
+            idx = indices[i,j]
+            #it is possible to also have pitch errors,so:
+            values.append(-(lattice[idx].t_in[2]-
+                            lattice[idx].t_out[2])/2)
     if len(values) == 1:
         return values[0]
     else:
@@ -413,11 +421,11 @@ def set_error_misalignment_y(lattice, indices, values):
     for i in range(indices.shape[0]):
         error = values[i]
         for j in range(indices.shape[1]):
-            index = indices[i,j]
-            lattice[index].t_in[2]  =  -values[i]
-            lattice[index].t_out[2] =  +values[i]
-
-    return lattice
+            idx = indices[i,j]
+            #it is possible to also have yaw errors, so:
+            pitch = (lattice[idx].t_in[2] + lattice[idx].t_out[2])/2
+            lattice[idx].t_in[2]  = pitch - values[i]
+            lattice[idx].t_out[2] = pitch + values[i]
 
 
 @_interactive
@@ -431,9 +439,9 @@ def add_error_misalignment_y(lattice, indices, values):
     for i in range(indices.shape[0]):
         error = values[i]
         for j in range(indices.shape[1]):
-            index = indices[i,j]
-            lattice[index].t_in[2]  -=  values[i]
-            lattice[index].t_out[2] -= -values[i]
+            idx = indices[i,j]
+            lattice[idx].t_in[2]  += -values[i]
+            lattice[idx].t_out[2] +=  values[i]
 
     return lattice
 
@@ -481,8 +489,7 @@ def set_error_rotation_roll(lattice, indices, values):
                 lattice[index].polynom_b[0] = ((orig_c*c - orig_s*s) - 1.0) / rho # (cos(teta)-1)/rho
             else:
                 lattice[index].r_in  = rot
-                lattice[index].r_out = rot.transpose()
-    return lattice
+                lattice[index].r_out = rot.T
 
 
 @_interactive
@@ -508,8 +515,231 @@ def add_error_rotation_roll(lattice, indices, values):
                 lattice[index].polynom_b[0] = ((orig_c*c - orig_s*s) - 1.0) / rho # (cos(teta)-1)/rho
             else:
                 lattice[index].r_in  = _numpy.dot(rot, lattice[index].r_in)
-                lattice[index].r_out = _numpy.dot(lattice[index].r_out, rot.transpose())
-    return lattice
+                lattice[index].r_out = _numpy.dot(lattice[index].r_out, rot.T)
+
+
+@_interactive
+def get_error_rotation_pitch(lattice, indices):
+    """Get pitch rotation errors of lattice elements"""
+
+    ''' processes arguments '''
+    indices, *_ = _process_args_errors(indices, 0.0)
+
+    ''' loops over elements and gets error from T_IN '''
+    values = []
+    for i in range(indices.shape[0]):
+        ang = lattice[indices[i,0]].t_in[2]
+        values.extend(indices.shape[1]*[-ang])
+
+    if len(values) == 1: return values[0]
+    else: return values
+
+
+@_interactive
+def set_error_rotation_pitch(lattice, indices, values):
+    """Add pitch rotation errors to lattice"""
+
+    #processes arguments
+    indices, values = _process_args_errors(indices, values)
+
+    #set new values to first T1 and last T2
+    for i in range(indices.shape[0]):
+        angy = -values[i]
+        L    = sum([lattice[ii].length for ii in indices[i,:]])
+        #It is possible that there is a misalignment error, so:
+        misy = (lattice[indices[i, 0]].t_in[2] - lattice[indices[i,-1]].t_out[2])/2
+
+        # correction of the path length
+        old_angx = lattice[indices[i, 0]].t_in[1]
+        path = -(L/2)*(angy*angy + old_angx*old_angx)
+
+        #Apply the errors only to the entrance of the first and exit of the last segment:
+        lattice[indices[i, 0]].t_in[2]  = -(L/2)*angy+misy
+        lattice[indices[i,-1]].t_out[2] = -(L/2)*angy-misy
+        lattice[indices[i, 0]].t_in[3]  =  angy
+        lattice[indices[i,-1]].t_out[3] = -angy
+        lattice[indices[i,-1]].t_out[5] =  path
+
+@_interactive
+def add_error_rotation_pitch(lattice, indices, values):
+    """Add pitch rotation errors to lattice"""
+
+    #processes arguments
+    indices, values = _process_args_errors(indices, values)
+
+    #set new values to first T1 and last T2. Uses small angle approximation
+    for i in range(indices.shape[0]):
+        angy  = -values[i]
+        L    = sum([lattice[ii].length for ii in indices[i,:]])
+
+        # correction of the path length
+        old_angy = lattice[indices[i, 0]].t_in[3]
+        path = -(L/2)*((angy+old_angy)*(angy+old_angy) - old_angy*old_angy)
+
+        #Apply the errors only to the entrance of the first and exit of the last segment:
+        lattice[indices[i, 0]].t_in  += _numpy.array([0,0,-(L/2)*angy, angy,0,0])
+        lattice[indices[i,-1]].t_out += _numpy.array([0,0,-(L/2)*angy,-angy,0,path])
+
+
+@_interactive
+def get_error_rotation_yaw(lattice, indices):
+    """Get yaw rotation errors of lattice elements"""
+
+    ''' processes arguments '''
+    indices, *_ = _process_args_errors(indices, 0.0)
+
+    ''' loops over elements and gets error from T_IN '''
+    values = []
+    for i in range(indices.shape[0]):
+        ang = lattice[indices[i,0]].t_in[0]
+        values.extend(indices.shape[1]*[-ang])
+
+    if len(values) == 1: return values[0]
+    else: return values
+
+
+@_interactive
+def set_error_rotation_yaw(lattice, indices, values):
+    """Add yaw rotation errors to lattice"""
+
+    #processes arguments
+    indices, values = _process_args_errors(indices, values)
+
+    #set new values to first T1 and last T2
+    for i in range(indices.shape[0]):
+        angx = -values[i]
+        L    = sum([lattice[ii].length for ii in indices[i,:]])
+        #It is possible that there is a misalignment error, so:
+        misx = (lattice[indices[i, 0]].t_in[0] - lattice[indices[i,-1]].t_out[0])/2
+
+        # correction of the path length
+        old_angy = lattice[indices[i, 0]].t_in[3]
+        path = -(L/2)*(angx*angx + old_angy*old_angy)
+
+        #Apply the errors only to the entrance of the first and exit of the last segment:
+        lattice[indices[i, 0]].t_in[0]  = -(L/2)*angx+misx
+        lattice[indices[i,-1]].t_out[0] = -(L/2)*angx-misx
+        lattice[indices[i, 0]].t_in[1]  =  angx
+        lattice[indices[i,-1]].t_out[1] = -angx
+        lattice[indices[i,-1]].t_out[5] =  path
+
+
+@_interactive
+def add_error_rotation_yaw(lattice, indices, values):
+    """Add yaw rotation errors to lattice"""
+
+    #processes arguments
+    indices, values = _process_args_errors(indices, values)
+
+    #set new values to first T1 and last T2. Uses small angle approximation
+    for i in range(indices.shape[0]):
+        angx  = -values[i]
+        L    = sum([lattice[ii].length for ii in indices[i,:]])
+
+        # correction of the path length
+        old_angx = lattice[indices[i, 0]].t_in[1]
+        path = -(L/2)*((angx+old_angx)*(angx+old_angx) - old_angx*old_angx)
+
+        #Apply the errors only to the entrance of the first and exit of the last segment:
+        lattice[indices[i, 0]].t_in  += _numpy.array([-(L/2)*angx, angx,0,0,0,0])
+        lattice[indices[i,-1]].t_out += _numpy.array([-(L/2)*angx,-angx,0,0,0,path])
+
+
+@_interactive
+def add_error_excitation_main(lattice, indices, values):
+
+    #processes arguments
+    indices, values = _process_args_errors(indices, values)
+
+    for i in range(indices.shape[0]):
+        error = values[i]
+        for j in range(indices.shape[1]):
+            idx = indices[i,j]
+            if lattice[idx].angle != 0:
+                rho = lattice[idx].length / lattice[idx].angle
+                # read dipole pass method!
+                lattice[idx].polynom_b[0] += error/rho
+#               lattice[idx].polynom_a[1:] *= 1 + error
+#               lattice[idx].polynom_b[1:] *= 1 + error
+            else:
+                lattice[idx].hkick *= 1 + error
+                lattice[idx].vkick *= 1 + error
+                lattice[idx].polynom_a *= 1 + error
+                lattice[idx].polynom_b *= 1 + error
+
+
+@_interactive
+def add_error_excitation_kdip(lattice, indices, values):
+
+    #processes arguments
+    indices, values = _process_args_errors(indices, values)
+
+    for i in range(indices.shape[0]):
+        error = values[i]
+        for j in range(indices.shape[1]):
+            idx = indices[i,j]
+            if lattice[idx].angle != 0:
+                lattice[idx].polynom_b[1] *= 1 + error
+            else:
+                raise TypeError('lattice[{0:d}] is not a Bending Magnet.'.format(idx))
+
+
+@_interactive
+def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
+    return NotImplemented
+    len_idx = len(idx)
+
+    if length(main_monom)==1 && length(main_monom) ~= len_idx
+        main_monom = repmat(main_monom,1,len_idx);
+
+    if size(Bn_norm,2)==1 && size(Bn_norm,2) ~= len_idx
+        Bn_norm = repmat(Bn_norm,1,len_idx);
+
+    if size(An_norm,2)==1 && size(An_norm,2) ~= len_idx
+        An_norm = repmat(An_norm,1,len_idx);
+
+    for i in range(indices.shape[0]):
+        n = main_monom[i]
+        Bn = Bn_norm[i,:]
+        An = An_norm[i,:]
+        for j in range(indices.shape[1]):
+            idx = indices[i,j]
+        if abs(n)==1  and lattice[idx].angle != 0:
+            if lattice[idx].length > 0 :
+                KP = lattice[idx].angle/lattice[idx].length
+            else:
+                KP = lattice[idx].angle
+        else:
+            if n > 0:
+                KP = lattice[idx].polynom_b[n-1]
+            else
+                KP = lattice[idx].Polynom_a[-n+1]
+        monoms = abs(n-1) - np.arange(An.shape[0])
+        r0_i = r0**monoms
+        newPolB = KP*r0_i*Bn
+        newPolA = KP*r0_i*An
+        oldPolB = lattice[idx].PolynomB;
+        oldPolA = lattice[idx].PolynomA;
+        lenNewPolB = len(newPolB)
+        lenOldPolB = len(oldPolB)
+        if lenNewPolB > lenOldPolB:
+            polB = newPolB
+            polB[1:lenOldPolB] = polB(1:lenOldPolB) + oldPolB
+        else
+            polB = oldPolB;
+            polB(1:lenNewPolB) = polB(1:lenNewPolB) + newPolB;
+        lenNewPolA = length(newPolA);
+        lenOldPolA = length(oldPolA);
+        if lenNewPolA > lenOldPolA
+            polA = newPolA;
+            polA(1:lenOldPolA) = polA(1:lenOldPolA) + oldPolA;
+        else
+            polA = oldPolA;
+            polA(1:lenNewPolA) = polA(1:lenNewPolA) + newPolA;
+        new_ring{idx_i}.PolynomB = polB;
+        new_ring{idx_i}.PolynomA = polA;
+        new_ring{idx_i}.MaxOrder = max([length(polB), length(polA)])-1;
+
 
 
 def _process_args_errors(indices, values):
@@ -518,9 +748,9 @@ def _process_args_errors(indices, values):
     else:
         try:
             indices[0][0]
-            indices = _numpy.array(indices).transpose()
+            indices = _numpy.array(indices).T
         except:
-            indices = _numpy.array([indices]).transpose()
+            indices = _numpy.array([indices]).T
     if isinstance(values,(int,float)):
         values = values * _numpy.ones(indices.shape[0])
     return indices, values

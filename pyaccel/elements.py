@@ -249,11 +249,20 @@ class Element(object):
 
     def __init__(self, **kwargs):
         if 'element' in kwargs:
-            copy = kwargs.get('copy',False)
-            if copy:
-                self._e = _trackcpp.Element(kwargs['element']._e)
+            if isinstance(kwargs['element'],_trackcpp.Element):
+                copy = kwargs.get('copy',False)
+                if copy:
+                    self._e = _trackcpp.Element(kwargs['element'])
+                else:
+                    self._e = kwargs['element']
+            elif isinstance(kwargs['element'],Element):
+                copy = kwargs.get('copy',True)
+                if copy:
+                    self._e = _trackcpp.Element(kwargs['element']._e)
+                else:
+                    self._e = kwargs['element']._e
             else:
-                self._e = kwargs['element']
+                raise TypeError('element must be a trackcpp.Element or a Element object.')
         else:
             fam_name = kwargs.get('fam_name', "")
             length = kwargs.get('length', 0.0)
