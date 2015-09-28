@@ -686,9 +686,9 @@ def add_error_excitation_kdip(lattice, indices, values):
 
 @_interactive
 def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
-"""
+    """
 
-"""
+    """
     return NotImplemented
     def add_polynom(attribute, Pol):
         monoms = abs(n-1) - np.arange(Pol.shape[0])
@@ -737,7 +737,7 @@ def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
                 else:
                     KP = lattice[idx].polynom_a[-n-1]
             if Bn_norm is not None:
-
+                pass
             if An_norm is not None:
                 newPolA = KP*r0_i*An
                 oldPolA = lattice[idx].polynom_a
