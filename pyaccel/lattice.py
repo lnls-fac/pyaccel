@@ -617,7 +617,7 @@ def add_error_rotation_roll(lattice, indices, values):
         rot[0,2], rot[1,3], rot[2,0], rot[3,1] = s, s, -s, -s
 
         for j in range(len(indices[i])):
-            idx = indices[i,j]
+            idx = indices[i][j]
             if lattice[idx].angle != 0 and lattice[idx].length != 0:
                 rho    = lattice[idx].length / lattice[idx].angle
                 orig_s = lattice[idx].polynom_a[0] * rho
