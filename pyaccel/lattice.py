@@ -705,6 +705,7 @@ def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
             polB[:lenNewPolB] += newPolB
         lattice[idx].polynom_b = polB
 
+
     indices, *_ = _process_args_errors(indices, 0.0)
 
     if len(main_monom)==1 and len(main_monom) != indices.shape[0]:
@@ -715,7 +716,6 @@ def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
         Bn_norm = indices.shape[0] * [Bn_norm]
     if An_norm is not None and isinstance(Bn_norm[0],types):
         An_norm = indices.shape[0] * [An_norm]
-
     for i in range(indices.shape[0]):
         n  = main_monom[i]
         if Bn_norm is not None:
