@@ -593,7 +593,7 @@ def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, indices='open'):
 
 @_interactive
 def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_point=None, energy_offset=0.0):
-
+    """Return linear transverse horizontal and vertical physical acceptances"""
     m66 = None
     if twiss is None:
         twiss, m66, transfer_matrices, closed_orbit = calc_twiss(accelerator, init_twiss=init_twiss, fixed_point=fixed_point, indices='open')

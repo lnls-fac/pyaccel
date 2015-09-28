@@ -188,7 +188,6 @@ def set_attribute(lattice, attribute_name, indices, values):
                 setattr(lattice[indices[idx]], attribute_name, values[idx])
         else:
             setattr(lattice[indices[idx]], attribute_name, values)
-    return lattice
 
 
 @_interactive

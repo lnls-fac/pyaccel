@@ -186,10 +186,11 @@ class Accelerator(object):
 
     def __eq__(self,other):
         if not isinstance(other,Accelerator): return NotImplemented
-        if len(self) != len(other): return False
-        for i in range(len(self)):
-            if self[i] != other[i]: return False
-        return True
+        return self._accelerator.isequal(other._accelerator)
+        # if len(self) != len(other): return False
+        # for i in range(len(self)):
+        #     if self[i] != other[i]: return False
+        # return True
 
 
     def pop(self, index):
