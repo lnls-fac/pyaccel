@@ -528,7 +528,7 @@ def get_error_rotation_pitch(lattice, indices):
     ''' loops over elements and gets error from T_IN '''
     values = []
     for i in range(indices.shape[0]):
-        ang = lattice[indices[i,0]].t_in[2]
+        ang = lattice[indices[i,0]].t_in[3]
         values.extend(indices.shape[1]*[-ang])
 
     if len(values) == 1: return values[0]
@@ -591,7 +591,7 @@ def get_error_rotation_yaw(lattice, indices):
     ''' loops over elements and gets error from T_IN '''
     values = []
     for i in range(indices.shape[0]):
-        ang = lattice[indices[i,0]].t_in[0]
+        ang = lattice[indices[i,0]].t_in[1]
         values.extend(indices.shape[1]*[-ang])
 
     if len(values) == 1: return values[0]
@@ -686,60 +686,70 @@ def add_error_excitation_kdip(lattice, indices, values):
 
 @_interactive
 def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
+"""
+
+"""
     return NotImplemented
-    len_idx = len(idx)
-
-    if length(main_monom)==1 && length(main_monom) ~= len_idx
-        main_monom = repmat(main_monom,1,len_idx);
-
-    if size(Bn_norm,2)==1 && size(Bn_norm,2) ~= len_idx
-        Bn_norm = repmat(Bn_norm,1,len_idx);
-
-    if size(An_norm,2)==1 && size(An_norm,2) ~= len_idx
-        An_norm = repmat(An_norm,1,len_idx);
-
-    for i in range(indices.shape[0]):
-        n = main_monom[i]
-        Bn = Bn_norm[i,:]
-        An = An_norm[i,:]
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
-        if abs(n)==1  and lattice[idx].angle != 0:
-            if lattice[idx].length > 0 :
-                KP = lattice[idx].angle/lattice[idx].length
-            else:
-                KP = lattice[idx].angle
-        else:
-            if n > 0:
-                KP = lattice[idx].polynom_b[n-1]
-            else
-                KP = lattice[idx].Polynom_a[-n+1]
-        monoms = abs(n-1) - np.arange(An.shape[0])
+    def add_polynom(attribute, Pol):
+        monoms = abs(n-1) - np.arange(Pol.shape[0])
         r0_i = r0**monoms
         newPolB = KP*r0_i*Bn
-        newPolA = KP*r0_i*An
-        oldPolB = lattice[idx].PolynomB;
-        oldPolA = lattice[idx].PolynomA;
+        oldPolB = getattribute(lattice[idx],attribute)
         lenNewPolB = len(newPolB)
         lenOldPolB = len(oldPolB)
         if lenNewPolB > lenOldPolB:
             polB = newPolB
-            polB[1:lenOldPolB] = polB(1:lenOldPolB) + oldPolB
-        else
-            polB = oldPolB;
-            polB(1:lenNewPolB) = polB(1:lenNewPolB) + newPolB;
-        lenNewPolA = length(newPolA);
-        lenOldPolA = length(oldPolA);
-        if lenNewPolA > lenOldPolA
-            polA = newPolA;
-            polA(1:lenOldPolA) = polA(1:lenOldPolA) + oldPolA;
-        else
-            polA = oldPolA;
-            polA(1:lenNewPolA) = polA(1:lenNewPolA) + newPolA;
-        new_ring{idx_i}.PolynomB = polB;
-        new_ring{idx_i}.PolynomA = polA;
-        new_ring{idx_i}.MaxOrder = max([length(polB), length(polA)])-1;
+            polB[:lenOldPolB] += oldPolB
+        else:
+            polB = oldPolB
+            polB[:lenNewPolB] += newPolB
+        lattice[idx].polynom_b = polB
 
+    indices, *_ = _process_args_errors(indices, 0.0)
+
+    if len(main_monom)==1 and len(main_monom) != indices.shape[0]:
+        main_monom *= _numpy.ones(indices.shape[0])
+
+    types = (int,float,_numpy.int64,_numpy.int32,_numpy.float64,_numpy.float32)
+    if Bn_norm is not None and isinstance(Bn_norm[0],types):
+        Bn_norm = indices.shape[0] * [Bn_norm]
+    if An_norm is not None and isinstance(Bn_norm[0],types):
+        An_norm = indices.shape[0] * [An_norm]
+
+    for i in range(indices.shape[0]):
+        n  = main_monom[i]
+        if Bn_norm is not None:
+            if isinstance(Bn_norm,_numpy.ndarray):
+                Bn = Bn_norm[i]
+            else:
+                bn = Bn_norm[i]
+        An = An_norm[i]
+        for j in range(indices.shape[1]):
+            idx = indices[i,j]
+            if abs(n)==1  and lattice[idx].angle != 0:
+                if lattice[idx].length > 0 :
+                    KP = lattice[idx].angle/lattice[idx].length
+                else:
+                    KP = lattice[idx].angle
+            else:
+                if n > 0:
+                    KP = lattice[idx].polynom_b[n-1]
+                else:
+                    KP = lattice[idx].polynom_a[-n-1]
+            if Bn_norm is not None:
+
+            if An_norm is not None:
+                newPolA = KP*r0_i*An
+                oldPolA = lattice[idx].polynom_a
+                lenNewPolA = len(newPolA)
+                lenOldPolA = len(oldPolA)
+                if lenNewPolA > lenOldPolA:
+                    polA = newPolA
+                    polA[:lenOldPolA] += oldPolA
+                else:
+                    polA = oldPolA
+                    polA[:lenNewPolA] += newPolA
+                lattice[idx].polynom_a = polA
 
 
 def _process_args_errors(indices, values):
