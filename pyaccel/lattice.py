@@ -689,13 +689,13 @@ def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
     return NotImplemented
     len_idx = len(idx)
 
-    if length(main_monom)==1 && length(main_monom) ~= len_idx
+    if length(main_monom)==1 and length(main_monom) != len_idx:
         main_monom = repmat(main_monom,1,len_idx);
 
-    if size(Bn_norm,2)==1 && size(Bn_norm,2) ~= len_idx
+    if size(Bn_norm,2)==1 and size(Bn_norm,2) != len_idx:
         Bn_norm = repmat(Bn_norm,1,len_idx);
 
-    if size(An_norm,2)==1 && size(An_norm,2) ~= len_idx
+    if size(An_norm,2)==1 and size(An_norm,2) != len_idx:
         An_norm = repmat(An_norm,1,len_idx);
 
     for i in range(indices.shape[0]):
@@ -712,7 +712,7 @@ def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
         else:
             if n > 0:
                 KP = lattice[idx].polynom_b[n-1]
-            else
+            else:
                 KP = lattice[idx].Polynom_a[-n+1]
         monoms = abs(n-1) - np.arange(An.shape[0])
         r0_i = r0**monoms
@@ -724,21 +724,21 @@ def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
         lenOldPolB = len(oldPolB)
         if lenNewPolB > lenOldPolB:
             polB = newPolB
-            polB[1:lenOldPolB] = polB(1:lenOldPolB) + oldPolB
-        else
+            polB[1:lenOldPolB] = polB[1:lenOldPolB] + oldPolB
+        else:
             polB = oldPolB;
-            polB(1:lenNewPolB) = polB(1:lenNewPolB) + newPolB;
+            polB[1:lenNewPolB] = polB[1:lenNewPolB] + newPolB;
         lenNewPolA = length(newPolA);
         lenOldPolA = length(oldPolA);
-        if lenNewPolA > lenOldPolA
+        if lenNewPolA > lenOldPolA:
             polA = newPolA;
-            polA(1:lenOldPolA) = polA(1:lenOldPolA) + oldPolA;
-        else
+            polA[1:lenOldPolA] = polA[1:lenOldPolA] + oldPolA;
+        else:
             polA = oldPolA;
-            polA(1:lenNewPolA) = polA(1:lenNewPolA) + newPolA;
-        new_ring{idx_i}.PolynomB = polB;
-        new_ring{idx_i}.PolynomA = polA;
-        new_ring{idx_i}.MaxOrder = max([length(polB), length(polA)])-1;
+            polA[1:lenNewPolA] = polA[1:lenNewPolA] + newPolA;
+        new_ring[idx_i].PolynomB = polB;
+        new_ring[idx_i].PolynomA = polA;
+        new_ring[idx_i].MaxOrder = max([length(polB), length(polA)])-1;
 
 
 
