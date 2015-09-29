@@ -378,7 +378,7 @@ def set_error_misalignment_x(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [meters]
-"""
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
@@ -409,7 +409,7 @@ def add_error_misalignment_x(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: [meters]
-"""
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
@@ -472,7 +472,7 @@ def set_error_misalignment_y(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [meters].
-"""
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
@@ -502,7 +502,7 @@ def add_error_misalignment_y(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: [meters]
-"""
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
@@ -566,7 +566,7 @@ def set_error_rotation_roll(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [rad].
-"""
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
@@ -605,7 +605,7 @@ def add_error_rotation_roll(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: [rad]
-"""
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
@@ -675,7 +675,7 @@ def set_error_rotation_pitch(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [rad]
-"""
+    """
 
     #processes arguments
     indices, values = _process_args_errors(indices, values)
@@ -713,7 +713,7 @@ def add_error_rotation_pitch(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [rad]
-"""
+    """
 
     #processes arguments
     indices, values = _process_args_errors(indices, values)
@@ -778,7 +778,7 @@ def set_error_rotation_yaw(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [rad]
-"""
+    """
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
@@ -816,7 +816,7 @@ def add_error_rotation_yaw(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: [rad]
-"""
+    """
 
     #processes arguments
     indices, values = _process_args_errors(indices, values)
@@ -837,7 +837,7 @@ def add_error_rotation_yaw(lattice, indices, values):
 
 @_interactive
 def add_error_excitation_main(lattice, indices, values):
-""" Add excitation errors to magnets.
+    """ Add excitation errors to magnets.
 
     INPUTS:
       lattice : accelerator model
@@ -850,7 +850,7 @@ def add_error_excitation_main(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: Relative value
-"""
+    """
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
@@ -873,7 +873,7 @@ def add_error_excitation_main(lattice, indices, values):
 
 @_interactive
 def add_error_excitation_kdip(lattice, indices, values):
-""" Add excitation errors to the quadrupole component of dipoles.
+    """ Add excitation errors to the quadrupole component of dipoles.
 
     INPUTS:
       lattice : accelerator model
@@ -886,7 +886,7 @@ def add_error_excitation_kdip(lattice, indices, values):
         number of segments.
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices.
-"""
+    """
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
