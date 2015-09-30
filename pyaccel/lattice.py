@@ -1013,7 +1013,7 @@ def _process_args_errors(indices, values):
     types = (int,_numpy.int64,_numpy.int32)
     if isinstance(indices,types):
         indices = [[indices]]
-    elif isinstance(indices[0],types):
+    elif len(indices) > 0 and isinstance(indices[0],types):
         indices = [[ind] for ind in indices]
 
     types = (int,float,_numpy.int64,_numpy.int32,_numpy.float64,_numpy.float32)
