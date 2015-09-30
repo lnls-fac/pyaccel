@@ -330,12 +330,20 @@ def refine_lattice(accelerator,
 
 @_interactive
 def get_error_misalignment_x(lattice, indices):
-    """Get horizontal misalignment errors from lattice
+    """Get horizontal misalignment errors from lattice elements.
 
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
 
-
-
-
+    Outputs:
+       list of floats, in case len(indices)>1, or float of errors. Unit: [meters]
     """
 
     ''' processes arguments '''
@@ -343,12 +351,12 @@ def get_error_misalignment_x(lattice, indices):
 
     ''' loops over elements and gets error from T_IN '''
     values = []
-    for i in range(indices.shape[0]):
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
-            #it is possible to also have yaw errors,so:
-            values.append(-(lattice[idx].t_in[0]-
-                            lattice[idx].t_out[0])/2)
+    for i in range(len(indices)):
+        segs = indices[i]
+        #it is possible to also have yaw errors,so:
+        misx = -(lattice[segs[ 0]].t_in[0] - lattice[segs[-1]].t_out[0])/2
+        values.extend(len(segs)*[misx])
+
     if len(values) == 1:
         return values[0]
     else:
@@ -357,17 +365,31 @@ def get_error_misalignment_x(lattice, indices):
 
 @_interactive
 def set_error_misalignment_x(lattice, indices, values):
-    """Set horizontal misalignment errors to lattice"""
+    """Set (discard previous) horizontal misalignments errors to lattice elements.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit [meters]
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
 
     ''' loops over elements and sets its T1 and T2 fields '''
-    for i in range(indices.shape[0]):
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
-            #it is possible to also have yaw errors, so:
-            yaw = (lattice[idx].t_in[0] + lattice[idx].t_out[0])/2
+    for i in range(len(indices)):
+        segs = indices[i]
+        #it is possible to also have yaw errors, so:
+        yaw = (lattice[segs[0]].t_in[0] + lattice[segs[-1]].t_out[0])/2
+        for j in range(len(segs)):
+            idx = segs[j]
             lattice[idx].t_in[0]  = yaw - values[i]
             lattice[idx].t_out[0] = yaw + values[i]
 
@@ -375,35 +397,61 @@ def set_error_misalignment_x(lattice, indices, values):
 
 @_interactive
 def add_error_misalignment_x(lattice, indices, values):
-    """Add horizontal misalignment errors to lattice"""
+    """Add (sum to previous) horizontal misalignment errors to lattice.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit: [meters]
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
 
     ''' loops over elements and sets its T1 and T2 fields '''
-    for i in range(indices.shape[0]):
-        error = values[i]
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
+    for i in range(len(indices)):
+        segs = indices[i]
+        for j in range(len(indices[i])):
+            idx = segs[j]
             lattice[idx].t_in[0]  += -values[i]
             lattice[idx].t_out[0] += +values[i]
 
 
 @_interactive
 def get_error_misalignment_y(lattice, indices):
-    """Set horizontal misalignment errors to lattice"""
+    """Get vertical misalignment errors from lattice elements.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+
+    Outputs:
+       list, in case len(indices)>1, or float of errors. Unit: [meters]
+    """
 
     ''' processes arguments '''
     indices, *_ = _process_args_errors(indices, 0.0)
 
     ''' loops over elements and gets error from T_IN '''
     values = []
-    for i in range(indices.shape[0]):
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
-            #it is possible to also have pitch errors,so:
-            values.append(-(lattice[idx].t_in[2]-
-                            lattice[idx].t_out[2])/2)
+    for i in range(len(indices)):
+        segs = indices[i]
+        #it is possible to also have pitch errors,so:
+        misy = -(lattice[segs[0]].t_in[2]- lattice[segs[-1]].t_out[2])/2
+        values.extend(len(segs)*[misy])
     if len(values) == 1:
         return values[0]
     else:
@@ -412,34 +460,60 @@ def get_error_misalignment_y(lattice, indices):
 
 @_interactive
 def set_error_misalignment_y(lattice, indices, values):
-    """Set vertical misalignment errors to lattice"""
+    """Set (discard previous) vertical misalignments errors to lattice elements.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit [meters].
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
 
     ''' loops over elements and sets its T1 and T2 fields '''
-    for i in range(indices.shape[0]):
-        error = values[i]
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
-            #it is possible to also have yaw errors, so:
-            pitch = (lattice[idx].t_in[2] + lattice[idx].t_out[2])/2
+    for i in range(len(indices)):
+        segs = indices[i]
+        #it is possible to also have yaw errors, so:
+        pitch = (lattice[segs[0]].t_in[2] + lattice[segs[-1]].t_out[2])/2
+        for j in range(len(segs)):
+            idx = segs[j]
             lattice[idx].t_in[2]  = pitch - values[i]
             lattice[idx].t_out[2] = pitch + values[i]
 
 
 @_interactive
 def add_error_misalignment_y(lattice, indices, values):
-    """Add vertical misalignment errors to lattice"""
+    """Add (sum to previous) vertical misalignment errors to lattice.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit: [meters]
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
 
     ''' loops over elements and sets its T1 and T2 fields '''
-    for i in range(indices.shape[0]):
-        error = values[i]
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
+    for i in range(len(indices)):
+        segs = indices[i]
+        for j in range(len(segs)):
+            idx = segs[j]
             lattice[idx].t_in[2]  += -values[i]
             lattice[idx].t_out[2] +=  values[i]
 
@@ -448,16 +522,31 @@ def add_error_misalignment_y(lattice, indices, values):
 
 @_interactive
 def get_error_rotation_roll(lattice, indices):
-    """Get roll rotation errors from lattice"""
+    """Get roll rotation errors from lattice elements.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+
+    Outputs:
+       list, in case len(indices)>1, or float of roll errors. Unit: [rad]
+    """
 
     ''' processes arguments '''
     indices, *_ = _process_args_errors(indices, 0.0)
 
     ''' loops over elements and gets error from R_IN '''
     values = []
-    for i in range(indices.shape[0]):
-        for j in range(indices.shape[1]):
-            index = indices[i,j]
+    for i in range(len(indices)):
+        segs = indices[i]
+        for j in range(len(segs)):
+            idx = segs[j]
             angle = _math.asin(lattice[index].r_in[0,2])
             values.append(angle)
     if len(values) == 1:
@@ -468,68 +557,111 @@ def get_error_rotation_roll(lattice, indices):
 
 @_interactive
 def set_error_rotation_roll(lattice, indices, values):
-    """Add roll rotation errors to lattice"""
+    """Set (discard previous) roll rotation errors to lattice elements.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit [rad].
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
 
     ''' loops over elements and sets its R1 and R2 fields '''
-    for i in range(indices.shape[0]):
+    for i in range(len(indices)):
+        segs = indices[i]
         c, s = _math.cos(values[i]), _math.sin(values[i])
         rot = _numpy.diag([c,c,c,c,1.0,1.0])
         rot[0,2], rot[1,3], rot[2,0], rot[3,1] = s, s, -s, -s
 
-        for j in range(indices.shape[1]):
-            index = indices[i,j]
-            if lattice[index].angle != 0 and lattice[index].length != 0:
-                rho    = lattice[index].length / lattice[index].angle
-                orig_s = lattice[index].polynom_a[0] * rho
-                orig_c = lattice[index].polynom_b[0] * rho + 1.0  # look at bndpolysymplectic4pass
-                lattice[index].polynom_a[0] = (orig_s * c + orig_c * s) / rho     # sin(teta)/rho
-                lattice[index].polynom_b[0] = ((orig_c*c - orig_s*s) - 1.0) / rho # (cos(teta)-1)/rho
+        for j in range(len(segs)):
+            idx = segs[j]
+            if lattice[idx].angle != 0 and lattice[idx].length != 0:
+                rho    = lattice[idx].length / lattice[idx].angle
+                orig_s = lattice[idx].polynom_a[0] * rho
+                orig_c = lattice[idx].polynom_b[0] * rho + 1.0  # look at bndpolysymplectic4pass
+                lattice[idx].polynom_a[0] = (orig_s * c + orig_c * s) / rho     # sin(teta)/rho
+                lattice[idx].polynom_b[0] = ((orig_c*c - orig_s*s) - 1.0) / rho # (cos(teta)-1)/rho
             else:
-                lattice[index].r_in  = rot
-                lattice[index].r_out = rot.T
+                lattice[idx].r_in  = rot
+                lattice[idx].r_out = rot.T
 
 
 @_interactive
 def add_error_rotation_roll(lattice, indices, values):
-    """Add roll rotation errors to lattice"""
+    """Add (sum to previous) roll rotation errors to lattice.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit: [rad]
+    """
 
     ''' processes arguments '''
     indices, values = _process_args_errors(indices, values)
 
     ''' loops over elements and sets its R1 and R2 fields '''
-    for i in range(indices.shape[0]):
+    for i in range(len(indices)):
+        segs = indices[i]
         c, s = _math.cos(values[i]), _math.sin(values[i])
         rot = _numpy.diag([c,c,c,c,1.0,1.0])
         rot[0,2], rot[1,3], rot[2,0], rot[3,1] = s, s, -s, -s
 
-        for j in range(indices.shape[1]):
-            index = indices[i,j]
-            if lattice[index].angle != 0 and lattice[index].length != 0:
-                rho    = lattice[index].length / lattice[index].angle
-                orig_s = lattice[index].polynom_a[0] * rho
-                orig_c = lattice[index].polynom_b[0] * rho + 1.0  # look at bndpolysymplectic4pass
-                lattice[index].polynom_a[0] = (orig_s * c + orig_c * s) / rho     # sin(teta)/rho
-                lattice[index].polynom_b[0] = ((orig_c*c - orig_s*s) - 1.0) / rho # (cos(teta)-1)/rho
+        for j in range(len(segs)):
+            idx = segs[j]
+            if lattice[idx].angle != 0 and lattice[idx].length != 0:
+                rho    = lattice[idx].length / lattice[idx].angle
+                orig_s = lattice[idx].polynom_a[0] * rho
+                orig_c = lattice[idx].polynom_b[0] * rho + 1.0  # look at bndpolysymplectic4pass
+                lattice[idx].polynom_a[0] = (orig_s * c + orig_c * s) / rho     # sin(teta)/rho
+                lattice[idx].polynom_b[0] = ((orig_c*c - orig_s*s) - 1.0) / rho # (cos(teta)-1)/rho
             else:
-                lattice[index].r_in  = _numpy.dot(rot, lattice[index].r_in)
-                lattice[index].r_out = _numpy.dot(lattice[index].r_out, rot.T)
+                lattice[idx].r_in  = _numpy.dot(rot, lattice[idx].r_in)
+                lattice[idx].r_out = _numpy.dot(lattice[idx].r_out, rot.T)
 
 
 @_interactive
 def get_error_rotation_pitch(lattice, indices):
-    """Get pitch rotation errors of lattice elements"""
+    """Get pitch rotation errors of lattice elements
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+
+    Outputs:
+       list, in case len(indices)>1, or float of pitch errors. Unit: [rad]
+    """
 
     ''' processes arguments '''
     indices, *_ = _process_args_errors(indices, 0.0)
 
     ''' loops over elements and gets error from T_IN '''
     values = []
-    for i in range(indices.shape[0]):
-        ang = lattice[indices[i,0]].t_in[3]
-        values.extend(indices.shape[1]*[-ang])
+    for i in range(len(indices)):
+        segs = indices[i]
+        ang = lattice[segs[0]].t_in[3]
+        values.extend(len(segs)*[-ang])
 
     if len(values) == 1: return values[0]
     else: return values
@@ -537,62 +669,105 @@ def get_error_rotation_pitch(lattice, indices):
 
 @_interactive
 def set_error_rotation_pitch(lattice, indices, values):
-    """Add pitch rotation errors to lattice"""
+    """Set (discard previous) pitch rotation errors to lattice.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit [rad]
+    """
 
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
     #set new values to first T1 and last T2
-    for i in range(indices.shape[0]):
+    for i in range(len(indices)):
+        segs = indices[i]
         angy = -values[i]
-        L    = sum([lattice[ii].length for ii in indices[i,:]])
+        L    = sum([lattice[ii].length for ii in segs])
         #It is possible that there is a misalignment error, so:
-        misy = (lattice[indices[i, 0]].t_in[2] - lattice[indices[i,-1]].t_out[2])/2
+        misy = (lattice[segs[0]].t_in[2] - lattice[segs[-1]].t_out[2])/2
 
         # correction of the path length
-        old_angx = lattice[indices[i, 0]].t_in[1]
+        old_angx = lattice[segs[0]].t_in[1]
         path = -(L/2)*(angy*angy + old_angx*old_angx)
 
         #Apply the errors only to the entrance of the first and exit of the last segment:
-        lattice[indices[i, 0]].t_in[2]  = -(L/2)*angy+misy
-        lattice[indices[i,-1]].t_out[2] = -(L/2)*angy-misy
-        lattice[indices[i, 0]].t_in[3]  =  angy
-        lattice[indices[i,-1]].t_out[3] = -angy
-        lattice[indices[i,-1]].t_out[5] =  path
+        lattice[segs[ 0]].t_in[2]  = -(L/2)*angy+misy
+        lattice[segs[-1]].t_out[2] = -(L/2)*angy-misy
+        lattice[segs[ 0]].t_in[3]  =  angy
+        lattice[segs[-1]].t_out[3] = -angy
+        lattice[segs[-1]].t_out[5] =  path
 
 @_interactive
 def add_error_rotation_pitch(lattice, indices, values):
-    """Add pitch rotation errors to lattice"""
+    """Add (sum to previous) pitch rotation errors to lattice.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit [rad]
+    """
 
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
     #set new values to first T1 and last T2. Uses small angle approximation
-    for i in range(indices.shape[0]):
+    for i in range(len(indices)):
+        segs = indices[i]
         angy  = -values[i]
-        L    = sum([lattice[ii].length for ii in indices[i,:]])
+        L    = sum([lattice[ii].length for ii in segs])
 
         # correction of the path length
-        old_angy = lattice[indices[i, 0]].t_in[3]
+        old_angy = lattice[segs[0]].t_in[3]
         path = -(L/2)*((angy+old_angy)*(angy+old_angy) - old_angy*old_angy)
 
         #Apply the errors only to the entrance of the first and exit of the last segment:
-        lattice[indices[i, 0]].t_in  += _numpy.array([0,0,-(L/2)*angy, angy,0,0])
-        lattice[indices[i,-1]].t_out += _numpy.array([0,0,-(L/2)*angy,-angy,0,path])
+        lattice[segs[ 0]].t_in  += _numpy.array([0,0,-(L/2)*angy, angy,0,0])
+        lattice[segs[-1]].t_out += _numpy.array([0,0,-(L/2)*angy,-angy,0,path])
 
 
 @_interactive
 def get_error_rotation_yaw(lattice, indices):
-    """Get yaw rotation errors of lattice elements"""
+    """Get yaw rotation errors of lattice elements.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+
+    Outputs:
+       list, in case len(indices)>1, or float of yaw errors. Unit: [rad]
+    """
 
     ''' processes arguments '''
     indices, *_ = _process_args_errors(indices, 0.0)
 
     ''' loops over elements and gets error from T_IN '''
     values = []
-    for i in range(indices.shape[0]):
-        ang = lattice[indices[i,0]].t_in[1]
-        values.extend(indices.shape[1]*[-ang])
+    for i in range(len(indices)):
+        segs = indices[i]
+        ang = lattice[segs[0]].t_in[1]
+        values.extend(len(segs)*[-ang])
 
     if len(values) == 1: return values[0]
     else: return values
@@ -600,61 +775,102 @@ def get_error_rotation_yaw(lattice, indices):
 
 @_interactive
 def set_error_rotation_yaw(lattice, indices, values):
-    """Add yaw rotation errors to lattice"""
+    """Set (discard previous) yaw rotation errors to lattice.
 
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit [rad]
+    """
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
     #set new values to first T1 and last T2
-    for i in range(indices.shape[0]):
+    for i in range(len(indices)):
+        segs = indices[i]
         angx = -values[i]
-        L    = sum([lattice[ii].length for ii in indices[i,:]])
+        L    = sum([lattice[ii].length for ii in segs])
         #It is possible that there is a misalignment error, so:
-        misx = (lattice[indices[i, 0]].t_in[0] - lattice[indices[i,-1]].t_out[0])/2
+        misx = (lattice[segs[0]].t_in[0] - lattice[segs[-1]].t_out[0])/2
 
         # correction of the path length
-        old_angy = lattice[indices[i, 0]].t_in[3]
+        old_angy = lattice[segs[0]].t_in[3]
         path = -(L/2)*(angx*angx + old_angy*old_angy)
 
         #Apply the errors only to the entrance of the first and exit of the last segment:
-        lattice[indices[i, 0]].t_in[0]  = -(L/2)*angx+misx
-        lattice[indices[i,-1]].t_out[0] = -(L/2)*angx-misx
-        lattice[indices[i, 0]].t_in[1]  =  angx
-        lattice[indices[i,-1]].t_out[1] = -angx
-        lattice[indices[i,-1]].t_out[5] =  path
+        lattice[segs[ 0]].t_in[0]  = -(L/2)*angx+misx
+        lattice[segs[-1]].t_out[0] = -(L/2)*angx-misx
+        lattice[segs[ 0]].t_in[1]  =  angx
+        lattice[segs[-1]].t_out[1] = -angx
+        lattice[segs[-1]].t_out[5] =  path
 
 
 @_interactive
 def add_error_rotation_yaw(lattice, indices, values):
-    """Add yaw rotation errors to lattice"""
+    """Add (sum to previous) yaw rotation errors to lattice elements.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit: [rad]
+    """
 
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
     #set new values to first T1 and last T2. Uses small angle approximation
-    for i in range(indices.shape[0]):
+    for i in range(len(indices)):
+        segs = indices[i]
         angx  = -values[i]
-        L    = sum([lattice[ii].length for ii in indices[i,:]])
+        L    = sum([lattice[ii].length for ii in segs])
 
         # correction of the path length
-        old_angx = lattice[indices[i, 0]].t_in[1]
+        old_angx = lattice[segs[0]].t_in[1]
         path = -(L/2)*((angx+old_angx)*(angx+old_angx) - old_angx*old_angx)
 
         #Apply the errors only to the entrance of the first and exit of the last segment:
-        lattice[indices[i, 0]].t_in  += _numpy.array([-(L/2)*angx, angx,0,0,0,0])
-        lattice[indices[i,-1]].t_out += _numpy.array([-(L/2)*angx,-angx,0,0,0,path])
+        lattice[segs[ 0]].t_in  += _numpy.array([-(L/2)*angx, angx,0,0,0,0])
+        lattice[segs[-1]].t_out += _numpy.array([-(L/2)*angx,-angx,0,0,0,path])
 
 
 @_interactive
 def add_error_excitation_main(lattice, indices, values):
+    """ Add excitation errors to magnets.
 
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices. Unit: Relative value
+    """
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
-    for i in range(indices.shape[0]):
+    for i in range(len(indices)):
+        segs = indices[i]
         error = values[i]
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
+        for j in range(len(segs)):
+            idx = segs[j]
             if lattice[idx].angle != 0:
                 rho = lattice[idx].length / lattice[idx].angle
                 # read dipole pass method!
@@ -670,62 +886,115 @@ def add_error_excitation_main(lattice, indices, values):
 
 @_interactive
 def add_error_excitation_kdip(lattice, indices, values):
+    """ Add excitation errors to the quadrupole component of dipoles.
 
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the errros. If the elements are segmented in the model
+        and the same error is to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+        with the same length as indices.
+    """
     #processes arguments
     indices, values = _process_args_errors(indices, values)
 
-    for i in range(indices.shape[0]):
-        error = values[i]
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
+    for i in range(len(indices)):
+        segs = indices[i]
+        for j in range(len(segs)):
+            idx = segs[j]
             if lattice[idx].angle != 0:
-                lattice[idx].polynom_b[1] *= 1 + error
+                lattice[idx].polynom_b[1] *= 1 + values[i]
             else:
                 raise TypeError('lattice[{0:d}] is not a Bending Magnet.'.format(idx))
 
 
 @_interactive
-def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
-    """
+def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None, An_norm=None):
+    """ Add multipole errors to elements of lattice.
+
+    INPUTS:
+      lattice : accelerator model
+      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+        appy the multipole errros. If the elements are segmented in the model
+        and the same errors are to be applied to each segment, then it must be
+        a (nested list,nested tuple, 2D numpy.ndarray), where each of its
+        (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
+        numpy.ndarray) of indices of the segments. Elements may have different
+        number of segments.
+      r0      : float whose meaning is the transverse horizontal position where
+        the multipoles are normalized. Unit [meters];
+      main_monom : may be an integer or (list, tuple, 1D numpy.ndarray) of integers
+        whose meaning is the order of the main field strength compoment of each
+        element. Positive values mean the main field component is normal and
+        negative values mean they are skew. Examples:
+          n= 1: dipole or horizontal corrector
+          n=-1: vertical corrector
+          n= 2: normal quadrupole
+          n=-2: skew quadrupole  and so on
+      Bn_norm : may be one normalized polynom to be applied to all elements or
+        a list of normalized polynoms, one for each element. If the normalized
+        polynoms for each element have the same sizes, it can also be a 2D
+        numpy.ndarray where the first dimension has the same length as indices.
+        By normalized polynom we mean a list, tuple or 1D numpy.ndarray whose
+        (i+1)-th element is given by:
+            Bn_norm[i] = DeltaB[i]/B  @ r0      with
+            DeltaB[i] = PolB[i] * r0**i    and    B = Kn * r0**(n-1)
+        where n is the absolute value of main_monom, Kn is the principal
+        field strength component of the element and PolB is the quantity which
+        will be applied to the element.
+        The default value is None, which means the polynom_b of the elements
+        will not be affected.
+      An_norm : analogous of Bn_norm but for the polynom_a.
 
     """
-    return NotImplemented
-    def add_polynom(attribute, Pol):
-        monoms = abs(n-1) - np.arange(Pol.shape[0])
-        r0_i = r0**monoms
-        newPolB = KP*r0_i*Bn
-        oldPolB = getattribute(lattice[idx],attribute)
-        lenNewPolB = len(newPolB)
-        lenOldPolB = len(oldPolB)
-        if lenNewPolB > lenOldPolB:
-            polB = newPolB
-            polB[:lenOldPolB] += oldPolB
-        else:
-            polB = oldPolB
-            polB[:lenNewPolB] += newPolB
-        lattice[idx].polynom_b = polB
+
+    def add_polynom(elem, polynom, Pol_norm, n, KP):
+        if Pol_norm is not None:
+            if isinstance(Pol_norm,_numpy.ndarray):
+                Pol = Pol_norm
+            else:
+                Pol = _numpy.array(Pol_norm)
+            monoms = abs(n-1) - np.arange(Pol.shape[0])
+            r0_i = r0**monoms
+            newPol = KP*r0_i*Pol
+            oldPol = getattr(elem,polynom)
+            lenNewPol = len(newPol)
+            lenOldPol = len(oldPol)
+            if lenNewPol > lenOldPol:
+                pol = newPol
+                pol[:lenOldPol] += oldPol
+            else:
+                pol = oldPol
+                pol[:lenNewPol] += newPol
+            setattr(elem, polynom, pol)
 
 
     indices, *_ = _process_args_errors(indices, 0.0)
 
-    if len(main_monom)==1 and len(main_monom) != indices.shape[0]:
-        main_monom *= _numpy.ones(indices.shape[0])
+    if len(main_monom)==1:
+        main_monom *= _numpy.ones(len(indices))
+    if len(main_monom) != len(indices):
+        raise IndexError('Length of main_monoms differs from length of indices.')
 
+    #Extend the fields, if necessary to the number of elements in indices
     types = (int,float,_numpy.int64,_numpy.int32,_numpy.float64,_numpy.float32)
-    if Bn_norm is not None and isinstance(Bn_norm[0],types):
-        Bn_norm = indices.shape[0] * [Bn_norm]
-    if An_norm is not None and isinstance(Bn_norm[0],types):
-        An_norm = indices.shape[0] * [An_norm]
-    for i in range(indices.shape[0]):
+    if Bn_norm is None or isinstance(Bn_norm[0],types):
+        Bn_norm = len(indices) * [Bn_norm]
+    if An_norm is None or isinstance(An_norm[0],types):
+        An_norm = len(indices) * [An_norm]
+    if len(Bn_norm) != len(indices) or len(An_norm) != len(indices):
+        raise IndexError('Length of polynoms differs from length of indices.')
+
+    for i in range(len(indices)):
+        segs = indices[i]
         n  = main_monom[i]
-        if Bn_norm is not None:
-            if isinstance(Bn_norm,_numpy.ndarray):
-                Bn = Bn_norm[i]
-            else:
-                bn = Bn_norm[i]
-        An = An_norm[i]
-        for j in range(indices.shape[1]):
-            idx = indices[i,j]
+        for j in range(len(segs)):
+            idx = segs[j]
             if abs(n)==1  and lattice[idx].angle != 0:
                 if lattice[idx].length > 0 :
                     KP = lattice[idx].angle/lattice[idx].length
@@ -736,33 +1005,22 @@ def add_error_multipoles(lattice, indices, Bn_norm, An_norm, main_monom, r0):
                     KP = lattice[idx].polynom_b[n-1]
                 else:
                     KP = lattice[idx].polynom_a[-n-1]
-            if Bn_norm is not None:
-                pass
-            if An_norm is not None:
-                newPolA = KP*r0_i*An
-                oldPolA = lattice[idx].polynom_a
-                lenNewPolA = len(newPolA)
-                lenOldPolA = len(oldPolA)
-                if lenNewPolA > lenOldPolA:
-                    polA = newPolA
-                    polA[:lenOldPolA] += oldPolA
-                else:
-                    polA = oldPolA
-                    polA[:lenNewPolA] += newPolA
-                lattice[idx].polynom_a = polA
+            add_polynom(lattice[idx],'polynom_b', Bn_norm[i], n, KP)
+            add_polynom(lattice[idx],'polynom_a', An_norm[i], n, KP)
 
 
 def _process_args_errors(indices, values):
-    if isinstance(indices,int):
-        indices = _numpy.array([[indices]])
-    else:
-        try:
-            indices[0][0]
-            indices = _numpy.array(indices).T
-        except:
-            indices = _numpy.array([indices]).T
-    if isinstance(values,(int,float)):
-        values = values * _numpy.ones(indices.shape[0])
+    types = (int,_numpy.int64,_numpy.int32)
+    if isinstance(indices,types):
+        indices = [[indices]]
+    elif len(indices) > 0 and isinstance(indices[0],types):
+        indices = [[ind] for ind in indices]
+
+    types = (int,float,_numpy.int64,_numpy.int32,_numpy.float64,_numpy.float32)
+    if isinstance(values,types):
+        values = len(indices) * [values]
+    if len(values) != len(indices):
+        raise IndexError('length of values differs from length of indices.')
     return indices, values
 
 
