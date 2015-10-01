@@ -429,7 +429,7 @@ def findorbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=N
 
     Returns:
      orbit : 4D closed orbit at the entrance of the selected elements as a 2D
-        numpy array with the 4 phase space variables in the first dimension and 
+        numpy array with the 4 phase space variables in the first dimension and
         the indices of the elements in the second dimension.
 
     Raises TrackingException
@@ -553,18 +553,11 @@ def findm66(accelerator, indices = None, closed_orbit = None):
     if indices == 'm66':
         return m66
 
-    transfer_matrices = []
-    m66_prev = _numpy.eye(6,6)
+    cumul_trans_matrices = []
     for i in range(len(_m66)):
-        m66_this = _CppMatrix2Numpy(_m66[i])
-        inv_m66_prev = _numpy.linalg.inv(m66_prev)
-        tm = _numpy.dot(m66_this, inv_m66_prev)
-        #tm = _numpy.linalg.solve(m66_prev.T, m66_this.T).T  # Fernando: you may uncomment this line when running YOUR code! aushuashuahs
-        m66_prev = m66_this
-        if i in indices:
-            transfer_matrices.append(tm)
+        cumul_trans_matrices.append(_CppMatrix2Numpy(_m66[i]))
 
-    return m66, transfer_matrices
+    return m66, cumul_trans_matrices
 
 def _CppMatrix2Numpy(_m):
     m = _numpy.zeros((6,6))

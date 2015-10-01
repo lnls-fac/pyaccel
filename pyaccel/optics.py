@@ -161,7 +161,9 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
             raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
 
         closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
-        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit)
+        m66, cumul_trans_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit)
+
+
         if indices == 'closed':
             orb, *_ = _tracking.linepass(accelerator[-1:], particles=closed_orbit[:,-1])
             closed_orbit = _np.append(closed_orbit,orb.transpose(),axis=1)
@@ -190,7 +192,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
 
         ''' calcs twiss at first element '''
         orbit = closed_orbit[:,:-1] if indices == 'closed' else closed_orbit
-        m66, transfer_matrices, *_ = _tracking.findm66(accelerator, closed_orbit=orbit)
+        m66, cumul_trans_matrices, *_ = _tracking.findm66(accelerator, closed_orbit=orbit)
         mx, my = m66[0:2,0:2], m66[2:4,2:4] # decoupled transfer matrices
         trace_x, trace_y, *_ = get_traces(accelerator, m66 = m66, closed_orbit=closed_orbit)
         if not (-2.0 < trace_x < 2.0):
@@ -214,6 +216,16 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
         Dy = _np.array([[m66[2,4]],[m66[3,4]]])
         t.etax = _np.linalg.solve(_np.eye(2,2) - mx, Dx)
         t.etay = _np.linalg.solve(_np.eye(2,2) - my, Dy)
+
+    ''' get transfer matrices from cumulative transfer matrices '''
+    transfer_matrices = []
+    m66_prev = _np.eye(6,6)
+    for m66_this in cumul_trans_matrices:
+        inv_m66_prev = _np.linalg.inv(m66_prev)
+        tm = _np.dot(m66_this, inv_m66_prev)
+        #tm = _np.linalg.solve(m66_prev.T, m66_this.T).T  # Fernando, you may uncomment this line when running YOUR code! aushuashuahs
+        m66_prev = m66_this
+        transfer_matrices.append(tm)
 
     ''' propagates twiss through line '''
     tw = [t]
