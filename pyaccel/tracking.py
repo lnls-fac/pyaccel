@@ -528,10 +528,18 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
     return closed_orbit.T
 
 @_interactive
-def findm66(accelerator, indices = None, closed_orbit = None):
+def findm66(accelerator, indices=None, closed_orbit=None):
     """Calculate 6D transfer matrices of elements in an accelerator.
-    """
 
+    Keyword arguments:
+    accelerator
+    indices
+    closed_orbit
+
+    Return values:
+    m66
+    cumul_trans_matrices -- values at the end of lattice each element
+    """
     if indices is None:
         indices = list(range(len(accelerator)))
 
