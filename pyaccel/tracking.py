@@ -567,6 +567,46 @@ def findm66(accelerator, indices=None, closed_orbit=None):
 
     return m66, cumul_trans_matrices
 
+@_interactive
+def findm44(accelerator, indices=None, closed_orbit=None):
+    """Calculate 4D transfer matrices of elements in an accelerator.
+
+    Keyword arguments:
+    accelerator
+    indices
+    closed_orbit
+
+    Return values:
+    m44
+    cumul_trans_matrices -- values at the end of lattice each element
+    """
+    if indices is None:
+        indices = list(range(len(accelerator)))
+
+    if closed_orbit is None:
+        # calcs closed orbit if it was not passed.
+        _closed_orbit = _trackcpp.CppDoublePosVector()
+        r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit)
+        if r > 0:
+            raise TrackingException(_trackcpp.string_error_messages[r])
+    else:
+        _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
+
+    _m66 = _trackcpp.CppDoubleMatrixVector()
+    r = _trackcpp.track_findm66(accelerator._accelerator, _closed_orbit, _m66)
+    if r > 0:
+        raise TrackingException(_trackcpp.string_error_messages[r])
+
+    m44 = _CppMatrix2Numpy(_m66[-1])[:4,:4]
+    if indices == 'm44':
+        return m66
+
+    cumul_trans_matrices = []
+    for i in range(len(_m66)):
+        cumul_trans_matrices.append(_CppMatrix2Numpy(_m66[i])[:4,:4])
+
+    return m44, cumul_trans_matrices
+
 def _CppMatrix2Numpy(_m):
     m = _numpy.zeros((6,6))
     for r in range(6):

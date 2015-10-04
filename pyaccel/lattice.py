@@ -875,8 +875,8 @@ def add_error_excitation_main(lattice, indices, values):
                 rho = lattice[idx].length / lattice[idx].angle
                 # read dipole pass method!
                 lattice[idx].polynom_b[0] += error/rho
-#               lattice[idx].polynom_a[1:] *= 1 + error
-#               lattice[idx].polynom_b[1:] *= 1 + error
+                # lattice[idx].polynom_a[1:] *= 1 + error
+                # lattice[idx].polynom_b[1:] *= 1 + error
             else:
                 lattice[idx].hkick *= 1 + error
                 lattice[idx].vkick *= 1 + error
@@ -1010,13 +1010,13 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None, An_norm
 
 
 def _process_args_errors(indices, values):
-    types = (int,_numpy.int64,_numpy.int32)
+    types = (int,_numpy.int_)
     if isinstance(indices,types):
         indices = [[indices]]
     elif len(indices) > 0 and isinstance(indices[0],types):
         indices = [[ind] for ind in indices]
 
-    types = (int,float,_numpy.int64,_numpy.int32,_numpy.float64,_numpy.float32)
+    types = (int,float,_numpy.int_,_numpy.float_)
     if isinstance(values,types):
         values = len(indices) * [values]
     if len(values) != len(indices):
