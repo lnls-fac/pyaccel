@@ -581,12 +581,13 @@ def findm66(accelerator, indices=None, closed_orbit=None):
 
 
 @_interactive
-def findm44(accelerator, indices=None, closed_orbit=None):
+def findm44(accelerator, indices=None, energy_offset = 0.0, closed_orbit=None):
     """Calculate 4D transfer matrices of elements in an accelerator.
 
     Keyword arguments:
     accelerator
     indices
+    energy_offset
     closed_orbit
 
     Return values:
@@ -598,34 +599,33 @@ def findm44(accelerator, indices=None, closed_orbit=None):
 
     if closed_orbit is None:
         # calcs closed orbit if it was not passed.
+        fixed_point_guess = _trackcpp.CppDoublePos()
+        fixed_point_guess.de = energy_offset
         _closed_orbit = _trackcpp.CppDoublePosVector()
-        r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit)
+        r = _trackcpp.track_findorbit4(accelerator._accelerator, _closed_orbit, fixed_point_guess)
         if r > 0:
             raise TrackingException(_trackcpp.string_error_messages[r])
     else:
-        _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
+        _closed_orbit = _4Numpy2CppDoublePosVector(closed_orbit,de=energy_offset)
 
     _cumul_trans_matrices = _trackcpp.CppDoubleMatrixVector()
-    _m66 = _trackcpp.CppDoubleMatrix()
+    _m44 = _trackcpp.CppDoubleMatrix()
     r = _trackcpp.track_findm66(
         accelerator._accelerator,
         _closed_orbit,
         _cumul_trans_matrices,
-        _m66
+        _m44
     )
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    m44 = _CppMatrix2Numpy(_m66)[:4,:4]
+    m44 = _CppMatrix24Numpy(_m44)
     if indices == 'm44':
         return m44
 
-    # cumul_trans_matrices = []
-    # for i in range(len(_m66)):
-    #     cumul_trans_matrices.append(_CppMatrix2Numpy(_m66[i])[:4,:4])
     cumul_trans_matrices = []
     for i in range(len(_cumul_trans_matrices)):
-        cumul_trans_matrices.append(_CppMatrix2Numpy(_cumul_trans_matrices[i])[:4,:4])
+        cumul_trans_matrices.append(_CppMatrix24Numpy(_cumul_trans_matrices[i]))
 
     return m44, cumul_trans_matrices
 
@@ -634,6 +634,13 @@ def _CppMatrix2Numpy(_m):
     m = _numpy.zeros((6,6))
     for r in range(6):
         for c in range(6):
+            m[r,c] = _m[r][c]
+    return m
+
+def _CppMatrix24Numpy(_m):
+    m = _numpy.zeros((4,4))
+    for r in range(4):
+        for c in range(4):
             m[r,c] = _m[r][c]
     return m
 
@@ -699,6 +706,27 @@ def _Numpy2CppDoublePosVector(orbit):
             orbit[0], orbit[1],
             orbit[2], orbit[3],
             orbit[4], orbit[5]))
+    else:
+        raise TrackingException('invalid orbit argument')
+    return orbit_out
+
+
+def _4Numpy2CppDoublePosVector(orbit,de=0.0):
+    if isinstance(orbit, _trackcpp.CppDoublePosVector):
+        return orbit
+    if isinstance(orbit, _numpy.ndarray):
+        orbit_out = _trackcpp.CppDoublePosVector()
+        for i in range(orbit.shape[1]):
+            orbit_out.push_back(_trackcpp.CppDoublePos(
+                orbit[0,i], orbit[1,i],
+                orbit[2,i], orbit[3,i],
+                de        , 0.0))
+    elif isinstance(orbit, (list,tuple)):
+        orbit_out = _trackcpp.CppDoublePosVector()
+        orbit_out.push_back(_trackcpp.CppDoublePos(
+            orbit[0], orbit[1],
+            orbit[2], orbit[3],
+            de      , 0.0))
     else:
         raise TrackingException('invalid orbit argument')
     return orbit_out
