@@ -103,11 +103,10 @@ class Accelerator(object):
         return a
 
     def __setitem__(self, index, value):
-
-        if isinstance(index,(int,_np.int_)):
+        if isinstance(index, (int, _np.int_)):
             self._accelerator.lattice[int(index)] = value._e
         elif isinstance(index, (list, tuple)):
-            if isinstance(value, (list,tuple,_np.ndarray,Accelerator)):
+            if isinstance(value, (list, tuple, _np.ndarray,Accelerator)):
                 for i in range(len(value)):
                     v = value[i]
                     if not isinstance(v, _elements.Element):
@@ -121,10 +120,9 @@ class Accelerator(object):
         elif isinstance(index, slice):
             start, stop, step = index.indices(len(self._accelerator.lattice))
             iterator = range(start, stop, step)
-            if isinstance(value, (list,tuple,_np.ndarray,Accelerator)):
-                for i in iterator:
-                    print(i,self._accelerator.lattice[i],value[i])
-                    self._accelerator.lattice[i] = value[i]._e
+            if isinstance(value, (list, tuple, _np.ndarray, Accelerator)):
+                for i, j in zip(iterator, range(len(iterator))):
+                    self._accelerator.lattice[i] = value[j]._e
             else:
                 for i in iterator:
                     self._accelerator.lattice[i] = value._e
