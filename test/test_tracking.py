@@ -42,7 +42,7 @@ class TestTracking(unittest.TestCase):
         fixed_point_guess = [0.002,0,0,0,0,0]
         co = pyaccel.tracking.findorbit6(the_ring, indices=None,
                 fixed_point_guess=fixed_point_guess)
-        self.assertAlmostEqual(sum(co), -0.017604662816066, places=13) #15?
+        self.assertAlmostEqual(sum(co)[0], -0.017604662816066, places=13) #15?
 
     def test_ringpass(self):
         # one particle (python list), storing pos at end only

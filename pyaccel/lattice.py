@@ -66,21 +66,25 @@ def find_spos(lattice, indices='open'):
         indices : may be a string 'closed' or 'open' to return or not the position
                   at the end of the last element, or a list or tuple to select
                   some indices or even an integer. Default is 'open'
-
     """
     length = [0] + [e.length for e in lattice]
     pos = _numpy.cumsum(length)
 
-    if indices.lower() == 'open':
-        return pos[:-1]
-    elif indices.lower() == 'closed':
-        return pos
-    elif isinstance(indices, int):
-        return pos[indices]
-    elif isinstance(indices,(list,tuple)):
-        return pos[list(indices)]
+    if isinstance(indices, str):
+        if indices.lower() == 'open':
+            return pos[:-1]
+        elif indices.lower() == 'closed':
+            return pos
+        else:
+            raise TypeError('indices string not supported')
     else:
-        raise TypeError('indices type not supported')
+        if isinstance(indices, int):
+            return pos[indices]
+        elif isinstance(indices, (list, tuple)):
+            return pos[list(indices)]
+        else:
+            raise TypeError('indices type not supported')
+
 
 @_interactive
 def find_indices(lattice, attribute_name, value, comparison=None):
@@ -122,11 +126,6 @@ def find_indices(lattice, attribute_name, value, comparison=None):
 @_interactive
 def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
     """Return a list with requested lattice data"""
-    # Check whether we have an Accelerator object
-    # if (hasattr(lattice, '_accelerator') and
-    #         hasattr(lattice._accelerator, 'lattice')):
-    #     lattice = lattice._accelerator.lattice
-
     if indices is None:
         indices = range(len(lattice))
     else:
@@ -136,18 +135,6 @@ def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
             indices = [indices]
 
     data = []
-    # for idx in indices:
-    #     tdata = getattr(lattice[idx], attribute_name)
-    #     if n is None:
-    #         if m is None:
-    #             data.append(tdata)
-    #         else:
-    #             data.append(tdata[m])
-    #     else:
-    #         if m is None:
-    #             data.append(tdata)
-    #         else:
-    #             data.append(tdata[m][n])
     if (m is not None) and (n is not None):
         for idx in indices:
             tdata = getattr(lattice[idx], attribute_name)

@@ -17,19 +17,21 @@ class TestLattice(unittest.TestCase):
 
     def test_length(self):
         length = pyaccel.lattice.length(self.the_ring)
-        self.assertAlmostEqual(length,518.396)
+        self.assertAlmostEqual(length, 518.396)
 
     def test_find_spos(self):
         s = [0, 0, 0, 0, 0.5000, 1.0000, 3.4129, 3.4129,
             3.4129, 3.5129, 3.6229, 3.7729, 3.8929, 3.8929,
             4.0329, 4.2329, 4.4729, 4.6129, 4.7629, 4.9129]
-        pos = pyaccel.lattice.find_spos(self.the_ring, range(20))
+
+        indices = [i for i in range(20)]
+        pos = pyaccel.lattice.find_spos(self.the_ring, indices)
         for i in range(20):
             self.assertAlmostEqual(pos[i], s[i])
 
-        posicao = pyaccel.lattice.find_spos(self.the_ring)
-        ind = len(self.the_ring)-1
-        self.assertAlmostEqual(posicao[ind], 518.3960)
+        position = pyaccel.lattice.find_spos(self.the_ring)
+        ind = len(self.the_ring) - 1
+        self.assertAlmostEqual(position[ind], 518.3960)
 
     def test_flatten(self):
         flat_elist = [self.element]*12
@@ -54,11 +56,8 @@ class TestLattice(unittest.TestCase):
         self.assertEqual(len(lattice), len(self.the_ring))
         self.assertEqual(lattice[0].fam_name, fam_name)
 
-    #@unittest.skip("long test")
+    # @unittest.skip("long test")
     def test_find_indices(self):
-        indices_pb = pyaccel.lattice.find_indices(self.the_ring, 'polynom_b')
-        self.assertEqual(len(indices_pb),len(self.the_ring))
-
         indices_bc = pyaccel.lattice.find_indices(self.the_ring, 'polynom_b', [0, -0.0001586, -28.62886])
         for i in indices_bc:
             self.assertEqual(self.the_ring[i].fam_name,'bc')
@@ -85,22 +84,22 @@ class TestLattice(unittest.TestCase):
             self.assertEqual(r_in[i],self.the_ring[i].r_in[1,1])
 
     def test_set_attribute(self):
-        self.the_ring = pyaccel.lattice.set_attribute(self.the_ring, 'length', 1, 1)
+        pyaccel.lattice.set_attribute(self.the_ring, 'length', 1, 1)
         self.assertEqual(self.the_ring[1].length, 1)
 
-        self.the_ring = pyaccel.lattice.set_attribute(self.the_ring, 'fam_name', [1,2], ['test1','test2'])
+        pyaccel.lattice.set_attribute(self.the_ring, 'fam_name', [1, 2], ['test1', 'test2'])
         self.assertEqual(self.the_ring[1].fam_name, 'test1')
         self.assertEqual(self.the_ring[2].fam_name, 'test2')
 
-        self.the_ring = pyaccel.lattice.set_attribute(self.the_ring, 'polynom_b', [1,2], [[1,1,1],[2,2,2]] )
+        pyaccel.lattice.set_attribute(self.the_ring, 'polynom_b', [1,2], [[1,1,1], [2,2,2]])
         self.assertEqual(self.the_ring[1].polynom_b[0], 1)
         self.assertEqual(self.the_ring[2].polynom_b[0], 2)
 
-        self.the_ring = pyaccel.lattice.set_attribute(self.the_ring, 'polynom_b', [1,2], [[1,1,1]] )
+        pyaccel.lattice.set_attribute(self.the_ring, 'polynom_b', [1,2], [[1,1,1]])
         self.assertEqual(self.the_ring[1].polynom_b[0], 1)
         self.assertEqual(self.the_ring[2].polynom_b[0], 1)
 
-        self.the_ring = pyaccel.lattice.set_attribute(self.the_ring, 'r_in', 1, [numpy.zeros((6,6))] )
+        pyaccel.lattice.set_attribute(self.the_ring, 'r_in', 1, [numpy.zeros((6,6))])
         self.assertEqual(self.the_ring[1].r_in[0,0], 0)
 
     def test_find_dict(self):
