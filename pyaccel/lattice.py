@@ -43,7 +43,7 @@ def shift(lattice, start):
     lattice -- a list of objects
     start -- index of first element in new list
 
-    Returns an Accelerator).
+    Returns an Accelerator.
     """
     new_lattice = lattice[start:]
     for i in range(start):
@@ -59,13 +59,13 @@ def length(lattice):
 
 @_interactive
 def find_spos(lattice, indices='open'):
-    """Return longitudinal position of the entrance of lattice elements.
+    """Return longitudinal position at the entrance of lattice elements.
 
-    INPUTS:
-        lattice : accelerator model.
-        indices : may be a string 'closed' or 'open' to return or not the position
-                  at the end of the last element, or a list or tuple to select
-                  some indices or even an integer. Default is 'open'
+    Keyword arguments:
+    lattice -- accelerator model.
+    indices -- may be a string 'closed' or 'open' to return or not the position
+        at the end of the last element, or a list or tuple to select some
+        indices or even an integer (default: 'open')
     """
     length = [0] + [e.length for e in lattice]
     pos = _numpy.cumsum(length)
@@ -88,18 +88,18 @@ def find_spos(lattice, indices='open'):
 
 @_interactive
 def find_indices(lattice, attribute_name, value, comparison=None):
-    """Returns a list with indices (i) of elements that match criteria
-    'lattice[i].attribute_name == value'
+    """Return a list with indices (i) of elements that match criteria
+    'lattice[i].attribute_name == value'.
 
-    INPUTS:
-        lattice : accelerator model.
-        attribute_name : string identifying the attribute to match
-        value   : can be any data type or collection data type.
-        comparison: function which takes two arguments, the value of the
-            attribute and value, performs a comparison between then and returns
-            a boolean. The default is equality comparison.
+    Keyword arguments:
+    lattice: accelerator model.
+    attribute_name: string identifying the attribute to match
+    value: any data type or collection data type
+    comparison: function which takes two arguments, the value of the attribute
+        and value, performs a comparison between then and returns a boolean
+        (default: __eq__)
 
-    OUTPUTS: list of indices where the comparison returns True.
+    Returns list of indices where the comparison returns True.
 
     EXAMPLES:
       >> mia_idx = find_indices(lattice,'fam_name',value='mia')
@@ -158,7 +158,7 @@ def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
 
 @_interactive
 def set_attribute(lattice, attribute_name, indices, values):
-    """ sets elements data and returns a new updated lattice """
+    """Set elements data."""
     try:
         indices[0]
     except:
@@ -179,7 +179,9 @@ def set_attribute(lattice, attribute_name, indices, values):
 
 @_interactive
 def find_dict(lattice, attribute_name):
-    """Return a dict which correlates values of 'attribute_name' and a list of indices corresponding to matching elements"""
+    """Return a dict which correlates values of 'attribute_name' and a list of
+    indices corresponding to matching elements
+    """
     latt_dict = {}
     for i in range(len(lattice)):
         if hasattr(lattice[i], attribute_name):
@@ -249,14 +251,14 @@ def refine_lattice(accelerator,
 
     acc = accelerator
 
-    # builds list with indices of elements to be affected
+    # Build list with indices of elements to be affected
     if indices is None:
         indices = []
-        # adds specified fam_names
+        # Add specified fam_names
         if fam_names is not None:
             for fam_name in fam_names:
                 indices.extend(find_indices(acc, 'fam_name', fam_name))
-        # adds specified pass_methods
+        # Add specified pass_methods
         if pass_methods is not None:
             for pass_method in pass_methods:
                 indices.extend(find_indices(acc, 'pass_method', pass_method))
@@ -275,7 +277,6 @@ def refine_lattice(accelerator,
             if acc[i].length <= max_length:
                 new_acc.append(acc[i])
             else:
-
                 nr_segs = 1+int(acc[i].length/max_length)
 
                 if (acc[i].angle_in != 0) or (acc[i].angle_out != 0):
@@ -379,7 +380,6 @@ def set_error_misalignment_x(lattice, indices, values):
             idx = segs[j]
             lattice[idx].t_in[0]  = yaw - values[i]
             lattice[idx].t_out[0] = yaw + values[i]
-
 
 
 @_interactive
