@@ -534,7 +534,7 @@ def get_error_rotation_roll(lattice, indices):
         segs = indices[i]
         for j in range(len(segs)):
             idx = segs[j]
-            angle = _math.asin(lattice[index].r_in[0,2])
+            angle = _math.asin(lattice[idx].r_in[0,2])
             values.append(angle)
     if len(values) == 1:
         return values[0]
