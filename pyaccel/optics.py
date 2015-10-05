@@ -161,14 +161,13 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
             raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
 
         closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
-        m66, cumul_trans_matrices, *_ = _tracking.findm66(accelerator, closed_orbit = closed_orbit)
-
+        m66, cumul_trans_matrices = _tracking.findm66(accelerator, closed_orbit=closed_orbit)
 
         if indices == 'closed':
             orb, *_ = _tracking.linepass(accelerator[-1:], particles=closed_orbit[:,-1])
             closed_orbit = _np.append(closed_orbit,orb.transpose(),axis=1)
 
-        mx, my = m66[0:2,0:2], m66[2:4,2:4]
+        mx, my = m66[0:2, 0:2], m66[2:4, 2:4]
         t = init_twiss
         t.etax = _np.array([[t.etax], [t.etapx]])
         t.etay = _np.array([[t.etay], [t.etapy]])
@@ -220,7 +219,8 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
     ''' get transfer matrices from cumulative transfer matrices '''
     transfer_matrices = []
     m66_prev = _np.eye(6,6)
-    for m66_this in cumul_trans_matrices:
+    cumul_trans_matrices.append(m66)
+    for m66_this in cumul_trans_matrices[1:]: # Matrices at start of elements
         inv_m66_prev = _np.linalg.inv(m66_prev)
         tm = _np.dot(m66_this, inv_m66_prev)
         #tm = _np.linalg.solve(m66_prev.T, m66_this.T).T  # Fernando, you may uncomment this line when running YOUR code! aushuashuahs

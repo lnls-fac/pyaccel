@@ -14,11 +14,11 @@ class TestTracking(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_findm66(self):
-
+    def test_findm66_len(self):
         the_ring = self.the_ring
         pyaccel.tracking.set6dtracking(the_ring)
-        tms = pyaccel.tracking.findm66(the_ring)
+        m66, tm = pyaccel.tracking.findm66(the_ring)
+        self.assertEqual(len(tm), len(the_ring))
 
     def test_findorbit6(self):
         # find orbit without fixed point guess and indices = 'open'

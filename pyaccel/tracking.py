@@ -24,7 +24,6 @@ class TrackingException(Exception):
 
 @_interactive
 def elementpass(element, particles, **kwargs):
-
     """Track particle(s) through an element.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -87,6 +86,7 @@ def elementpass(element, particles, **kwargs):
         particles_out = particles_out[0,:]
 
     return particles_out
+
 
 @_interactive
 def linepass(accelerator, particles, indices=None, element_offset=0):
@@ -229,6 +229,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
         lost_plane = lost_plane[0]
 
     return particles_out, lost_flag, lost_element, lost_plane
+
 
 @_interactive
 def ringpass(accelerator, particles, nr_turns = 1,
@@ -394,15 +395,18 @@ def ringpass(accelerator, particles, nr_turns = 1,
 
     return particles_out, lost_flag, lost_turn, lost_element, lost_plane
 
+
 @_interactive
 def set4dtracking(accelerator):
     accelerator.cavity_on = False
     accelerator.radiation_on = False
 
+
 @_interactive
 def set6dtracking(accelerator):
     accelerator.cavity_on = True
     accelerator.radiation_on = True
+
 
 @_interactive
 def findorbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=None):
@@ -467,6 +471,7 @@ def findorbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=N
 
     return closed_orbit.T
 
+
 @_interactive
 def findorbit6(accelerator, indices=None, fixed_point_guess=None):
     """Calculate 6D closed orbit of accelerator and return it.
@@ -527,6 +532,7 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
 
     return closed_orbit.T
 
+
 @_interactive
 def findm66(accelerator, indices=None, closed_orbit=None):
     """Calculate 6D transfer matrices of elements in an accelerator.
@@ -538,13 +544,13 @@ def findm66(accelerator, indices=None, closed_orbit=None):
 
     Return values:
     m66
-    cumul_trans_matrices -- values at the end of lattice each element
+    cumul_trans_matrices -- values at the start of each lattice element
     """
     if indices is None:
         indices = list(range(len(accelerator)))
 
     if closed_orbit is None:
-        # calcs closed orbit if it was not passed.
+        # Get closed orbit if it was not passed as argument
         _closed_orbit = _trackcpp.CppDoublePosVector()
         r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit)
         if r > 0:
@@ -552,20 +558,27 @@ def findm66(accelerator, indices=None, closed_orbit=None):
     else:
         _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
 
-    _m66 = _trackcpp.CppDoubleMatrixVector()
-    r = _trackcpp.track_findm66(accelerator._accelerator, _closed_orbit, _m66)
+    _cumul_trans_matrices = _trackcpp.CppDoubleMatrixVector()
+    _m66 = _trackcpp.CppDoubleMatrix()
+    r = _trackcpp.track_findm66(
+        accelerator._accelerator,
+        _closed_orbit,
+        _cumul_trans_matrices,
+        _m66
+    )
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    m66 = _CppMatrix2Numpy(_m66[-1])
+    m66 = _CppMatrix2Numpy(_m66)
     if indices == 'm66':
         return m66
 
     cumul_trans_matrices = []
-    for i in range(len(_m66)):
-        cumul_trans_matrices.append(_CppMatrix2Numpy(_m66[i]))
+    for i in range(len(_cumul_trans_matrices)):
+        cumul_trans_matrices.append(_CppMatrix2Numpy(_cumul_trans_matrices[i]))
 
     return m66, cumul_trans_matrices
+
 
 @_interactive
 def findm44(accelerator, indices=None, closed_orbit=None):
@@ -578,7 +591,7 @@ def findm44(accelerator, indices=None, closed_orbit=None):
 
     Return values:
     m44
-    cumul_trans_matrices -- values at the end of lattice each element
+    cumul_trans_matrices -- values at the start of each lattice element
     """
     if indices is None:
         indices = list(range(len(accelerator)))
@@ -592,20 +605,30 @@ def findm44(accelerator, indices=None, closed_orbit=None):
     else:
         _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
 
-    _m66 = _trackcpp.CppDoubleMatrixVector()
-    r = _trackcpp.track_findm66(accelerator._accelerator, _closed_orbit, _m66)
+    _cumul_trans_matrices = _trackcpp.CppDoubleMatrixVector()
+    _m66 = _trackcpp.CppDoubleMatrix()
+    r = _trackcpp.track_findm66(
+        accelerator._accelerator,
+        _closed_orbit,
+        _cumul_trans_matrices,
+        _m66
+    )
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    m44 = _CppMatrix2Numpy(_m66[-1])[:4,:4]
+    m44 = _CppMatrix2Numpy(_m66)[:4,:4]
     if indices == 'm44':
-        return m66
+        return m44
 
+    # cumul_trans_matrices = []
+    # for i in range(len(_m66)):
+    #     cumul_trans_matrices.append(_CppMatrix2Numpy(_m66[i])[:4,:4])
     cumul_trans_matrices = []
-    for i in range(len(_m66)):
-        cumul_trans_matrices.append(_CppMatrix2Numpy(_m66[i])[:4,:4])
+    for i in range(len(_cumul_trans_matrices)):
+        cumul_trans_matrices.append(_CppMatrix2Numpy(_cumul_trans_matrices[i])[:4,:4])
 
     return m44, cumul_trans_matrices
+
 
 def _CppMatrix2Numpy(_m):
     m = _numpy.zeros((6,6))
@@ -614,12 +637,14 @@ def _CppMatrix2Numpy(_m):
             m[r,c] = _m[r][c]
     return m
 
+
 def _Numpy2CppDoublePos(p_in):
     p_out = _trackcpp.CppDoublePos()
     p_out.rx, p_out.px = float(p_in[0]), float(p_in[1])
     p_out.ry, p_out.py = float(p_in[2]), float(p_in[3])
     p_out.de, p_out.dl = float(p_in[4]), float(p_in[5])
     return p_out
+
 
 def _4Numpy2CppDoublePos(p_in):
     p_out = _trackcpp.CppDoublePos()
@@ -628,14 +653,16 @@ def _4Numpy2CppDoublePos(p_in):
     p_out.de, p_out.dl = 0,0
     return p_out
 
+
 def _CppDoublePos2Numpy(p_in):
     return _numpy.array((p_in.rx,p_in.px,p_in.ry,p_in.py,p_in.de,p_in.dl))
+
 
 def _CppDoublePos24Numpy(p_in):
     return _numpy.array((p_in.rx,p_in.px,p_in.ry,p_in.py))
 
-def _CppDoublePosVector2Numpy(orbit, indices):
 
+def _CppDoublePosVector2Numpy(orbit, indices):
     if indices == 'closed' or indices == 'open':
         _indices = range(len(orbit))
     elif indices is None:
@@ -654,6 +681,7 @@ def _CppDoublePosVector2Numpy(orbit, indices):
         return orbit_out[0,:]
     else:
         return orbit_out
+
 
 def _Numpy2CppDoublePosVector(orbit):
     if isinstance(orbit, _trackcpp.CppDoublePosVector):
@@ -675,6 +703,7 @@ def _Numpy2CppDoublePosVector(orbit):
         raise TrackingException('invalid orbit argument')
     return orbit_out
 
+
 def _process_args(accelerator, pos, indices=None):
 
     # checks whether single or multiple particles
@@ -694,6 +723,7 @@ def _process_args(accelerator, pos, indices=None):
         indices = list(range(len(accelerator)+1))
 
     return pos, return_ndarray, indices
+
 
 def _print_CppDoublePos(pos):
     print('')
