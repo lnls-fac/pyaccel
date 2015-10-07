@@ -225,7 +225,8 @@ def add_knob(lattice, fam_name, attribute_name, value):
 def read_flat_file(filename):
     e = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
     a = _pyaccel.accelerator.Accelerator(energy=e) # energy cannot be zero
-    r = _trackcpp.read_flat_file(filename, a._accelerator)
+    fname = _trackcpp.String(filename)
+    r = _trackcpp.read_flat_file(fname, a._accelerator, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
@@ -234,7 +235,8 @@ def read_flat_file(filename):
 
 @_interactive
 def write_flat_file(accelerator, filename):
-    r = _trackcpp.write_flat_file(filename, accelerator._accelerator)
+    fname = _trackcpp.String(filename)
+    r = _trackcpp.write_flat_file(fname, accelerator._accelerator, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
