@@ -572,9 +572,7 @@ def findm66(accelerator, indices=None, closed_orbit=None):
     if indices == 'm66':
         return m66
 
-    cumul_trans_matrices = []
-    for i in range(len(_cumul_trans_matrices)):
-        cumul_trans_matrices.append(_CppMatrix2Numpy(_cumul_trans_matrices[i]))
+    cumul_trans_matrices = MatrixList(_cumul_trans_matrices)
 
     return m66, cumul_trans_matrices
 
@@ -765,9 +763,20 @@ def _print_CppDoublePos(pos):
 
 class MatrixList(object):
 
-    def __init__(self):
-        """Read-only list of matrices."""
-        self._ml = _trackcpp.CppMatrixVector()
+    def __init__(self, matrix_list=None):
+        """Read-only list of matrices.
+
+        Keyword argument:
+        matrix_list -- trackcpp Matrix vector (default: None)
+        """
+        # TEST!
+        if matrix_list is not None:
+            if isinstance(matrix_list, _trackcpp.CppMatrixVector):
+                self._ml = matrix_list
+            else:
+                raise TrackingException('invalid Matrix vector')
+        else:
+            self._ml = _trackcpp.CppMatrixVector()
 
     def __len__(self):
         return len(self._ml)

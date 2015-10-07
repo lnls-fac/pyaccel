@@ -319,18 +319,54 @@ class TestMatrixList(unittest.TestCase):
         self.assertEqual(len(self.ml), n)
 
 
+class TestMatrixListInit(unittest.TestCase):
+
+    def setUp(self):
+        self.m = [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9]
+        ]
+
+    def test_matrix_list_init_arg(self):
+        m_cpp = trackcpp.Matrix()
+        for line in self.m:
+            m_cpp.append(line)
+
+        ml_cpp = trackcpp.CppMatrixVector()
+        ml_cpp.append(m_cpp)
+        ml = pyaccel.tracking.MatrixList(ml_cpp)
+
+        self.assertEqual(len(ml), 1)
+
+        comparison = ml[0] == numpy.array(self.m)
+        self.assertTrue(numpy.all(comparison))
+
+    def test_matrix_list_init_invalid_arg(self):
+        ml_invalid = [self.m]
+
+        with self.assertRaises(pyaccel.tracking.TrackingException):
+            pyaccel.tracking.MatrixList(ml_invalid)
+
+
 def tracking_suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestTracking)
     return suite
 
 
-def matrix_vector_suite():
+def matrix_list_suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestMatrixList)
+    return suite
+
+
+def matrix_list_init_suite():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestMatrixListInit)
     return suite
 
 
 def get_suite():
     suite_list = []
     suite_list.append(tracking_suite())
-    suite_list.append(matrix_vector_suite())
+    suite_list.append(matrix_list_suite())
+    suite_list.append(matrix_list_init_suite())
     return unittest.TestSuite(suite_list)

@@ -117,6 +117,7 @@ class TestFlatFile(unittest.TestCase):
         filename = os.path.join(self.test_dir, 'flatfile.txt')
         self.a = pyaccel.lattice.read_flat_file(filename)
 
+    @unittest.skip('changing')
     def test_read_flat_file(self):
         # Accelerator fields
         self.assertAlmostEqual(self.a.energy, 3.0e9, 9)
@@ -132,7 +133,7 @@ class TestFlatFile(unittest.TestCase):
         self.assertAlmostEqual(self.a[1].vmax, +1.17000000000000003E-02, 16)
         self.assertEqual(self.a[2].pass_method, 'identity_pass')
 
-    @unittest.skip('segmentation fault')
+    @unittest.skip('changing')
     def test_write_flat_file(self):
         t = numpy.array([1.0e-6, 2.0e-6, 3.0e-6, 4.0e-6, 5.0e-6, 6.0e-6])
         self.a.energy = 1.5e9
