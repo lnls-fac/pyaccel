@@ -19,8 +19,10 @@ from pyaccel.utils import interactive as _interactive
 
 lost_planes = (None, 'x', 'y', 'z')
 
+
 class TrackingException(Exception):
     pass
+
 
 @_interactive
 def elementpass(element, particles, **kwargs):
@@ -759,3 +761,45 @@ def _print_CppDoublePos(pos):
     print('{0:+.16f}'.format(pos.de))
     print('{0:+.16f}'.format(pos.dl))
     print('')
+
+
+class MatrixList(object):
+
+    def __init__(self):
+        """Read-only list of matrices."""
+        self._ml = _trackcpp.CppMatrixVector()
+
+    def __len__(self):
+        return len(self._ml)
+
+    def __getitem__(self, index):
+        return _numpy.array(self._ml[index])
+
+    def append(self, value):
+        if isinstance(value, _trackcpp.Matrix):
+            self._ml.append(value)
+        elif isinstance(value, _numpy.ndarray):
+            m = _trackcpp.Matrix()
+            for line in value:
+                line_as_floats = [float(x) for x in line]
+                m.append(line_as_floats)
+            self._ml.append(m)
+        elif self._is_list_of_lists(value):
+            m = _trackcpp.Matrix()
+            for line in value:
+                m.append(line)
+            self._ml.append(m)
+        else:
+            raise TrackingException('can only append matrix-like objects')
+
+    def _is_list_of_lists(self, value):
+        valid_types = (list, tuple)
+
+        if not isinstance(value, valid_types):
+            return False
+
+        for line in value:
+            if not isinstance(line, valid_types):
+                return False
+
+        return True
