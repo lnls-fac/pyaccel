@@ -550,16 +550,13 @@ def findm66(accelerator, indices=None, closed_orbit=None):
         indices = list(range(len(accelerator)))
 
     if closed_orbit is None:
-        # Get closed orbit if it was not passed as argument
+        # Closed orbit is calculated by trackcpp
         _closed_orbit = _trackcpp.CppDoublePosVector()
-        r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit)
-        if r > 0:
-            raise TrackingException(_trackcpp.string_error_messages[r])
     else:
         _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
 
-    _cumul_trans_matrices = _trackcpp.CppDoubleMatrixVector()
-    _m66 = _trackcpp.CppDoubleMatrix()
+    _cumul_trans_matrices = _trackcpp.CppMatrixVector()
+    _m66 = _trackcpp.Matrix()
     r = _trackcpp.track_findm66(
         accelerator._accelerator,
         _closed_orbit,
@@ -608,8 +605,8 @@ def findm44(accelerator, indices=None, energy_offset = 0.0, closed_orbit=None):
     else:
         _closed_orbit = _4Numpy2CppDoublePosVector(closed_orbit,de=energy_offset)
 
-    _cumul_trans_matrices = _trackcpp.CppDoubleMatrixVector()
-    _m44 = _trackcpp.CppDoubleMatrix()
+    _cumul_trans_matrices = _trackcpp.CppMatrixVector()
+    _m44 = _trackcpp.Matrix()
     r = _trackcpp.track_findm66(
         accelerator._accelerator,
         _closed_orbit,
