@@ -186,6 +186,17 @@ class Accelerator(object):
         if not isinstance(other,Accelerator): return NotImplemented
         return self._accelerator.isequal(other._accelerator)
 
+    # to make the class objects pickalable:
+    def __getstate__(self):
+        stri = _trackcpp.String()
+        _trackcpp.write_flat_file_wrapper(stri,self._accelerator,False)
+        return stri.data
+    def __setstate__(self,stridata):
+        stri = _trackcpp.String(stridata)
+        acc = Accelerator()
+        _trackcpp.read_flat_file_wrapper(stri,acc._accelerator,False)
+        self._accelerator = acc._accelerator
+
     def pop(self, index):
         elem = self[index]
         del self[index]
