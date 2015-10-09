@@ -14,11 +14,11 @@ class TestTwiss(unittest.TestCase):
         self.accelerator.radiation_on = False
         #pyaccel.tracking.set6dtracking(self.accelerator)
         twiss, *_ = pyaccel.optics.calc_twiss(self.accelerator)
-        (self.spos, #self.closed_orbit,
+        (#self.closed_orbit,
          self.mux, self.betax, self.alphax, self.etax, self.etapx,
          self.muy, self.betay, self.alphay, self.etay, self.etapy) = \
         pyaccel.optics.get_twiss(twiss,
-                ('spos', #'closed_orbit',
+                (#'closed_orbit',
                  'mux', 'betax', 'alphax', 'etax', 'etapx',
                  'muy', 'betay', 'alphay', 'etay', 'etapy')
         )
@@ -31,17 +31,17 @@ class TestTwiss(unittest.TestCase):
 
         # Values from AT
         indices = [0, 100, 200, 300, 400, 1000, 2000, 3000, 3278]
-        spos = [
-            0.000000000000000e+00,
-            1.430790000000001e+01,
-            3.312070000000001e+01,
-            4.577869999999999e+01,
-            6.460650000000001e+01,
-            1.601317000000002e+02,
-            3.182384999999976e+02,
-            4.759379666666598e+02,
-            5.183959999999920e+02
-        ]
+        # spos = [
+        #     0.000000000000000e+00,
+        #     1.430790000000001e+01,
+        #     3.312070000000001e+01,
+        #     4.577869999999999e+01,
+        #     6.460650000000001e+01,
+        #     1.601317000000002e+02,
+        #     3.182384999999976e+02,
+        #     4.759379666666598e+02,
+        #     5.183959999999920e+02
+        # ]
         mux = [
             0.000000000000000e+00,
             8.331616558882587e+00,
@@ -154,9 +154,9 @@ class TestTwiss(unittest.TestCase):
         ]
 
 
-        # Test spos
-        for i, x in zip(indices, spos):
-            self.assertAlmostEqual(self.spos[i], x, 12)
+        # # Test spos
+        # for i, x in zip(indices, spos):
+        #     self.assertAlmostEqual(self.spos[i], x, 12)
 
         # Test mux
         for i, x in zip(indices, mux):

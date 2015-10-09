@@ -1,4 +1,5 @@
 
+import time
 import sys as _sys
 import math as _math
 import numpy as _np
@@ -238,6 +239,20 @@ def get_twiss(twiss_list, attribute_list):
     else:
         return values
 
+@_interactive
+def get_orbit_from_twiss(twiss_list):
+    attribute_list = ('rx', 'px', 'ry', 'py', 'de', 'dl')
+    if isinstance(twiss_list, Twiss):
+        values = _np.zeros((len(attribute_list),1))
+        for j in range(len(attribute_list)):
+            values[j,0] = getattr(twiss_list, attribute_list[j])
+        return values[:,0]
+    else:
+        values = _np.zeros((len(attribute_list),len(twiss_list)))
+        for i in range(len(twiss_list)):
+            for j in range(len(attribute_list)):
+                values[j,i] = getattr(twiss_list[i], attribute_list[j])
+        return values
 
 @_interactive
 def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open'):
@@ -595,6 +610,9 @@ def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, indices='open'):
 @_interactive
 def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_point=None, energy_offset=0.0):
     """Return linear transverse horizontal and vertical physical acceptances"""
+
+    t0 = time.time()
+
     m66 = None
     if twiss is None:
         twiss, m66 = calc_twiss(accelerator, init_twiss=init_twiss, fixed_point=fixed_point, indices='open')
@@ -607,9 +625,13 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
         else:
             raise OpticsException('Mismatch between size of accelerator and size of twiss object')
 
+    t1 = time.time()
+
     closed_orbit = _np.zeros((6,n))
     closed_orbit[0,:], closed_orbit[2,:] = get_twiss(twiss, ('rx','ry'))
     betax, betay, etax, etay = get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
+
+    t2 = time.time()
 
     # physical apertures
     lattice = accelerator._accelerator.lattice
@@ -618,6 +640,7 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
         hmax = _np.append(hmax, hmax[-1])
         vmax = _np.append(vmax, vmax[-1])
 
+    t3 = time.time()
     # calcs local linear acceptances
     co_x, co_y = closed_orbit[(0,2),:]
 
@@ -649,6 +672,12 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
 
     accepx = [min(accepx_in[i],accepx_out[i]) for i in range(n)]
     accepy = [min(accepy_in[i],accepy_out[i]) for i in range(n)]
+    t4 = time.time()
+    print('tempo twiss: %f ms'%(1000*(t1-t0)))
+    print('tempo get twiss: %f ms'%(1000*(t2-t1)))
+    print('tempo vac chamb: %f ms'%(1000*(t3-t2)))
+    print('tempo calc: %f ms'%(1000*(t4-t3)))
+    print('tempo trans accep: %f ms'%(1000*(time.time()-t0)))
 
     if m66 is None:
         return accepx, accepy, twiss
@@ -683,7 +712,7 @@ class TwissList(object):
         if isinstance(value, _trackcpp.Twiss):
             self._tl.append(value)
         elif isinstance(value, Twiss):
-            t = _Twiss2CppTwiss(value)
+            t = Twiss._t(value)
             self._tl.append(t)
         elif self._is_list_of_lists(value):
             t = _trackcpp.Twiss()
