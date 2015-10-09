@@ -5,101 +5,172 @@ import numpy as _np
 import mathphys as _mp
 import pyaccel.lattice as _lattice
 import pyaccel.tracking as _tracking
+import trackcpp as _trackcpp
 from pyaccel.utils import interactive as _interactive
-
+from pyaccel.utils import Polynom as _Polynom
 
 class OpticsException(Exception):
     pass
 
-
 class Twiss:
-    def __init__(self):
-        self.spos = 0
-        self.rx, self.px  = 0, 0
-        self.ry, self.py  = 0, 0
-        self.de, self.dl  = 0, 0
-        self.etax, self.etapx = 0, 0
-        self.etay, self.etapy = 0, 0
-        self.mux, self.betax, self.alphax = 0, None, None
-        self.muy, self.betay, self.alphay = 0, None, None
+
+    def __init__(self, **kwargs):
+        if 'twiss' in kwargs:
+            if isinstance(kwargs['twiss'],_trackcpp.Twiss):
+                copy = kwargs.get('copy',False)
+                if copy:
+                    self._t = _trackcpp.Twiss(kwargs['twiss'])
+                else:
+                    self._t = kwargs['twiss']
+            elif isinstance(kwargs['twiss'],Twiss):
+                copy = kwargs.get('copy',True)
+                if copy:
+                    self._t = _trackcpp.Twiss(kwargs['twiss']._t)
+                else:
+                    self._t = kwargs['twiss']._t
+            else:
+                raise TypeError('twiss must be a trackcpp.Twiss or a Twiss object.')
+        else:
+            self._t = _trackcpp.Twiss()
+
+    def __eq__(self,other):
+        if not isinstance(other,Twiss): return NotImplemented
+        for attr in self._t.__swig_getmethods__:
+            self_attr = getattr(self,attr)
+            if isinstance(self_attr,_np.ndarray):
+                if (self_attr != getattr(other,attr)).any():
+                    return False
+            else:
+                if self_attr != getattr(other,attr):
+                    return False
+        return True
 
     def __str__(self):
         r = ''
-        r += 'spos          : ' + '{0:+10.3e}'.format(self.spos) + '\n'
         r += 'rx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.rx, self.ry) + '\n'
         r += 'px, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.px, self.py) + '\n'
         r += 'de, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.de, self.dl) + '\n'
         r += 'mux, muy      : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.mux, self.muy) + '\n'
         r += 'betax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay) + '\n'
         r += 'alphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay) + '\n'
-        r += 'etax, etay    : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etay) + '\n'
-        r += 'etapx, etapy  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etapx, self.etapy) + '\n'
+        r += 'etax, etapx   : ' + '{0:+10.3e}, {1:+10.3e}'.format(*self.etax) + '\n'
+        r += 'etay, etapy   : ' + '{0:+10.3e}, {1:+10.3e}'.format(*self.etay) + '\n'
         return r
 
-    def make_copy(self):
-        n = Twiss()
-        n.spos = self.spos
-        n.rx, n.px = self.rx, self.px
-        n.ry, n.py = self.ry, self.py
-        n.de, n.dl = self.de, self.dl
-        n.etax, n.etapx = self.etax, self.etapx
-        n.etay, n.etapy = self.etay, self.etapy
-        n.mux, n.betax, n.alphax = self.mux, self.betax, self.alphax
-        n.muy, n.betay, n.alphay = self.muy, self.betay, self.alphay
-        return n
+    @property
+    def rx(self):
+        return self._t.co.rx
 
-    def make_dict(self):
-        spos        = self.spos
-        fixed_point = self.fixed_point
-        beta        = [self.betax, self.betay]
-        alpha       = [self.alphax, self.alphay]
-        eta         = [self.etax, self.etay]
-        etap        = [self.etapx, self.etapy]
-        mu          = [self.mux, self.muy]
-        _dict = {'spos': spos, 'fixed_point': fixed_point, 'beta': beta,
-                 'alpha': alpha, 'eta': eta, 'etap': etap, 'mu': mu}
-        return _dict
-
-    @staticmethod
-    def make_new(*args, **kwargs):
-        """Build a Twiss object.
-
-        Keyword arguments:
-        spos -- Initial s position
-        fixed_point -- Initial 6D particle position
-        mu    -- List of Twiss attributes [mux, muy]
-        alpha -- List of Twiss attributes [alphax, alphay]
-        beta  -- List of Twiss attributes [betax, betay]
-        eta   -- List of Twiss attributes [etax, etay]
-        etap  -- List of Twiss attributes [etapx, etapy]
-
-        """
-        if args:
-            if isinstance(args[0], dict):
-                kwargs = args[0]
-        n = Twiss()
-        n.spos = kwargs['spos'] if 'spos' in kwargs else 0.0
-        n.fixed_point = kwargs['fixed_point'] if 'fixed_point' in kwargs else (0.0,)*6
-        n.mux, n.muy = kwargs['mu'] if 'mu' in kwargs else (0.0, 0.0)
-        n.betax, n.betay = kwargs['beta'] if 'beta' in kwargs else (None, None)
-        n.alphax, n.alphay = kwargs['alpha'] if 'alpha' in kwargs else (0.0, 0.0)
-        n.etax, n.etay = kwargs['eta'] if 'eta' in kwargs else (0.0, 0.0)
-        n.etapx, n.etapy = kwargs['etap'] if 'etap' in kwargs else (0.0, 0.0)
-        return n
+    @rx.setter
+    def rx(self, value):
+        self._t.co.rx = value
 
     @property
-    def fixed_point(self):
-        rx, px = self.rx, self.px
-        ry, py = self.ry, self.py
-        de, dl = self.de, self.dl
-        fixed_point = [rx, px, ry, py, de, dl]
-        return fixed_point
+    def ry(self):
+        return self._t.co.ry
 
-    @fixed_point.setter
-    def fixed_point(self, value):
-        self.rx, self.px  = value[0], value[1]
-        self.ry, self.py  = value[2], value[3]
-        self.de, self.dl  = value[4], value[5]
+    @ry.setter
+    def ry(self, value):
+        self._t.co.ry = value
+
+    @property
+    def px(self):
+        return self._t.co.px
+
+    @px.setter
+    def px(self, value):
+        self._t.co.px = value
+
+    @property
+    def py(self):
+        return self._t.co.py
+
+    @py.setter
+    def py(self, value):
+        self._t.co.py = value
+
+    @property
+    def de(self):
+        return self._t.co.de
+
+    @de.setter
+    def de(self, value):
+        self._t.co.de = value
+
+    @property
+    def dl(self):
+        return self._t.co.dl
+
+    @dl.setter
+    def dl(self, value):
+        self._t.co.dl = value
+
+    @property
+    def betax(self):
+        return self._t.betax
+
+    @betax.setter
+    def betax(self, value):
+        self._t.betax = value
+
+    @property
+    def betay(self):
+        return self._t.betay
+
+    @betay.setter
+    def betay(self, value):
+        self._t.betay = value
+
+    @property
+    def alphax(self):
+        return self._t.alphax
+
+    @alphax.setter
+    def alphax(self, value):
+        self._t.alphax = value
+
+    @property
+    def alphay(self):
+        return self._t.alphay
+
+    @alphay.setter
+    def alphay(self, value):
+        self._t.alphay = value
+
+    @property
+    def mux(self):
+        return self._t.mux
+
+    @mux.setter
+    def mux(self, value):
+        self._t.mux = value
+
+    @property
+    def muy(self):
+        return self._t.muy
+
+    @muy.setter
+    def muy(self, value):
+        self._t.muy = value
+
+    @property
+    def etax(self):
+        ex = _Polynom(self._t.etay)
+        return ex
+
+    @etax.setter
+    def etax(self, value):
+        self._t.etax[:] = value[:]
+
+    @property
+    def etay(self):
+        ey = _Polynom(self._t.etay)
+        return ey
+
+    @etay.setter
+    def etay(self, value):
+        self._t.etay[:] = value[:]
+
 
 @_interactive
 def get_twiss(twiss_list, attribute_list):
@@ -117,6 +188,7 @@ def get_twiss(twiss_list, attribute_list):
          Twiss parameter vectors:
             betax, betay = get_twiss(twiss, ('betax','betay'))
     """
+
     if isinstance(attribute_list, str):
         attribute_list = (attribute_list,)
     values = _np.zeros((len(attribute_list),len(twiss_list)))
@@ -147,137 +219,56 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
     """
 
     if indices == 'open':
-        length = len(accelerator)
+        closed_flag = False
     elif indices == 'closed':
-        length = len(accelerator)+1
+        closed_flag = True
     else:
         raise OpticsException("invalid value for 'indices' in calc_twiss")
 
+    _m66   = _trackcpp.Matrix()
+    _twiss = _trackcpp.CppTwissVector()
+
     if init_twiss is not None:
         ''' as a transport line: uses init_twiss '''
+        _init_twiss = _Twiss2CppTwiss(init_twiss)
         if fixed_point is None:
-            fixed_point = init_twiss.fixed_point
+            _fixed_point = _init_twiss.co
         else:
             raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
+        r = _trackcpp.calc_twiss(accelerator._accelerator, _fixed_point, _m66, _twiss, _init_twiss, closed_flag)
 
-        closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
-        m66, cumul_trans_matrices = _tracking.findm66(accelerator, closed_orbit=closed_orbit)
-
-        if indices == 'closed':
-            orb, *_ = _tracking.linepass(accelerator[-1:], particles=closed_orbit[:,-1])
-            closed_orbit = _np.append(closed_orbit,orb.transpose(),axis=1)
-
-        mx, my = m66[0:2, 0:2], m66[2:4, 2:4]
-        t = init_twiss
-        t.etax = _np.array([[t.etax], [t.etapx]])
-        t.etay = _np.array([[t.etay], [t.etapy]])
     else:
         ''' as a periodic system: try to find periodic solution '''
-
         if accelerator.harmonic_number == 0:
             raise OpticsException('Either harmonic number was not set or calc_twiss was'
                 'invoked for transport line without initial twiss')
 
         if fixed_point is None:
+            _closed_orbit = _trackcpp.CppDoublePosVector()
+            _fixed_point_guess = _trackcpp.CppDoublePos()
+
             if not accelerator.cavity_on and not accelerator.radiation_on:
-                closed_orbit = _np.zeros((6,length))
-                closed_orbit[:4,:] = _tracking.findorbit4(accelerator, indices=indices)
+                r = _trackcpp.track_findorbit4(accelerator._accelerator, _closed_orbit, _fixed_point_guess)
             elif not accelerator.cavity_on and accelerator.radiation_on:
                 raise OpticsException('The radiation is on but the cavity is off')
             else:
-                closed_orbit = _tracking.findorbit6(accelerator, indices=indices)
+                r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit, _fixed_point_guess)
+
+            if r > 0:
+                raise _tracking.TrackingException(_trackcpp.string_error_messages[r])
+            _fixed_point = _closed_orbit[0]
+
         else:
-            closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices=indices)
+            _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
 
-        ''' calcs twiss at first element '''
-        orbit = closed_orbit[:,:-1] if indices == 'closed' else closed_orbit
-        m66, cumul_trans_matrices, *_ = _tracking.findm66(accelerator, closed_orbit=orbit)
-        mx, my = m66[0:2,0:2], m66[2:4,2:4] # decoupled transfer matrices
-        trace_x, trace_y, *_ = get_traces(accelerator, m66 = m66, closed_orbit=closed_orbit)
-        if not (-2.0 < trace_x < 2.0):
-            raise OpticsException('horizontal dynamics is unstable')
-        if not (-2.0 < trace_y < 2.0):
-            raise OpticsException('vertical dynamics is unstable')
-        sin_nux = _math.copysign(1,mx[0,1]) * _math.sqrt(-mx[0,1] * mx[1,0] - ((mx[0,0] - mx[1,1])**2)/4);
-        sin_nuy = _math.copysign(1,my[0,1]) * _math.sqrt(-my[0,1] * my[1,0] - ((my[0,0] - my[1,1])**2)/4);
-        fp = closed_orbit[:,0]
-        t = Twiss()
-        t.spos = 0
-        t.rx, t.px = fp[0], fp[1]
-        t.ry, t.py = fp[2], fp[3]
-        t.de, t.dl = fp[4], fp[5]
-        t.alphax = (mx[0,0] - mx[1,1]) / 2 / sin_nux
-        t.betax  = mx[0,1] / sin_nux
-        t.alphay = (my[0,0] - my[1,1]) / 2 / sin_nuy
-        t.betay  = my[0,1] / sin_nuy
-        ''' dispersion function based on eta = (1 - M)^(-1) D '''
-        Dx = _np.array([[m66[0,4]],[m66[1,4]]])
-        Dy = _np.array([[m66[2,4]],[m66[3,4]]])
-        t.etax = _np.linalg.solve(_np.eye(2,2) - mx, Dx)
-        t.etay = _np.linalg.solve(_np.eye(2,2) - my, Dy)
+        r = _trackcpp.calc_twiss(accelerator._accelerator, _fixed_point, _m66, _twiss)
 
-    ''' get transfer matrices from cumulative transfer matrices '''
-    transfer_matrices = []
-    m66_prev = _np.eye(6,6)
-    cumul_trans_matrices.append(m66)
-    for m66_this in cumul_trans_matrices[1:]: # Matrices at start of elements
-        inv_m66_prev = _np.linalg.inv(m66_prev)
-        tm = _np.dot(m66_this, inv_m66_prev)
-        #tm = _np.linalg.solve(m66_prev.T, m66_this.T).T  # Fernando, you may uncomment this line when running YOUR code! aushuashuahs
-        m66_prev = m66_this
-        transfer_matrices.append(tm)
+    if r > 0:
+        raise OpticsException(_trackcpp.string_error_messages[r])
+    twiss = TwissList(_twiss)
+    m66 = _tracking._CppMatrix2Numpy(_m66)
 
-    ''' propagates twiss through line '''
-    tw = [t]
-    m_previous = _np.eye(6,6)
-    for i in range(1, length):
-        m = transfer_matrices[i-1]
-        mx, my = m[0:2,0:2], m[2:4,2:4] # decoupled transfer matrices
-        Dx = _np.array([[m[0,4]],[m[1,4]]])
-        Dy = _np.array([[m[2,4]],[m[3,4]]])
-        n = Twiss()
-        n.spos   = t.spos + accelerator[i-1].length
-        fp = closed_orbit[:,i]
-        n.rx, n.px = fp[0], fp[1]
-        n.ry, n.py = fp[2], fp[3]
-        n.de, n.dl = fp[4], fp[5]
-        n.betax  =  ((mx[0,0] * t.betax - mx[0,1] * t.alphax)**2 + mx[0,1]**2) / t.betax
-        n.alphax = -((mx[0,0] * t.betax - mx[0,1] * t.alphax) * (mx[1,0] * t.betax - mx[1,1] * t.alphax) + mx[0,1] * mx[1,1]) / t.betax
-        n.betay  =  ((my[0,0] * t.betay - my[0,1] * t.alphay)**2 + my[0,1]**2) / t.betay
-        n.alphay = -((my[0,0] * t.betay - my[0,1] * t.alphay) * (my[1,0] * t.betay - my[1,1] * t.alphay) + my[0,1] * my[1,1]) / t.betay
-
-        ''' calcs phase advance based on R(mu) = U(2) M(2|1) U^-1(1) '''
-        sint = mx[0,1]/_math.sqrt(n.betax * t.betax)
-        cost = (mx[0,0] * t.betax - mx[0,1] * t.alphax)/_math.sqrt(n.betax * t.betax)
-        dmux = _math.atan2(sint, cost)
-        n.mux = t.mux + dmux
-        sint = my[0,1]/_math.sqrt(n.betay * t.betay)
-        cost = (my[0,0] * t.betay - my[0,1] * t.alphay)/_math.sqrt(n.betay * t.betay)
-        dmuy = _math.atan2(sint, cost)
-        n.muy = t.muy + dmuy
-
-        ''' when phase advance in an element is over PI atan2 returns a
-            negative value that has to be corrected by adding 2*PI'''
-        if dmux < 0 and dmux < -10*_sys.float_info.epsilon:
-            n.mux += 2*_math.pi
-        if dmuy < 0 and dmuy < -10*_sys.float_info.epsilon:
-            n.muy += 2*_math.pi
-
-        ''' dispersion function'''
-        n.etax = Dx + _np.dot(mx, t.etax)
-        n.etay = Dy + _np.dot(my, t.etay)
-
-        tw.append(n)
-
-        t = n.make_copy()
-
-    ''' converts eta format '''
-    for t in tw:
-        t.etapx, t.etapy = (t.etax[1,0], t.etay[1,0])
-        t.etax,  t.etay  = (t.etax[0,0], t.etay[0,0])
-
-    return tw, m66, transfer_matrices, closed_orbit
-
+    return twiss, m66
 
 @_interactive
 def get_rf_frequency(accelerator):
@@ -374,43 +365,6 @@ def get_mcf(accelerator, order=1, energy_offset=None):
     if len(a) == 1:
         a=a[0]
     return a
-
-
-@_interactive
-def get_radiation_integrals2(accelerator,
-                          twiss=None,
-                          m66=None,
-                          transfer_matrices=None,
-                          closed_orbit=None):
-
-    if twiss is None or m66 is None or transfer_matrices is None:
-        fixed_point = closed_orbit if closed_orbit is None else closed_orbit[:,0]
-        twiss, m66, transfer_matrices, closed_orbit = \
-            calc_twiss(accelerator, fixed_point=fixed_point)
-
-    D_x, D_x_ = get_twiss(twiss,('etax','etapx'))
-    gamma = _np.zeros(len(accelerator))
-    integrals=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    for i in range(len(accelerator)-1):
-        gamma[i] = (1 + twiss[i].alphax**2) / twiss[i].betax
-        gamma[i+1] = (1 + twiss[i+1].alphax**2) / twiss[i+1].betax
-        if accelerator[i].angle != 0.0:
-            rho = accelerator[i].length/accelerator[i].angle
-            dispersion = 0.5*(D_x[i]+D_x[i+1])
-            integrals[0] = integrals[0] + dispersion*accelerator[i].length /rho
-            integrals[1] = integrals[1] + accelerator[i].length/(rho**2)
-            integrals[2] = integrals[2] + accelerator[i].length/abs(rho**3)
-            integrals[3] = integrals[3] + \
-                D_x[i]*_math.tan(accelerator[i].angle_in)/(rho**2) + \
-                (1 + 2*(rho**2)*accelerator[i].polynom_b[1])*(D_x[i]+D_x[i+1])*accelerator[i].length/(2*(rho**3)) + \
-                D_x[i+1]*_math.tan(accelerator[i].angle_out)/(rho**2)
-            H1 = twiss[i].betax*D_x_[i]*D_x_[i] + 2*twiss[i].alphax*D_x[i]*D_x_[i] + gamma[i]*D_x[i]*D_x[i];
-            H0 = twiss[i+1].betax*D_x_[i+1]*D_x_[i+1] + 2*twiss[i+1].alphax*D_x[i+1]*D_x_[i+1] + gamma[i+1]*D_x[i+1]*D_x[i+1]
-            integrals[4] = integrals[4] + accelerator[i].length*(H1+H0)*0.5/abs(rho**3)
-            integrals[5] = integrals[5] + (accelerator[i].polynom_b[1]**2)*(dispersion**2)*accelerator[i].length
-
-    return integrals, twiss, m66, transfer_matrices, closed_orbit
-
 
 @_interactive
 def get_radiation_integrals(accelerator,
@@ -664,3 +618,317 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
         return accepx, accepy, twiss, closed_orbit
     else:
         return accepx, accepy, twiss, m66, transfer_matrices, closed_orbit
+
+
+def _Twiss2CppTwiss(t_in):
+    t_out = _trackcpp.Twiss()
+    t_out.co = _trackcpp.CppDoublePos()
+    t_out.co.rx,   t_out.co.px   = float(t_in.rx),     float(t_in.px)
+    t_out.co.ry,   t_out.co.py   = float(t_in.ry),     float(t_in.py)
+    t_out.co.de,   t_out.co.dl   = float(t_in.de),     float(t_in.dl)
+    t_out.betax,   t_out.betay   = float(t_in.betax),  float(t_in.betay)
+    t_out.alphax,  t_out.alphay  = float(t_in.alphax), float(t_in.alphay)
+    t_out.mux,     t_out.muy     = float(t_in.mux),    float(t_in.muy)
+    t_out.etax[0], t_out.etax[1] = float(t_in.etax),   float(t_in.etapx)
+    t_out.etay[0], t_out.etay[1] = float(t_in.etay),   float(t_in.etapy)
+    return t_out
+
+def _CppTwiss2Twiss(t_in):
+    t_out = Twiss()
+    t_out.fixed_point = _np.array((t_in.co.rx,t_in.co.px,t_in.co.ry,t_in.co.py,t_in.co.de,t_in.co.dl))
+    t_out.betax,  t_out.betay  = t_in.betax,   t_in.betay
+    t_out.alphax, t_out.alphay = t_in.alphax,  t_in.alphay
+    t_out.mux,    t_out.muy    = t_in.mux,     t_in.muy
+    t_out.etax,   t_out.etapx  = t_in.etax[0], t_in.etax[1]
+    t_out.etay,   t_out.etapy  = t_in.etay[0], t_in.etay[1]
+    return t_out
+
+class TwissList(object):
+
+    def __init__(self, twiss_list=None):
+        """Read-only list of matrices.
+
+        Keyword argument:
+        twiss_list -- trackcpp Twiss vector (default: None)
+        """
+        # TEST!
+        if twiss_list is not None:
+            if isinstance(twiss_list, _trackcpp.CppTwissVector):
+                self._tl = twiss_list
+            else:
+                raise TrackingException('invalid Twiss vector')
+        else:
+            self._tl = _trackcpp.CppTwissVector()
+
+    def __len__(self):
+        return len(self._tl)
+
+    def __getitem__(self, index):
+        return _CppTwiss2Twiss(self._tl[index])
+
+    def append(self, value):
+        if isinstance(value, _trackcpp.Twiss):
+            self._tl.append(value)
+        elif isinstance(value, Twiss):
+            t = _Twiss2CppTwiss(value)
+            self._tl.append(t)
+        elif self._is_list_of_lists(value):
+            t = _trackcpp.Twiss()
+            for line in value:
+                t.append(line)
+            self._tl.append(t)
+        else:
+            raise TrackingException('can only append twiss-like objects')
+
+    def _is_list_of_lists(self, value):
+        valid_types = (list, tuple)
+
+        if not isinstance(value, valid_types):
+            return False
+
+        for line in value:
+            if not isinstance(line, valid_types):
+                return False
+
+        return True
+
+
+
+
+class old_Twiss:
+    def __init__(self):
+        self.spos = 0
+        self.rx, self.px  = 0, 0
+        self.ry, self.py  = 0, 0
+        self.de, self.dl  = 0, 0
+        self.etax, self.etapx = 0, 0
+        self.etay, self.etapy = 0, 0
+        self.mux, self.betax, self.alphax = 0, None, None
+        self.muy, self.betay, self.alphay = 0, None, None
+
+    def __str__(self):
+        r = ''
+        r += 'spos          : ' + '{0:+10.3e}'.format(self.spos) + '\n'
+        r += 'rx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.rx, self.ry) + '\n'
+        r += 'px, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.px, self.py) + '\n'
+        r += 'de, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.de, self.dl) + '\n'
+        r += 'mux, muy      : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.mux, self.muy) + '\n'
+        r += 'betax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay) + '\n'
+        r += 'alphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay) + '\n'
+        r += 'etax, etay    : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etay) + '\n'
+        r += 'etapx, etapy  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etapx, self.etapy) + '\n'
+        return r
+
+    def make_copy(self):
+        n = Twiss()
+        n.spos = self.spos
+        n.rx, n.px = self.rx, self.px
+        n.ry, n.py = self.ry, self.py
+        n.de, n.dl = self.de, self.dl
+        n.etax, n.etapx = self.etax, self.etapx
+        n.etay, n.etapy = self.etay, self.etapy
+        n.mux, n.betax, n.alphax = self.mux, self.betax, self.alphax
+        n.muy, n.betay, n.alphay = self.muy, self.betay, self.alphay
+        return n
+
+    def make_dict(self):
+        co    = self.fixed_point
+        beta  = [self.betax, self.betay]
+        alpha = [self.alphax, self.alphay]
+        eta   = [self.etax, self.etay]
+        etap  = [self.etapx, self.etapy]
+        mu    = [self.mux, self.muy]
+        _dict = {'spos': spos, 'fixed_point': fixed_point, 'beta': beta,
+                 'alpha': alpha, 'eta': eta, 'etap': etap, 'mu': mu}
+        return _dict
+
+    @staticmethod
+    def make_new(*args, **kwargs):
+        """Build a Twiss object.
+
+        Keyword arguments:
+        spos -- Initial s position
+        fixed_point -- Initial 6D particle position
+        mu    -- List of Twiss attributes [mux, muy]
+        alpha -- List of Twiss attributes [alphax, alphay]
+        beta  -- List of Twiss attributes [betax, betay]
+        eta   -- List of Twiss attributes [etax, etay]
+        etap  -- List of Twiss attributes [etapx, etapy]
+
+        """
+        if args:
+            if isinstance(args[0], dict):
+                kwargs = args[0]
+        n = Twiss()
+        n.spos = kwargs['spos'] if 'spos' in kwargs else 0.0
+        n.fixed_point = kwargs['fixed_point'] if 'fixed_point' in kwargs else (0.0,)*6
+        n.mux, n.muy = kwargs['mu'] if 'mu' in kwargs else (0.0, 0.0)
+        n.betax, n.betay = kwargs['beta'] if 'beta' in kwargs else (None, None)
+        n.alphax, n.alphay = kwargs['alpha'] if 'alpha' in kwargs else (0.0, 0.0)
+        n.etax, n.etay = kwargs['eta'] if 'eta' in kwargs else (0.0, 0.0)
+        n.etapx, n.etapy = kwargs['etap'] if 'etap' in kwargs else (0.0, 0.0)
+        return n
+
+    @property
+    def fixed_point(self):
+        rx, px = self.rx, self.px
+        ry, py = self.ry, self.py
+        de, dl = self.de, self.dl
+        fixed_point = [rx, px, ry, py, de, dl]
+        return fixed_point
+
+    @fixed_point.setter
+    def fixed_point(self, value):
+        self.rx, self.px  = value[0], value[1]
+        self.ry, self.py  = value[2], value[3]
+        self.de, self.dl  = value[4], value[5]
+
+@_interactive
+def old_calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open'):
+    """Return Twiss parameters of uncoupled dynamics.
+
+    Keyword arguments:
+    accelerator -- Accelerator object
+    init_twiss  -- Twiss parameters at the start of first element
+    fixed_point -- 6D position at the start of first element
+    indices     -- Open or closed
+
+    Returns:
+    tw -- list of Twiss objects
+    m66
+    transfer_matrices
+    closed_orbit
+    """
+
+    if indices == 'open':
+        length = len(accelerator)
+    elif indices == 'closed':
+        length = len(accelerator)+1
+    else:
+        raise OpticsException("invalid value for 'indices' in calc_twiss")
+
+    if init_twiss is not None:
+        ''' as a transport line: uses init_twiss '''
+        if fixed_point is None:
+            fixed_point = init_twiss.fixed_point
+        else:
+            raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
+
+        closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices='open')
+        m66, cumul_trans_matrices = _tracking.findm66(accelerator, closed_orbit=closed_orbit)
+
+        if indices == 'closed':
+            orb, *_ = _tracking.linepass(accelerator[-1:], particles=closed_orbit[:,-1])
+            closed_orbit = _np.append(closed_orbit,orb.transpose(),axis=1)
+
+        mx, my = m66[0:2, 0:2], m66[2:4, 2:4]
+        t = init_twiss
+        t.etax = _np.array([[t.etax], [t.etapx]])
+        t.etay = _np.array([[t.etay], [t.etapy]])
+    else:
+        ''' as a periodic system: try to find periodic solution '''
+
+        if accelerator.harmonic_number == 0:
+            raise OpticsException('Either harmonic number was not set or calc_twiss was'
+                'invoked for transport line without initial twiss')
+
+        if fixed_point is None:
+            if not accelerator.cavity_on and not accelerator.radiation_on:
+                closed_orbit = _np.zeros((6,length))
+                closed_orbit[:4,:] = _tracking.findorbit4(accelerator, indices=indices)
+            elif not accelerator.cavity_on and accelerator.radiation_on:
+                raise OpticsException('The radiation is on but the cavity is off')
+            else:
+
+                closed_orbit = _tracking.findorbit6(accelerator, indices=indices)
+        else:
+            closed_orbit, *_ = _tracking.linepass(accelerator, particles=list(fixed_point), indices=indices)
+
+        ''' calcs twiss at first element '''
+        orbit = closed_orbit[:,:-1] if indices == 'closed' else closed_orbit
+        m66, cumul_trans_matrices, *_ = _tracking.findm66(accelerator, closed_orbit=orbit)
+        mx, my = m66[0:2,0:2], m66[2:4,2:4] # decoupled transfer matrices
+        trace_x, trace_y, *_ = get_traces(accelerator, m66 = m66, closed_orbit=closed_orbit)
+        if not (-2.0 < trace_x < 2.0):
+            raise OpticsException('horizontal dynamics is unstable')
+        if not (-2.0 < trace_y < 2.0):
+            raise OpticsException('vertical dynamics is unstable')
+        sin_nux = _math.copysign(1,mx[0,1]) * _math.sqrt(-mx[0,1] * mx[1,0] - ((mx[0,0] - mx[1,1])**2)/4);
+        sin_nuy = _math.copysign(1,my[0,1]) * _math.sqrt(-my[0,1] * my[1,0] - ((my[0,0] - my[1,1])**2)/4);
+        fp = closed_orbit[:,0]
+        t = Twiss()
+        t.spos = 0
+        t.rx, t.px = fixed_point[0], fixed_point[1]
+        t.ry, t.py = fixed_point[2], fixed_point[3]
+        t.de, t.dl = fixed_point[4], fixed_point[5]
+        t.alphax = (mx[0,0] - mx[1,1]) / 2 / sin_nux
+        t.betax  = mx[0,1] / sin_nux
+        t.alphay = (my[0,0] - my[1,1]) / 2 / sin_nuy
+        t.betay  = my[0,1] / sin_nuy
+        ''' dispersion function based on eta = (1 - M)^(-1) D '''
+        Dx = _np.array([[m66[0,4]],[m66[1,4]]])
+        Dy = _np.array([[m66[2,4]],[m66[3,4]]])
+        t.etax = _np.linalg.solve(_np.eye(2,2) - mx, Dx)
+        t.etay = _np.linalg.solve(_np.eye(2,2) - my, Dy)
+
+    ''' get transfer matrices from cumulative transfer matrices '''
+    transfer_matrices = []
+    m66_prev = _np.eye(6,6)
+    cumul_trans_matrices.append(m66)
+    for m66_this in cumul_trans_matrices[1:]: # Matrices at start of elements
+        inv_m66_prev = _np.linalg.inv(m66_prev)
+        tm = _np.dot(m66_this, inv_m66_prev)
+        #tm = _np.linalg.solve(m66_prev.T, m66_this.T).T  # Fernando, you may uncomment this line when running YOUR code! aushuashuahs
+        m66_prev = m66_this
+        transfer_matrices.append(tm)
+
+    ''' propagates twiss through line '''
+    tw = [t]
+    m_previous = _np.eye(6,6)
+    for i in range(1, length):
+        m = transfer_matrices[i-1]
+        mx, my = m[0:2,0:2], m[2:4,2:4] # decoupled transfer matrices
+        Dx = _np.array([[m[0,4]],[m[1,4]]])
+        Dy = _np.array([[m[2,4]],[m[3,4]]])
+        n = Twiss()
+        n.spos   = t.spos + accelerator[i-1].length
+        fp = closed_orbit[:,i]
+        n.rx, n.px = fixed_point[0], fixed_point[1]
+        n.ry, n.py = fixed_point[2], fixed_point[3]
+        n.de, n.dl = fixed_point[4], fixed_point[5]
+        n.betax  =  ((mx[0,0] * t.betax - mx[0,1] * t.alphax)**2 + mx[0,1]**2) / t.betax
+        n.alphax = -((mx[0,0] * t.betax - mx[0,1] * t.alphax) * (mx[1,0] * t.betax - mx[1,1] * t.alphax) + mx[0,1] * mx[1,1]) / t.betax
+        n.betay  =  ((my[0,0] * t.betay - my[0,1] * t.alphay)**2 + my[0,1]**2) / t.betay
+        n.alphay = -((my[0,0] * t.betay - my[0,1] * t.alphay) * (my[1,0] * t.betay - my[1,1] * t.alphay) + my[0,1] * my[1,1]) / t.betay
+
+        ''' calcs phase advance based on R(mu) = U(2) M(2|1) U^-1(1) '''
+        sint = mx[0,1]/_math.sqrt(n.betax * t.betax)
+        cost = (mx[0,0] * t.betax - mx[0,1] * t.alphax)/_math.sqrt(n.betax * t.betax)
+        dmux = _math.atan2(sint, cost)
+        n.mux = t.mux + dmux
+        sint = my[0,1]/_math.sqrt(n.betay * t.betay)
+        cost = (my[0,0] * t.betay - my[0,1] * t.alphay)/_math.sqrt(n.betay * t.betay)
+        dmuy = _math.atan2(sint, cost)
+        n.muy = t.muy + dmuy
+
+        ''' when phase advance in an element is over PI atan2 returns a
+            negative value that has to be corrected by adding 2*PI'''
+        if dmux < 0 and dmux < -10*_sys.float_info.epsilon:
+            n.mux += 2*_math.pi
+        if dmuy < 0 and dmuy < -10*_sys.float_info.epsilon:
+            n.muy += 2*_math.pi
+
+        ''' dispersion function'''
+        n.etax = Dx + _np.dot(mx, t.etax)
+        n.etay = Dy + _np.dot(my, t.etay)
+
+        tw.append(n)
+
+        t = n.make_copy()
+
+    ''' converts eta format '''
+    for t in tw:
+        t.etapx, t.etapy = (t.etax[1,0], t.etay[1,0])
+        t.etax,  t.etay  = (t.etax[0,0], t.etay[0,0])
+
+    return tw, m66, transfer_matrices, closed_orbit

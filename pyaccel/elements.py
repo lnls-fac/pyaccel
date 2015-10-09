@@ -6,6 +6,7 @@ import warnings as _warnings
 import numpy as _numpy
 import trackcpp as _trackcpp
 from pyaccel.utils import interactive as _interactive
+from pyaccel.utils import Polynom as _Polynom
 
 
 _DBL_MAX = _trackcpp.get_double_max()
@@ -169,27 +170,6 @@ def _process_polynoms(pa, pb):
     for i in range(len(pb), n):
         pb.append(0.0)
     return pa, pb
-
-
-class Polynom(_numpy.ndarray):
-
-    def __new__(cls, polynom):
-        shape = (len(polynom),)
-        array = _numpy.ndarray.__new__(cls, shape=shape)
-        array[:] = polynom[:]
-        array._polynom = polynom
-        return array
-
-    def __setitem__(self, index, value):
-        if hasattr(self, '_polynom'):
-            self._polynom[index] = value
-        super().__setitem__(index, value)
-
-    def __eq__(self,other):
-        if not isinstance(other,Polynom): return NotImplemented
-        if len(self) != len(other): return False
-        if (self != other).any(): return False
-        return True
 
 
 @_interactive
@@ -507,7 +487,7 @@ class Element(object):
 
     @property
     def polynom_a(self):
-        p = Polynom(self._e.polynom_a)
+        p = _Polynom(self._e.polynom_a)
         return p
 
     @polynom_a.setter
@@ -516,7 +496,7 @@ class Element(object):
 
     @property
     def polynom_b(self):
-        p = Polynom(self._e.polynom_b)
+        p = _Polynom(self._e.polynom_b)
         return p
 
     @polynom_b.setter
