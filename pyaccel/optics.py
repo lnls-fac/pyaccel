@@ -1,5 +1,4 @@
 
-import time
 import sys as _sys
 import math as _math
 import numpy as _np
@@ -92,6 +91,16 @@ class Twiss:
     @dl.setter
     def dl(self, value):
         self._t.co.dl = value
+
+    @property
+    def co(self):
+        return _np.array([self.rx, self.px, self.ry, self.py, self.de, self.dl])
+
+    @co.setter
+    def co(self, value):
+        self.rx, self.px = value[0], value[1]
+        self.ry, self.py = value[2], value[3]
+        self.de, self.dl = value[4], value[5]
 
     @property
     def betax(self):
@@ -211,49 +220,6 @@ class Twiss:
         n.etay,   n.etapy  = kwargs['etay']  if 'etay'  in kwargs else (0.0, 0.0)
         return n
 
-
-@_interactive
-def get_twiss(twiss_list, attribute_list):
-    """Build a matrix with Twiss data from a list of Twiss objects.
-
-    Accepts a list of Twiss objects and returns a matrix with Twiss data, one line for
-    each Twiss parameter defined in 'attributes_list'.
-
-    Keyword arguments:
-    twiss_list -- List with Twiss objects
-    attributes_list -- List of strings with Twiss attributes to be stored in twiss matrix
-
-    Returns:
-    m -- Matrix with Twiss data. Can also be thought of a single column of
-         Twiss parameter vectors:
-            betax, betay = get_twiss(twiss, ('betax','betay'))
-    """
-    if isinstance(attribute_list, str):
-        attribute_list = (attribute_list,)
-    values = _np.zeros((len(attribute_list),len(twiss_list)))
-    for i in range(len(twiss_list)):
-        for j in range(len(attribute_list)):
-            values[j,i] = getattr(twiss_list[i], attribute_list[j])
-    if values.shape[0] == 1:
-        return values[0,:]
-    else:
-        return values
-
-@_interactive
-def get_orbit_from_twiss(twiss_list):
-    attribute_list = ('rx', 'px', 'ry', 'py', 'de', 'dl')
-    if isinstance(twiss_list, Twiss):
-        values = _np.zeros((len(attribute_list),1))
-        for j in range(len(attribute_list)):
-            values[j,0] = getattr(twiss_list, attribute_list[j])
-        return values[:,0]
-    else:
-        values = _np.zeros((len(attribute_list),len(twiss_list)))
-        for i in range(len(twiss_list)):
-            for j in range(len(attribute_list)):
-                values[j,i] = getattr(twiss_list[i], attribute_list[j])
-        return values
-
 @_interactive
 def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open'):
     """Return Twiss parameters of uncoupled dynamics.
@@ -317,6 +283,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
 
     if r > 0:
         raise OpticsException(_trackcpp.string_error_messages[r])
+
     twiss = TwissList(_twiss)
     m66 = _tracking._CppMatrix2Numpy(_m66)
 
@@ -430,7 +397,11 @@ def get_radiation_integrals(accelerator,
         twiss, m66 = calc_twiss(accelerator, fixed_point=fixed_point)
 
     spos = _lattice.find_spos(accelerator)
-    etax,etapx,betax,alphax = get_twiss(twiss,('etax','etapx','betax','alphax'))
+
+    # # Old get twiss
+    # etax,etapx,betax,alphax = twiss,('etax','etapx','betax','alphax'))
+    etax, etapx, betax, alphax = twiss.etax, twiss.etapx, twiss.betax, twiss.alphax
+
     if len(spos) != len(accelerator) + 1:
         spos = _np.resize(spos,len(accelerator)+1); spos[-1] = spos[-2] + accelerator[-1].length
         etax = _np.resize(etax,len(accelerator)+1); etax[-1] = etax[0]
@@ -589,8 +560,14 @@ def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, indices='open'):
     # twiss parameters
     fixed_point = closed_orbit if closed_orbit is None else closed_orbit[:,0]
     twiss, *_ = calc_twiss(accelerator, fixed_point=fixed_point, indices=indices)
-    betax, alphax, etax, etapx = get_twiss(twiss, ('betax','alphax','etax','etapx'))
-    betay, alphay, etay, etapy = get_twiss(twiss, ('betay','alphay','etay','etapy'))
+
+    # Old get twiss
+    # betax, alphax, etax, etapx = get_twiss(twiss, ('betax','alphax','etax','etapx'))
+    # betay, alphay, etay, etapy = get_twiss(twiss, ('betay','alphay','etay','etapy'))
+
+    betax, alphax, etax, etapx = twiss.betax, twiss.alphax, twiss.etax, twiss.etapx
+    betay, alphay, etay, etapy = twiss.betay, twiss.alphay, twiss.etay, twiss.etapy
+
     gammax = (1.0 + alphax**2)/betax
     gammay = (1.0 + alphay**2)/betay
     # emittances and energy spread
@@ -611,8 +588,6 @@ def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, indices='open'):
 def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_point=None, energy_offset=0.0):
     """Return linear transverse horizontal and vertical physical acceptances"""
 
-    t0 = time.time()
-
     m66 = None
     if twiss is None:
         twiss, m66 = calc_twiss(accelerator, init_twiss=init_twiss, fixed_point=fixed_point, indices='open')
@@ -625,13 +600,12 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
         else:
             raise OpticsException('Mismatch between size of accelerator and size of twiss object')
 
-    t1 = time.time()
-
-    closed_orbit = _np.zeros((6,n))
-    closed_orbit[0,:], closed_orbit[2,:] = get_twiss(twiss, ('rx','ry'))
-    betax, betay, etax, etay = get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
-
-    t2 = time.time()
+    # # Old get twiss
+    # closed_orbit = _np.zeros((6,n))
+    # closed_orbit[0,:], closed_orbit[2,:] = get_twiss(twiss, ('rx','ry'))
+    # betax, betay, etax, etay = get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
+    closed_orbit = twiss.co
+    betax, betay, etax, etay = twiss.betax, twiss.betay, twiss.etax, twiss.etay
 
     # physical apertures
     lattice = accelerator._accelerator.lattice
@@ -640,7 +614,6 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
         hmax = _np.append(hmax, hmax[-1])
         vmax = _np.append(vmax, vmax[-1])
 
-    t3 = time.time()
     # calcs local linear acceptances
     co_x, co_y = closed_orbit[(0,2),:]
 
@@ -672,12 +645,6 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
 
     accepx = [min(accepx_in[i],accepx_out[i]) for i in range(n)]
     accepy = [min(accepy_in[i],accepy_out[i]) for i in range(n)]
-    t4 = time.time()
-    print('tempo twiss: %f ms'%(1000*(t1-t0)))
-    print('tempo get twiss: %f ms'%(1000*(t2-t1)))
-    print('tempo vac chamb: %f ms'%(1000*(t3-t2)))
-    print('tempo calc: %f ms'%(1000*(t4-t3)))
-    print('tempo trans accep: %f ms'%(1000*(time.time()-t0)))
 
     if m66 is None:
         return accepx, accepy, twiss
@@ -701,6 +668,7 @@ class TwissList(object):
                 raise TrackingException('invalid Twiss vector')
         else:
             self._tl = _trackcpp.CppTwissVector()
+        self._ptl = [self._tl[i] for i in range(len(self._tl))]
 
     def __len__(self):
         return len(self._tl)
@@ -712,8 +680,7 @@ class TwissList(object):
         if isinstance(value, _trackcpp.Twiss):
             self._tl.append(value)
         elif isinstance(value, Twiss):
-            t = Twiss._t(value)
-            self._tl.append(t)
+            self._tl.append(value._t)
         elif self._is_list_of_lists(value):
             t = _trackcpp.Twiss()
             for line in value:
@@ -730,6 +697,44 @@ class TwissList(object):
             if not isinstance(line, valid_types):
                 return False
         return True
+
+    @property
+    def betax(self):
+        return _np.array([float(self._ptl[i].betax) for i in range(len(self._ptl))])
+
+    @property
+    def betay(self):
+        return _np.array([float(self._ptl[i].betay) for i in range(len(self._ptl))])
+
+    @property
+    def alphax(self):
+        return _np.array([float(self._ptl[i].alphax) for i in range(len(self._ptl))])
+
+    @property
+    def alphay(self):
+        return _np.array([float(self._ptl[i].alphay) for i in range(len(self._ptl))])
+
+    @property
+    def etax(self):
+        return _np.array([float(self._ptl[i].etax[0]) for i in range(len(self._ptl))])
+
+    @property
+    def etay(self):
+        return _np.array([float(self._ptl[i].etay[0]) for i in range(len(self._ptl))])
+
+    @property
+    def etapx(self):
+        return _np.array([float(self._ptl[i].etax[1]) for i in range(len(self._ptl))])
+
+    @property
+    def etapy(self):
+        return _np.array([float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
+
+    @property
+    def co(self):
+        co = [self._ptl[i].co for i in range(len(self._ptl))]
+        co = [[co[i].rx, co[i].px, co[i].ry, co[i].py, co[i].de, co[i].dl] for i in range(len(co))]
+        return _np.transpose(_np.array(co))
 
 
 
@@ -821,6 +826,32 @@ class old_Twiss:
         self.ry, self.py  = value[2], value[3]
         self.de, self.dl  = value[4], value[5]
 
+@_interactive
+def get_twiss(twiss_list, attribute_list):
+    """Build a matrix with Twiss data from a list of Twiss objects.
+
+    Accepts a list of Twiss objects and returns a matrix with Twiss data, one line for
+    each Twiss parameter defined in 'attributes_list'.
+
+    Keyword arguments:
+    twiss_list -- List with Twiss objects
+    attributes_list -- List of strings with Twiss attributes to be stored in twiss matrix
+
+    Returns:
+    m -- Matrix with Twiss data. Can also be thought of a single column of
+         Twiss parameter vectors:
+            betax, betay = get_twiss(twiss, ('betax','betay'))
+    """
+    if isinstance(attribute_list, str):
+        attribute_list = (attribute_list,)
+    values = _np.zeros((len(attribute_list),len(twiss_list)))
+    for i in range(len(twiss_list)):
+        for j in range(len(attribute_list)):
+            values[j,i] = getattr(twiss_list[i], attribute_list[j])
+    if values.shape[0] == 1:
+        return values[0,:]
+    else:
+        return values
 
 @_interactive
 def old_calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open'):
