@@ -14,12 +14,17 @@ class TestTwiss(unittest.TestCase):
         self.accelerator.radiation_on = False
         #pyaccel.tracking.set6dtracking(self.accelerator)
         twiss, *_ = pyaccel.optics.calc_twiss(self.accelerator)
+        # (self.mux, self.betax, self.alphax, self.etax, self.etapx,
+        #  self.muy, self.betay, self.alphay, self.etay, self.etapy) = \
+        # pyaccel.optics.get_twiss(twiss,
+        #         ('mux', 'betax', 'alphax', 'etax', 'etapx',
+        #          'muy', 'betay', 'alphay', 'etay', 'etapy')
+        # )
         (self.mux, self.betax, self.alphax, self.etax, self.etapx,
          self.muy, self.betay, self.alphay, self.etay, self.etapy) = \
-        pyaccel.optics.get_twiss(twiss,
-                ('mux', 'betax', 'alphax', 'etax', 'etapx',
-                 'muy', 'betay', 'alphay', 'etay', 'etapy')
-        )
+        (twiss.mux, twiss.betax, twiss.alphax, twiss.etax, twiss.etapx,
+        twiss.muy, twiss.betay, twiss.alphay, twiss.etay, twiss.etapy)
+
 
     def test_twiss(self):
         tol = 1.0e-8

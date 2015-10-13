@@ -195,7 +195,7 @@ class Twiss:
         return r
 
     def make_dict(self):
-        co    = [self.rx, self.px, self.ry, self.py, self.de, self.dl]
+        co    =  self.co
         beta  = [self.betax, self.betay]
         alpha = [self.alphax, self.alphay]
         etax  = [self.etax, self.etapx]
@@ -212,7 +212,7 @@ class Twiss:
             if isinstance(args[0], dict):
                 kwargs = args[0]
         n = Twiss()
-        n.rx, n.px, n.ry, n.py, n.de, n.dl = kwargs['co'] if 'co' in kwargs else (0.0,)*6
+        n.co = kwargs['co'] if 'co' in kwargs else (0.0,)*6
         n.mux,    n.muy    = kwargs['mu']    if 'mu'    in kwargs else (0.0, 0.0)
         n.betax,  n.betay  = kwargs['beta']  if 'beta'  in kwargs else (0.0, 0.0)
         n.alphax, n.alphay = kwargs['alpha'] if 'alpha' in kwargs else (0.0, 0.0)
@@ -400,6 +400,7 @@ def get_radiation_integrals(accelerator,
 
     # # Old get twiss
     # etax,etapx,betax,alphax = twiss,('etax','etapx','betax','alphax'))
+
     etax, etapx, betax, alphax = twiss.etax, twiss.etapx, twiss.betax, twiss.alphax
 
     if len(spos) != len(accelerator) + 1:
@@ -604,6 +605,7 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
     # closed_orbit = _np.zeros((6,n))
     # closed_orbit[0,:], closed_orbit[2,:] = get_twiss(twiss, ('rx','ry'))
     # betax, betay, etax, etay = get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
+
     closed_orbit = twiss.co
     betax, betay, etax, etay = twiss.betax, twiss.betay, twiss.etax, twiss.etay
 
@@ -674,18 +676,31 @@ class TwissList(object):
         return len(self._tl)
 
     def __getitem__(self, index):
-        return Twiss(twiss=self._tl[index])
+        if isinstance(index,(int, _np.int_)):
+            return Twiss(twiss=self._tl[index])
+        elif isinstance(index, (list,tuple,_np.ndarray)) and all(isinstance(x, (int, _np.int_)) for x in index):
+            tl = _trackcpp.CppTwissVector()
+            for i in index:
+                tl.append(self._tl[i])
+            return TwissList(twiss_list = tl)
+        elif isinstance(index, slice):
+            return TwissList(twiss_list = self._tl[index])
+        else:
+            raise TypeError('invalid index')
 
     def append(self, value):
         if isinstance(value, _trackcpp.Twiss):
             self._tl.append(value)
+            self._ptl.append(value)
         elif isinstance(value, Twiss):
             self._tl.append(value._t)
+            self._ptl.append(value._t)
         elif self._is_list_of_lists(value):
             t = _trackcpp.Twiss()
             for line in value:
                 t.append(line)
             self._tl.append(t)
+            self._ptl.append(t)
         else:
             raise TrackingException('can only append twiss-like objects')
 
@@ -700,42 +715,60 @@ class TwissList(object):
 
     @property
     def betax(self):
-        return _np.array([float(self._ptl[i].betax) for i in range(len(self._ptl))])
+        betax = _np.array([float(self._ptl[i].betax) for i in range(len(self._ptl))])
+        return betax if len(betax) > 1 else betax[0]
 
     @property
     def betay(self):
-        return _np.array([float(self._ptl[i].betay) for i in range(len(self._ptl))])
+        betay = _np.array([float(self._ptl[i].betay) for i in range(len(self._ptl))])
+        return betay if len(betay) > 1 else betay[0]
 
     @property
     def alphax(self):
-        return _np.array([float(self._ptl[i].alphax) for i in range(len(self._ptl))])
+        alphax = _np.array([float(self._ptl[i].alphax) for i in range(len(self._ptl))])
+        return alphax if len(alphax) > 1 else alphax[0]
 
     @property
     def alphay(self):
-        return _np.array([float(self._ptl[i].alphay) for i in range(len(self._ptl))])
+        alphay = _np.array([float(self._ptl[i].alphay) for i in range(len(self._ptl))])
+        return alphay if len(alphay) > 1 else alphay[0]
+
+    @property
+    def mux(self):
+        mux = _np.array([float(self._ptl[i].mux) for i in range(len(self._ptl))])
+        return mux if len(mux) > 1 else mux[0]
+
+    @property
+    def muy(self):
+        muy = _np.array([float(self._ptl[i].muy) for i in range(len(self._ptl))])
+        return muy if len(muy) > 1 else muy[0]
 
     @property
     def etax(self):
-        return _np.array([float(self._ptl[i].etax[0]) for i in range(len(self._ptl))])
+        etax = _np.array([float(self._ptl[i].etax[0]) for i in range(len(self._ptl))])
+        return etax if len(etax) > 1 else etax[0]
 
     @property
     def etay(self):
-        return _np.array([float(self._ptl[i].etay[0]) for i in range(len(self._ptl))])
+        etay = _np.array([float(self._ptl[i].etay[0]) for i in range(len(self._ptl))])
+        return etay if len(etay) > 1 else etay[0]
 
     @property
     def etapx(self):
-        return _np.array([float(self._ptl[i].etax[1]) for i in range(len(self._ptl))])
+        etapx = _np.array([float(self._ptl[i].etax[1]) for i in range(len(self._ptl))])
+        return etapx if len(etapx) > 1 else etapx[0]
 
     @property
     def etapy(self):
-        return _np.array([float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
+        etapy = _np.array([float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
+        return etapy if len(etapy) > 1 else etapy[0]
 
     @property
     def co(self):
         co = [self._ptl[i].co for i in range(len(self._ptl))]
         co = [[co[i].rx, co[i].px, co[i].ry, co[i].py, co[i].de, co[i].dl] for i in range(len(co))]
-        return _np.transpose(_np.array(co))
-
+        co = _np.transpose(_np.array(co))
+        return co if len(co[0,:]) > 1 else co[:,0]
 
 
 class old_Twiss:
