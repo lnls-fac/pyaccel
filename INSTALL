@@ -9,7 +9,7 @@ are available. Developed and tested with Python 3 (3.4).
 REQUIREMENTS
 ============
 
-- trackcpp C++/Python package 3.0 (>=3.0.0)
+- trackcpp C++/Python package 3.2 (>=3.2.0)
 - numpy 1.8 (>=1.8.2)
 - mathphys 0.3 (>=0.3.0)
 - matplotlib 1.4 (>=1.4.2) [Optional for graphics and interactive modules]
