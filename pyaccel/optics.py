@@ -290,6 +290,40 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
     return twiss, m66
 
 @_interactive
+def calc_emittance_coupling(accelerator):
+    # I copied the code below from:
+    # http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
+    def fitEllipse(x,y):
+        x = x[:,_np.newaxis]
+        y = y[:,_np.newaxis]
+        D =  _np.hstack((x*x, x*y, y*y, x, y, _np.ones_like(x)))
+        S = _np.dot(D.T,D)
+        C = _np.zeros([6,6])
+        C[0,2] = C[2,0] = 2; C[1,1] = -1
+        E, V =  _np.linalg.eig(_np.linalg.solve(S, C))
+        n = _np.argmax(_np.abs(E))
+        a = V[:,n]
+        b,c,d,f,g,a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
+        up    = 2*(a*f*f+c*d*d+g*b*b-2*b*d*f-a*c*g)
+        down1 = (b*b-a*c)*( (c-a)*_np.sqrt(1+4*b*b/((a-c)*(a-c)))-(c+a))
+        down2 = (b*b-a*c)*( (a-c)*_np.sqrt(1+4*b*b/((a-c)*(a-c)))-(c+a))
+        res1 = _np.sqrt(up/down1)
+        res2 = _np.sqrt(up/down2)
+        return _np.array([res1, res2]) #returns the axes of the ellipse
+
+    acc = accelerator[:]
+    acc.cavity_on    = False
+    acc.radiation_on = False
+
+    orb = _tracking.findorbit4(acc)
+    rin = _np.array([2e-5+orb[0],0+orb[1],1e-8+orb[2],0+orb[3],0,0],dtype=float)
+    rout, *_ = _tracking.ringpass(acc, rin, nr_turns=100, turn_by_turn='closed',element_offset = 0)
+    r = _np.dstack([rin[None,:,None],rout])
+    ax,bx = fitEllipse(r[0][0],r[0][1])
+    ay,by = fitEllipse(r[0][2],r[0][3])
+    return (ay*by) / (ax*bx) # ey/ex
+
+@_interactive
 def get_rf_frequency(accelerator):
     """Return the frequency of the first RF cavity in the lattice"""
     for e in accelerator:
