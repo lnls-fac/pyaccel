@@ -221,14 +221,16 @@ class Twiss:
         return n
 
 @_interactive
-def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open'):
+def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open', energy_offset=None):
     """Return Twiss parameters of uncoupled dynamics.
 
     Keyword arguments:
-    accelerator -- Accelerator object
-    init_twiss  -- Twiss parameters at the start of first element
-    fixed_point -- 6D position at the start of first element
-    indices     -- Open or closed
+    accelerator   -- Accelerator object
+    init_twiss    -- Twiss parameters at the start of first element
+    fixed_point   -- 6D position at the start of first element
+    indices       -- Open or closed
+    energy_offset -- float denoting the energy deviation (used only for periodic
+                     solutions).
 
     Returns:
     tw -- list of Twiss objects
@@ -264,6 +266,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
         if fixed_point is None:
             _closed_orbit = _trackcpp.CppDoublePosVector()
             _fixed_point_guess = _trackcpp.CppDoublePos()
+            if energy_offset is not None: _fixed_point_guess.de = energy_offset
 
             if not accelerator.cavity_on and not accelerator.radiation_on:
                 r = _trackcpp.track_findorbit4(accelerator._accelerator, _closed_orbit, _fixed_point_guess)
@@ -278,6 +281,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
 
         else:
             _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
+            if energy_offset is not None: _fixed_point.de = energy_offset
 
         r = _trackcpp.calc_twiss(accelerator._accelerator, _fixed_point, _m66, _twiss)
 
@@ -300,7 +304,7 @@ def calc_emittance_coupling(accelerator):
         S = _np.dot(D.T,D)
         C = _np.zeros([6,6])
         C[0,2] = C[2,0] = 2; C[1,1] = -1
-        E, V =  _np.linalg.eig(_np.linalg.solve(S, C))
+        E, V = _np.linalg.eig(_np.linalg.solve(S, C))
         n = _np.argmax(_np.abs(E))
         a = V[:,n]
         b,c,d,f,g,a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
