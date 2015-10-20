@@ -254,7 +254,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
         if fixed_point is None:
             _fixed_point = _init_twiss.co
         else:
-            raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
+            raise OpticsException('arguments init_twiss and fixed_point are mutually exclusive')
         r = _trackcpp.calc_twiss(accelerator._accelerator, _fixed_point, _m66, _twiss, _init_twiss, closed_flag)
 
     else:
