@@ -37,9 +37,10 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     if twiss is None:
         twiss, *_ = _pyaccel.optics.calc_twiss(accelerator)
 
-    spos, betax, betay, etax = _pyaccel.optics.get_twiss(
+    spos = _pyaccel.lattice.find_spos(accelerator)
+    betax, betay, etax = _pyaccel.optics.get_twiss(
         twiss,
-        ('spos', 'betax', 'betay', 'etax')
+        ('betax', 'betay', 'etax')
     )
 
     if symmetry is not None:
