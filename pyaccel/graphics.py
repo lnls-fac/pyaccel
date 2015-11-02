@@ -198,8 +198,9 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     drawer = _LatticeDrawer(lattice, offset, height, draw_edges, family_data,
         family_mapping, colours)
 
-    ax.set_xlim(0, lattice.length)
-    ax.set_ylim(offset-height, offset+19*height)
+    if not gca:
+        ax.set_xlim(0, lattice.length)
+        ax.set_ylim(offset-height, offset+19*height)
 
     for s in selection:
         ax.add_collection(drawer.patch_collections[s])
