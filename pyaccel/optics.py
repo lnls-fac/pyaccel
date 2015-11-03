@@ -45,6 +45,14 @@ class Twiss:
         return True
 
     @property
+    def spos(self):
+        return self._t.spos
+
+    @spos.setter
+    def spos(self, value):
+        self._t.spos = value
+        
+    @property
     def rx(self):
         return self._t.co.rx
 
