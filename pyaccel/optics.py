@@ -51,7 +51,7 @@ class Twiss:
     @spos.setter
     def spos(self, value):
         self._t.spos = value
-        
+
     @property
     def rx(self):
         return self._t.co.rx
@@ -192,6 +192,7 @@ class Twiss:
 
     def __str__(self):
         r = ''
+        r += 'spos          : ' + '{0:+10.3e}'.format(self.spos) + '\n'
         r += 'rx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.rx, self.ry) + '\n'
         r += 'px, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.px, self.py) + '\n'
         r += 'de, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.de, self.dl) + '\n'
@@ -758,6 +759,11 @@ class TwissList(object):
             if not isinstance(line, valid_types):
                 return False
         return True
+
+    @property
+    def spos(self):
+        spos = _np.array([float(self._ptl[i].spos) for i in range(len(self._ptl))])
+        return spos if len(spos) > 1 else spos[0]
 
     @property
     def betax(self):
