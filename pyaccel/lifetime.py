@@ -28,7 +28,6 @@ def calc_lifetimes(accelerator, n=None, coupling=None, pressure_profile=None, tw
     q_rate      = sum(_mp.beam_lifetime.calc_quantum_loss_rates(transverse_acceptances, energy_acceptance, coupling, **parameters))
     tous_lt     = _mp.beam_lifetime.calc_touschek_loss_rate([-energy_acceptance,energy_acceptance], twiss, coupling, n, **parameters)
 
-
     # Lifetimes
     e_lifetime = float("inf") if e_rate == 0.0 else 1.0/e_rate
     i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate

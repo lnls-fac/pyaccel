@@ -236,7 +236,7 @@ def read_flat_file(filename):
 @_interactive
 def write_flat_file(accelerator, filename):
     fname = _trackcpp.String(filename)
-    r = _trackcpp.write_flat_file(fname, accelerator._accelerator, True)
+    r = _trackcpp.write_flat_file_wrapper(fname, accelerator._accelerator, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 

@@ -192,15 +192,15 @@ class Twiss:
 
     def __str__(self):
         r = ''
-        r += 'spos          : ' + '{0:+10.3e}'.format(self.spos) + '\n'
-        r += 'rx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.rx, self.ry) + '\n'
-        r += 'px, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.px, self.py) + '\n'
-        r += 'de, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.de, self.dl) + '\n'
-        r += 'mux, muy      : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.mux, self.muy) + '\n'
-        r += 'betax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay) + '\n'
-        r += 'alphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay) + '\n'
-        r += 'etax, etapx   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etapx) + '\n'
-        r += 'etay, etapy   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etay, self.etapy) + '\n'
+        r +=   'spos          : ' + '{0:+10.3e}'.format(self.spos)
+        r += '\nrx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.rx, self.ry)
+        r += '\npx, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.px, self.py)
+        r += '\nde, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.de, self.dl)
+        r += '\nmux, muy      : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.mux, self.muy)
+        r += '\nbetax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay)
+        r += '\nalphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay)
+        r += '\netax, etapx   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etapx)
+        r += '\netay, etapy   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etay, self.etapy)
         return r
 
     def make_dict(self):
