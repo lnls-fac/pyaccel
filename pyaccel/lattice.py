@@ -226,7 +226,7 @@ def read_flat_file(filename):
     e = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
     a = _pyaccel.accelerator.Accelerator(energy=e) # energy cannot be zero
     fname = _trackcpp.String(filename)
-    r = _trackcpp.read_flat_file(fname, a._accelerator, True)
+    r = _trackcpp.read_flat_file_wrapper(fname, a._accelerator, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
@@ -236,9 +236,19 @@ def read_flat_file(filename):
 @_interactive
 def write_flat_file(accelerator, filename):
     fname = _trackcpp.String(filename)
-    r = _trackcpp.write_flat_file(fname, accelerator._accelerator, True)
+    r = _trackcpp.write_flat_file_wrapper(fname, accelerator._accelerator, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
+
+
+@_interactive
+def write_flat_file_to_string(accelerator):
+    s = _trackcpp.String()
+    r = _trackcpp.write_flat_file_wrapper(s, accelerator._accelerator, False)
+    if r > 0:
+        raise LatticeError(_trackcpp.string_error_messages[r])
+
+    return s.data
 
 
 @_interactive
