@@ -37,9 +37,10 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     if twiss is None:
         twiss, *_ = _pyaccel.optics.calc_twiss(accelerator)
 
-    spos, betax, betay, etax = _pyaccel.optics.get_twiss(
+    spos = _pyaccel.lattice.find_spos(accelerator)
+    betax, betay, etax = _pyaccel.optics.get_twiss(
         twiss,
-        ('spos', 'betax', 'betay', 'etax')
+        ('betax', 'betay', 'etax')
     )
 
     if symmetry is not None:
@@ -197,8 +198,9 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     drawer = _LatticeDrawer(lattice, offset, height, draw_edges, family_data,
         family_mapping, colours)
 
-    ax.set_xlim(0, lattice.length)
-    ax.set_ylim(offset-height, offset+19*height)
+    if not gca:
+        ax.set_xlim(0, lattice.length)
+        ax.set_ylim(offset-height, offset+19*height)
 
     for s in selection:
         ax.add_collection(drawer.patch_collections[s])

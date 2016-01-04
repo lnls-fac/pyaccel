@@ -45,6 +45,14 @@ class Twiss:
         return True
 
     @property
+    def spos(self):
+        return self._t.spos
+
+    @spos.setter
+    def spos(self, value):
+        self._t.spos = value
+
+    @property
     def rx(self):
         return self._t.co.rx
 
@@ -184,14 +192,15 @@ class Twiss:
 
     def __str__(self):
         r = ''
-        r += 'rx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.rx, self.ry) + '\n'
-        r += 'px, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.px, self.py) + '\n'
-        r += 'de, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.de, self.dl) + '\n'
-        r += 'mux, muy      : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.mux, self.muy) + '\n'
-        r += 'betax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay) + '\n'
-        r += 'alphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay) + '\n'
-        r += 'etax, etapx   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etapx) + '\n'
-        r += 'etay, etapy   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etay, self.etapy) + '\n'
+        r +=   'spos          : ' + '{0:+10.3e}'.format(self.spos)
+        r += '\nrx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.rx, self.ry)
+        r += '\npx, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.px, self.py)
+        r += '\nde, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.de, self.dl)
+        r += '\nmux, muy      : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.mux, self.muy)
+        r += '\nbetax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay)
+        r += '\nalphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay)
+        r += '\netax, etapx   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etapx)
+        r += '\netay, etapy   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etay, self.etapy)
         return r
 
     def make_dict(self):
@@ -221,14 +230,16 @@ class Twiss:
         return n
 
 @_interactive
-def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open'):
+def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open', energy_offset=None):
     """Return Twiss parameters of uncoupled dynamics.
 
     Keyword arguments:
-    accelerator -- Accelerator object
-    init_twiss  -- Twiss parameters at the start of first element
-    fixed_point -- 6D position at the start of first element
-    indices     -- Open or closed
+    accelerator   -- Accelerator object
+    init_twiss    -- Twiss parameters at the start of first element
+    fixed_point   -- 6D position at the start of first element
+    indices       -- Open or closed
+    energy_offset -- float denoting the energy deviation (used only for periodic
+                     solutions).
 
     Returns:
     tw -- list of Twiss objects
@@ -252,7 +263,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
         if fixed_point is None:
             _fixed_point = _init_twiss.co
         else:
-            raise OpticsException('arguments init_twiss and fixed_orbit are mutually exclusive')
+            raise OpticsException('arguments init_twiss and fixed_point are mutually exclusive')
         r = _trackcpp.calc_twiss(accelerator._accelerator, _fixed_point, _m66, _twiss, _init_twiss, closed_flag)
 
     else:
@@ -264,6 +275,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
         if fixed_point is None:
             _closed_orbit = _trackcpp.CppDoublePosVector()
             _fixed_point_guess = _trackcpp.CppDoublePos()
+            if energy_offset is not None: _fixed_point_guess.de = energy_offset
 
             if not accelerator.cavity_on and not accelerator.radiation_on:
                 r = _trackcpp.track_findorbit4(accelerator._accelerator, _closed_orbit, _fixed_point_guess)
@@ -278,6 +290,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
 
         else:
             _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
+            if energy_offset is not None: _fixed_point.de = energy_offset
 
         r = _trackcpp.calc_twiss(accelerator._accelerator, _fixed_point, _m66, _twiss)
 
@@ -300,7 +313,7 @@ def calc_emittance_coupling(accelerator):
         S = _np.dot(D.T,D)
         C = _np.zeros([6,6])
         C[0,2] = C[2,0] = 2; C[1,1] = -1
-        E, V =  _np.linalg.eig(_np.linalg.solve(S, C))
+        E, V = _np.linalg.eig(_np.linalg.solve(S, C))
         n = _np.argmax(_np.abs(E))
         a = V[:,n]
         b,c,d,f,g,a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
@@ -746,6 +759,11 @@ class TwissList(object):
             if not isinstance(line, valid_types):
                 return False
         return True
+
+    @property
+    def spos(self):
+        spos = _np.array([float(self._ptl[i].spos) for i in range(len(self._ptl))])
+        return spos if len(spos) > 1 else spos[0]
 
     @property
     def betax(self):

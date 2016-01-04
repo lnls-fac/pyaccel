@@ -559,11 +559,13 @@ def findm66(accelerator, indices=None, closed_orbit=None):
 
     _cumul_trans_matrices = _trackcpp.CppMatrixVector()
     _m66 = _trackcpp.Matrix()
+    _v0 = _trackcpp.CppDoublePos()
     r = _trackcpp.track_findm66(
         accelerator._accelerator,
         _closed_orbit,
         _cumul_trans_matrices,
-        _m66
+        _m66,
+        _v0
     )
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])

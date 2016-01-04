@@ -26,13 +26,13 @@ def calc_lifetimes(accelerator, n=None, coupling=None, pressure_profile=None, tw
     e_rate      = _np.trapz(e_rate_spos,spos)/(spos[-1]-spos[0])
     i_rate      = _mp.beam_lifetime.calc_inelastic_loss_rate(energy_acceptance, avg_pressure, z=7, temperature=300)
     q_rate      = sum(_mp.beam_lifetime.calc_quantum_loss_rates(transverse_acceptances, energy_acceptance, coupling, **parameters))
-    t_rate_spos = _mp.beam_lifetime.calc_touschek_loss_rate([-energy_acceptance,energy_acceptance], coupling, n, **parameters)
+    tous_lt     = _mp.beam_lifetime.calc_touschek_loss_rate([-energy_acceptance,energy_acceptance], twiss, coupling, n, **parameters)
 
     # Lifetimes
     e_lifetime = float("inf") if e_rate == 0.0 else 1.0/e_rate
     i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate
     q_lifetime = float("inf") if q_rate == 0.0 else 1.0/q_rate
-    t_coeff    = _np.trapz(t_rate_spos,spos)/(spos[-1]-spos[0])
+    t_coeff    = tous_lt['ave_rate']
 
     return e_lifetime, i_lifetime, q_lifetime, t_coeff
 
