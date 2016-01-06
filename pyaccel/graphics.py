@@ -74,6 +74,10 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
 
     legend = ax.legend(('$\\beta_x$', '$\\beta_y$'))
 
+    if add_lattice:
+        fig, ax = draw_lattice(accelerator, offset, height, draw_edges,
+            family_data, family_mapping, colours, selection, gca=True)
+
     if plot_eta:
         eta_ax = ax.twinx()
         eta_colour = '#990851'
@@ -81,13 +85,10 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         eta_ax.set_ylabel('$\\eta_x$ [m]', color=eta_colour)
         eta_ax.spines['right'].set_color(eta_colour)
         eta_ax.tick_params(axis='y', colors=eta_colour)
-        eta_ax.add_artist(legend)
-        ax.legend = None
         _pyplot.sca(ax)
 
-    if add_lattice:
-        fig, ax = draw_lattice(accelerator, offset, height, draw_edges,
-            family_data, family_mapping, colours, selection, gca=True)
+    if not gca:
+        _pyplot.xlim((spos[0], spos[-1]))
 
     if is_interactive:
         if add_lattice:
@@ -172,8 +173,8 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     if gca:
         fig = _pyplot.gcf()
         ax = _pyplot.gca()
+        y_min, y_max = _pyplot.ylim()
         if offset is None:
-            y_min, y_max = _pyplot.ylim()
             offset = y_min - height
     else:
         fig, ax = _pyplot.subplots()
@@ -207,6 +208,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
 
     if is_interactive:
         if gca:
+            print(offset, height, y_max)
             _pyplot.ylim(offset-height, y_max)
         _pyplot.interactive(True)
         _pyplot.draw()
