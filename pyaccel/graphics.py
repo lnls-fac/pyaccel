@@ -66,26 +66,35 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     else:
         fig, ax = _pyplot.subplots()
 
-    _pyplot.plot(spos, betax, '#085199', spos, betay, '#519908')
+    _pyplot.plot(spos, betax, label='$\\beta_x$', color='#085199')
+    _pyplot.plot(spos, betay, label='$\\beta_y$', color='#519908')
     _pyplot.xlabel('s [m]')
     _pyplot.ylabel('$\\beta$ [m]')
     if add_lattice:
         _, y_max = _pyplot.ylim()
 
-    legend = ax.legend(('$\\beta_x$', '$\\beta_y$'))
-
     if add_lattice:
         fig, ax = draw_lattice(accelerator, offset, height, draw_edges,
-            family_data, family_mapping, colours, selection, gca=True)
+            family_data, family_mapping, colours, selection, gca=True,
+            is_interactive=is_interactive)
 
+    handles, labels = ax.get_legend_handles_labels()
     if plot_eta:
         eta_ax = ax.twinx()
         eta_colour = '#990851'
-        eta_ax.plot(spos, etax, color=eta_colour)
-        eta_ax.set_ylabel('$\\eta_x$ [m]', color=eta_colour)
-        eta_ax.spines['right'].set_color(eta_colour)
-        eta_ax.tick_params(axis='y', colors=eta_colour)
+        eta_ax.plot(spos, etax, label='$\\eta_x$', color=eta_colour)
+        eta_ax.set_ylabel('$\\eta_x$ [m]')
+        # eta_ax.spines['right'].set_color(eta_colour)
+        # eta_ax.tick_params(axis='y', colors=eta_colour)
+
+        eta_handles, eta_labels = eta_ax.get_legend_handles_labels()
+        handles += eta_handles
+        labels += eta_labels
+        legend = eta_ax.legend(handles, labels)
+
         _pyplot.sca(ax)
+    else:
+        legend = ax.legend(handles, labels)
 
     if not gca:
         _pyplot.xlim((spos[0], spos[-1]))
@@ -104,7 +113,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
 @_interactive
 def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
         family_data=None, family_mapping=None, colours=None, selection=None,
-        symmetry=None, gca=False):
+        symmetry=None, gca=False, is_interactive=None):
     """Draw lattice elements along longitudinal position
 
     Keyword arguments:
@@ -128,6 +137,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
         'magnets' (equivalent to 'dipole', 'quadrupole' and 'sextupole')
     symmetry -- lattice symmetry (draw only one period)
     gca -- use current pyplot Axes instance (default: False)
+    is_interactive -- pyplot interactive status
 
     Returns:
     fig -- matplotlib Figure object
@@ -167,7 +177,8 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
             selection.append('quadrupole')
             selection.append('sextupole')
 
-    is_interactive = _pyplot.isinteractive()
+    if is_interactive is None:
+        is_interactive = _pyplot.isinteractive()
     _pyplot.interactive(False)
 
     if gca:
@@ -202,14 +213,13 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     if not gca:
         ax.set_xlim(0, lattice.length)
         ax.set_ylim(offset-height, offset+19*height)
+    else:
+        _pyplot.ylim(offset-height, y_max)
 
     for s in selection:
         ax.add_collection(drawer.patch_collections[s])
 
     if is_interactive:
-        if gca:
-            print(offset, height, y_max)
-            _pyplot.ylim(offset-height, y_max)
         _pyplot.interactive(True)
         _pyplot.draw()
         _pyplot.show()
