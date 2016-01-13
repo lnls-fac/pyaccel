@@ -1,7 +1,9 @@
 
 import numpy as _numpy
 
+
 interactive_list = []
+
 
 def interactive(obj):
     interactive_list.append(
@@ -12,6 +14,7 @@ def interactive(obj):
     )
 
     return obj
+
 
 class Polynom(_numpy.ndarray):
 
