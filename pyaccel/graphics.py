@@ -67,7 +67,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         fig, ax = _pyplot.subplots()
 
     _pyplot.plot(spos, betax, label='$\\beta_x$', color='#085199')
-    _pyplot.plot(spos, betay, label='$\\beta_y$', color='#519908')
+    _pyplot.plot(spos, betay, label='$\\beta_y$', color='#990851')
     _pyplot.xlabel('s [m]')
     _pyplot.ylabel('$\\beta$ [m]')
     if add_lattice:
@@ -81,9 +81,9 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     handles, labels = ax.get_legend_handles_labels()
     if plot_eta:
         eta_ax = ax.twinx()
-        eta_colour = '#990851'
-        eta_ax.plot(spos, etax, label='$\\eta_x$', color=eta_colour)
-        eta_ax.set_ylabel('$\\eta_x$ [m]')
+        eta_colour = '#519908'
+        eta_ax.plot(spos, 100*etax, label='$\\eta_x$', color=eta_colour)
+        eta_ax.set_ylabel('$\\eta_x$ [cm]')
         # eta_ax.spines['right'].set_color(eta_colour)
         # eta_ax.tick_params(axis='y', colors=eta_colour)
 

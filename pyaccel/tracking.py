@@ -12,10 +12,12 @@ turn number (n). For example, v = pos[p,c,e,n]. Routines in these module may
 return particle positions structure missing one or more indices but the
 PCEN ordering is preserved.
 """
+
 import numpy as _numpy
 import trackcpp as _trackcpp
 import pyaccel.accelerator as _accelerator
 from pyaccel.utils import interactive as _interactive
+
 
 lost_planes = (None, 'x', 'y', 'z')
 
@@ -635,6 +637,7 @@ def _CppMatrix2Numpy(_m):
         for c in range(6):
             m[r,c] = _m[r][c]
     return m
+
 
 def _CppMatrix24Numpy(_m):
     m = _numpy.zeros((4,4))

@@ -55,6 +55,10 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Doxygen documentation
+doc/doxygen/html/
+doc/doxygen/documentation.html
+
 # PyBuilder
 target/
 
