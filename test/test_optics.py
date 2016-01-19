@@ -166,7 +166,10 @@ class TestTwiss(unittest.TestCase):
 
         # Test etax
         for i, x in zip(indices, etax):
-            diff = (self.etax[i-1] - x)/x
+            if x > 1.0e-4:
+                diff = (self.etax[i] - x)/x
+            else:
+                diff = self.etax[i] - x
             self.assertAlmostEqual(diff, 0.0, 3)
             # self.assertAlmostEqual(self.etax[i], x, 8)
 
