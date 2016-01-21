@@ -16,8 +16,10 @@ PCEN ordering is preserved.
 import numpy as _numpy
 import trackcpp as _trackcpp
 import pyaccel.accelerator as _accelerator
-from pyaccel.utils import interactive as _interactive
+import pyaccel.utils as _utils
 
+
+_interactive = _utils.interactive
 
 lost_planes = (None, 'x', 'y', 'z')
 
@@ -27,7 +29,7 @@ class TrackingException(Exception):
 
 
 @_interactive
-def elementpass(element, particles, **kwargs):
+def element_pass(element, particles, **kwargs):
     """Track particle(s) through an element.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -93,7 +95,7 @@ def elementpass(element, particles, **kwargs):
 
 
 @_interactive
-def linepass(accelerator, particles, indices=None, element_offset=0):
+def line_pass(accelerator, particles, indices=None, element_offset=0):
     """Track particle(s) along a line.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -236,7 +238,7 @@ def linepass(accelerator, particles, indices=None, element_offset=0):
 
 
 @_interactive
-def ringpass(accelerator, particles, nr_turns = 1,
+def ring_pass(accelerator, particles, nr_turns = 1,
              turn_by_turn = None, element_offset=0):
     """Track particle(s) along a ring.
 
@@ -401,19 +403,19 @@ def ringpass(accelerator, particles, nr_turns = 1,
 
 
 @_interactive
-def set4dtracking(accelerator):
+def set_4d_tracking(accelerator):
     accelerator.cavity_on = False
     accelerator.radiation_on = False
 
 
 @_interactive
-def set6dtracking(accelerator):
+def set_6d_tracking(accelerator):
     accelerator.cavity_on = True
     accelerator.radiation_on = True
 
 
 @_interactive
-def findorbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=None):
+def find_orbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=None):
     """Calculate 4D closed orbit of accelerator and return it.
 
     Accepts an optional list of indices of ring elements where closed orbit
@@ -477,7 +479,7 @@ def findorbit4(accelerator, energy_offset = 0, indices=None, fixed_point_guess=N
 
 
 @_interactive
-def findorbit6(accelerator, indices=None, fixed_point_guess=None):
+def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     """Calculate 6D closed orbit of accelerator and return it.
 
     Accepts an optional list of indices of ring elements where closed orbit
@@ -538,7 +540,7 @@ def findorbit6(accelerator, indices=None, fixed_point_guess=None):
 
 
 @_interactive
-def findm66(accelerator, indices=None, closed_orbit=None):
+def find_m66(accelerator, indices=None, closed_orbit=None):
     """Calculate 6D transfer matrices of elements in an accelerator.
 
     Keyword arguments:
@@ -582,7 +584,7 @@ def findm66(accelerator, indices=None, closed_orbit=None):
 
 
 @_interactive
-def findm44(accelerator, indices=None, energy_offset = 0.0, closed_orbit=None):
+def find_m44(accelerator, indices=None, energy_offset = 0.0, closed_orbit=None):
     """Calculate 4D transfer matrices of elements in an accelerator.
 
     Keyword arguments:
@@ -817,3 +819,15 @@ class MatrixList(object):
                 return False
 
         return True
+
+
+# Legacy API
+elementpass = _utils.deprecated(element_pass)
+linepass = _utils.deprecated(line_pass)
+ringpass = _utils.deprecated(ring_pass)
+set4dtracking = _utils.deprecated(set_4d_tracking)
+set6dtracking = _utils.deprecated(set_6d_tracking)
+findorbit4 = _utils.deprecated(find_orbit4)
+findorbit6 = _utils.deprecated(find_orbit6)
+findm66 = _utils.deprecated(find_m66)
+findm44 = _utils.deprecated(find_m44)

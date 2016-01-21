@@ -1,4 +1,5 @@
 
+import warnings
 import numpy as _numpy
 
 
@@ -14,6 +15,22 @@ def interactive(obj):
     )
 
     return obj
+
+
+def deprecated(function):
+    '''Decorator for deprecated functions.'''
+    def new_function(*args, **kwargs):
+        warnings.warn(
+            "call to deprecated function {}".format(function.__name__),
+            category=DeprecationWarning
+        )
+        return function(*args, **kwargs)
+
+    new_function.__name__ = function.__name__
+    new_function.__doc__ = function.__doc__
+    new_function.__dict__.update(function.__dict__)
+
+    return new_function
 
 
 class Polynom(_numpy.ndarray):
