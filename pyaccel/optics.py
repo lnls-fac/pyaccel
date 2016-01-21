@@ -332,9 +332,9 @@ def calc_emittance_coupling(accelerator):
     acc.cavity_on    = False
     acc.radiation_on = False
 
-    orb = _tracking.findorbit4(acc)
+    orb = _tracking.find_orbit4(acc)
     rin = _np.array([2e-5+orb[0],0+orb[1],1e-8+orb[2],0+orb[3],0,0],dtype=float)
-    rout, *_ = _tracking.ringpass(acc, rin, nr_turns=100, turn_by_turn='closed',element_offset = 0)
+    rout, *_ = _tracking.ring_pass(acc, rin, nr_turns=100, turn_by_turn='closed',element_offset = 0)
     r = _np.dstack([rin[None,:,None],rout])
     ax,bx = fitEllipse(r[0][0],r[0][1])
     ay,by = fitEllipse(r[0][2],r[0][3])
@@ -381,7 +381,7 @@ def get_revolution_frequency(accelerator):
 def get_traces(accelerator=None, m66=None, closed_orbit=None):
     """Return traces of 6D one-turn transfer matrix"""
     if m66 is None:
-        m66 = _tracking.findm66(accelerator,
+        m66 = _tracking.find_m66(accelerator,
                                 indices = 'm66', closed_orbit = closed_orbit)
     trace_x = m66[0,0] + m66[1,1]
     trace_y = m66[2,2] + m66[3,3]
@@ -420,14 +420,14 @@ def get_mcf(accelerator, order=1, energy_offset=None):
         energy_offset = _np.linspace(-1e-3,1e-3,11)
 
     accel=accelerator[:]
-    _tracking.set4dtracking(accel)
+    _tracking.set_4d_tracking(accel)
     ring_length = _lattice.length(accel)
 
     dl = _np.zeros(_np.size(energy_offset))
     for i in range(len(energy_offset)):
-        fp = _tracking.findorbit4(accel,energy_offset[i])
+        fp = _tracking.find_orbit4(accel,energy_offset[i])
         X0 = _np.concatenate([fp,[energy_offset[i],0]]).tolist()
-        T = _tracking.ringpass(accel,X0)
+        T = _tracking.ring_pass(accel,X0)
         dl[i] = T[0][5]/ring_length
 
     polynom = _np.polyfit(energy_offset,dl,order)
