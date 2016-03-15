@@ -622,13 +622,13 @@ class Element(object):
             r += fmtstr.format('frequency', self.frequency, 'Hz')
         if self.voltage != 0:
             r += fmtstr.format('voltage', self.voltage, 'V')
-        if self.hmin < _DBL_MAX:
+        if self.hmin != -_DBL_MAX:
             r += fmtstr.format('hmin', self.hmin, 'm')
-        if self.hmax < _DBL_MAX:
+        if self.hmax !=  _DBL_MAX:
             r += fmtstr.format('hmax', self.hmax, 'm')
-        if self.vmin < _DBL_MAX:
+        if self.vmin != -_DBL_MAX:
             r += fmtstr.format('vmin', self.vmin, 'm')
-        if self.vmax < _DBL_MAX:
+        if self.vmax !=  _DBL_MAX:
             r += fmtstr.format('vmax', self.vmax, 'm')
         if self.kicktable is not None:
             r += fmtstr.format('kicktable', self.kicktable.filename, '')

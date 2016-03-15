@@ -58,7 +58,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         etax = etax[:i+1]
 
     is_interactive = _pyplot.isinteractive()
-    _pyplot.interactive(False)
+    _pyplot.interactive = False
 
     if gca:
         fig = _pyplot.gcf()
@@ -179,7 +179,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
 
     if is_interactive is None:
         is_interactive = _pyplot.isinteractive()
-    _pyplot.interactive(False)
+    _pyplot.interactive = False
 
     if gca:
         fig = _pyplot.gcf()
