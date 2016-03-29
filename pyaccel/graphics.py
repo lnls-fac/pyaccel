@@ -23,7 +23,7 @@ _COLOURS = {
 def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         offset=None, height=1.0, draw_edges=False, family_data=None,
         family_mapping=None, colours=None, selection=None, symmetry=None,
-        gca=False):
+        gca=False, grid=False, title=None):
     """Plot Twiss parameters and draw lattice.
 
     Keyword arguments:
@@ -70,6 +70,8 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     _pyplot.plot(spos, betay, label='$\\beta_y$', color='#990851')
     _pyplot.xlabel('s [m]')
     _pyplot.ylabel('$\\beta$ [m]')
+    if grid: _pyplot.grid()
+    if title: _pyplot.title(title)
     if add_lattice:
         _, y_max = _pyplot.ylim()
 
