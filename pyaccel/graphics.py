@@ -78,7 +78,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     if add_lattice:
         fig, ax = draw_lattice(accelerator, offset, height, draw_edges,
             family_data, family_mapping, colours, selection, gca=True,
-            is_interactive=is_interactive)
+            is_interactive=False)
 
     handles, labels = ax.get_legend_handles_labels()
     if plot_eta:
@@ -105,7 +105,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         if add_lattice:
             y_min, _ = _pyplot.ylim()
             _pyplot.ylim(y_min, y_max)
-        _pyplot.interactive(True)
+        _pyplot.interactive = True
         _pyplot.draw()
         _pyplot.show()
 
@@ -222,7 +222,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
         ax.add_collection(drawer.patch_collections[s])
 
     if is_interactive:
-        _pyplot.interactive(True)
+        _pyplot.interactive = True
         _pyplot.draw()
         _pyplot.show()
 
