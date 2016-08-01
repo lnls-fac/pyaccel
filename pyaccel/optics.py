@@ -245,10 +245,9 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
                      solutions).
 
     Returns:
-    tw -- list of Twiss objects
-    m66
-    transfer_matrices
-    closed_orbit
+    tw -- list of Twiss objects (closed orbit data is in the objects vector)
+    m66 -- one-turn transfer matrix
+
     """
     if indices == 'open':
         closed_flag = False
