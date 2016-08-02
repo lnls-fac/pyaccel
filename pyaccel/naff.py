@@ -29,18 +29,15 @@ def naff_traj(particles):
     return NotImplemented
 
 @_interactive
-def naff_general(R, I=None, nr_ff=2, use_win=1):
+def naff_general(Z,is_real=False, nr_ff=2, use_win=1):
     """ CAlculate the first nr_ff fundamental frequencies from real (R) and (I) imaginary parts of signal"""
 
-    if I is None: I = 0*R;
-
-    if (len(R)-1) % 6: raise NaffException('Number of points minus 1 must be divisible by 6.')
-    if not len(R) == len(I) : raise NaffException('Size of vectors R and I must be the same.')
+    if (len(Z)-1) % 6: raise NaffException('Number of points minus 1 must be divisible by 6.')
 
     ff = _trackcpp.CppDoubleVector(nr_ff,0.0)
     Re = _trackcpp.CppDoubleVector(nr_ff,0.0)
     Im = _trackcpp.CppDoubleVector(nr_ff,0.0)
-    _trackcpp.naff_general(R,I,nr_ff,use_win,ff,Re,Im)
+    _trackcpp.naff_general(Z.real,Z.imag,is_real,nr_ff,use_win,ff,Re,Im)
     freq = _numpy.zeros(ff.size(),dtype=float)
     Four = _numpy.zeros(ff.size(),dtype=complex)
     for i in range(ff.size()):
