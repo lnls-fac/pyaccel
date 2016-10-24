@@ -92,7 +92,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         eta_handles, eta_labels = eta_ax.get_legend_handles_labels()
         handles += eta_handles
         labels += eta_labels
-        legend = eta_ax.legend(handles, labels)
+        legend = ax.legend(handles, labels)
 
         _pyplot.sca(ax)
     else:
