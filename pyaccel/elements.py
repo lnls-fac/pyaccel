@@ -145,7 +145,7 @@ def sextupole(fam_name, length, S, nr_steps=5):
 
 
 @_interactive
-def rfcavity(fam_name, length, voltage, frequency):
+def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     """Create a RF cavity element.
 
     Keyword arguments:
@@ -153,8 +153,9 @@ def rfcavity(fam_name, length, voltage, frequency):
     length -- [m]
     voltage -- [V]
     frequency -- [Hz]
+    phase_lag -- [rad]
     """
-    e = _trackcpp.rfcavity_wrapper(fam_name, length, frequency, voltage)
+    e = _trackcpp.rfcavity_wrapper(fam_name, length, frequency, voltage, phase_lag)
     return Element(element=e)
 
 
@@ -401,6 +402,14 @@ class Element(object):
         self._e.voltage = value
 
     @property
+    def phase_lag(self):
+        return self._e.phase_lag
+
+    @phase_lag.setter
+    def phase_lag(self, value):
+        self._e.phase_lag = value
+
+    @property
     def kicktable(self):
         if self._e.kicktable is not None:
             return Kicktable(kicktable=self._e.kicktable)
@@ -622,6 +631,8 @@ class Element(object):
             r += fmtstr.format('frequency', self.frequency, 'Hz')
         if self.voltage != 0:
             r += fmtstr.format('voltage', self.voltage, 'V')
+        if self.phase_lag != 0:
+            r += fmtstr.format('phase_lag', self.phase_lag, 'rad')
         if self.hmin != -_DBL_MAX:
             r += fmtstr.format('hmin', self.hmin, 'm')
         if self.hmax !=  _DBL_MAX:
