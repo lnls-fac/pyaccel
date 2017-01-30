@@ -525,9 +525,18 @@ def get_natural_emittance(accelerator):
 
 
 @_interactive
+def get_energy_loss_per_turn(accelerator, integrals = None):
+    if integrals is None:
+        integrals, *_ = get_radiation_integrals(accelerator)
+    E0 = accelerator.energy
+    rad_cgamma = _mp.constants.rad_cgamma
+    U0 = rad_cgamma*((E0/1e9)**4)*integrals[1]/(2*_math.pi)*1e9
+    return U0
+
+
+@_interactive
 def get_natural_bunch_length(accelerator):
     c = _mp.constants.light_speed
-    rad_cgamma = _mp.constants.rad_cgamma
     e0 = accelerator.energy
     gamma = accelerator.gamma_factor
     beta = accelerator.beta_factor
@@ -541,7 +550,7 @@ def get_natural_bunch_length(accelerator):
 
     freq = get_rf_frequency(accelerator)
     v_cav = get_rf_voltage(accelerator)
-    radiation = rad_cgamma*((e0/1e9)**4)*integrals[1]/(2*_math.pi)*1e9
+    radiation = get_energy_loss_per_turn(accelerator, integrals = integrals)
     overvoltage = v_cav/radiation
 
     syncphase = _math.pi - _math.asin(1/overvoltage)
@@ -560,7 +569,6 @@ def get_equilibrium_parameters(accelerator,
     c = _mp.constants.light_speed
     Cq = _mp.constants.Cq
     Ca = _mp.constants.Ca
-    rad_cgamma = _mp.constants.rad_cgamma
 
     e0 = accelerator.energy
     gamma = accelerator.gamma_factor
@@ -585,7 +593,7 @@ def get_equilibrium_parameters(accelerator,
     radiation_damping[1] = 1.0/(Ca*((e0/1e9)**3)*integrals[1]*damping[1]/circumference)
     radiation_damping[2] = 1.0/(Ca*((e0/1e9)**3)*integrals[1]*damping[2]/circumference)
 
-    radiation = rad_cgamma*((e0/1e9)**4)*integrals[1]/(2*_math.pi)*1e9
+    radiation = get_energy_loss_per_turn(accelerator, integrals)
     natural_energy_spread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
     natural_emittance = Cq*(gamma**2)*integrals[4]/(damping[0]*integrals[1])
 
