@@ -3,13 +3,13 @@ import unittest
 import numpy
 import pyaccel
 import trackcpp
-import sirius
+import models
 
 
 class TestTwiss(unittest.TestCase):
 
     def setUp(self):
-        self.accelerator = sirius.create_accelerator()
+        self.accelerator = models.create_accelerator()
         self.accelerator.cavity_on = True
         self.accelerator.radiation_on = False
         twiss, *_ = pyaccel.optics.calc_twiss(self.accelerator)
@@ -206,7 +206,7 @@ class TestTwiss(unittest.TestCase):
 class TestOptics(unittest.TestCase):
 
     def setUp(self):
-        self.accelerator = sirius.create_accelerator()
+        self.accelerator = models.create_accelerator()
 
     def test_get_rf_frequency(self):
         f = pyaccel.optics.get_rf_frequency(self.accelerator)

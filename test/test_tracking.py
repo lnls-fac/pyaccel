@@ -3,13 +3,13 @@ import unittest
 import numpy
 import pyaccel
 import trackcpp
-import sirius
+import models
 
 
 class TestTracking(unittest.TestCase):
 
     def setUp(self):
-        self.the_ring = sirius.create_accelerator()
+        self.the_ring = models.create_accelerator()
 
     def tearDown(self):
         pass

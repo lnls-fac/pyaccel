@@ -4,13 +4,13 @@ import unittest
 import numpy
 import pyaccel
 import trackcpp
-import sirius
+import models
 
 class TestLattice(unittest.TestCase):
 
     def setUp(self):
         self.element = pyaccel.elements.Element()
-        self.the_ring = sirius.create_accelerator()
+        self.the_ring = models.create_accelerator()
 
     def tearDown(self):
         pass
