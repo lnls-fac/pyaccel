@@ -11,6 +11,7 @@ _COLOURS = {
     'dipole': '#3b83bd',
     'quadrupole': '#f75e25',
     'sextupole': '#89ac76',
+    'septum': '#dd0000',
     'corrector': '#bbbbbb',
     'skew_quadupole': '#aa1b1b',
     'coil': '#444444',
@@ -23,7 +24,7 @@ _COLOURS = {
 def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         offset=None, height=1.0, draw_edges=False, family_data=None,
         family_mapping=None, colours=None, selection=None, symmetry=None,
-        gca=False, grid=False, title=None):
+        gca=False, grid=False, title=None, show_label=False):
     """Plot Twiss parameters and draw lattice.
 
     Keyword arguments:
@@ -78,7 +79,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     if add_lattice:
         fig, ax = draw_lattice(accelerator, offset, height, draw_edges,
             family_data, family_mapping, colours, selection, gca=True,
-            is_interactive=False)
+            is_interactive=False,show_label=show_label)
 
     handles, labels = ax.get_legend_handles_labels()
     if plot_eta:
@@ -88,6 +89,12 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         eta_ax.set_ylabel('$\\eta_x$ [cm]')
         # eta_ax.spines['right'].set_color(eta_colour)
         # eta_ax.tick_params(axis='y', colors=eta_colour)
+        eta_y_min,eta_y_max = eta_ax.get_ylim()
+        y_min, _ = ax.get_ylim()
+        if show_label:
+            eta_y_lim = eta_ax.set_ylim(bottom=eta_y_min+(y_min/y_max)*(eta_y_max-eta_y_min),top=eta_y_max)
+        else:
+            eta_y_lim = eta_ax.set_ylim(bottom=eta_y_min+y_min,top=eta_y_max-y_min)
 
         eta_handles, eta_labels = eta_ax.get_legend_handles_labels()
         handles += eta_handles
@@ -99,7 +106,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         legend = ax.legend(handles, labels)
 
     if not gca:
-        _pyplot.xlim((spos[0], spos[-1]))
+        _pyplot.xlim((spos[0]-0.25, spos[-1]+0.25))
 
     if is_interactive:
         if add_lattice:
@@ -115,7 +122,7 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
 @_interactive
 def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
         family_data=None, family_mapping=None, colours=None, selection=None,
-        symmetry=None, gca=False, is_interactive=None):
+        symmetry=None, gca=False, is_interactive=None,show_label=False):
     """Draw lattice elements along longitudinal position
 
     Keyword arguments:
@@ -137,9 +144,11 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
         'skew_quadrupole'
         'bpm'
         'magnets' (equivalent to 'dipole', 'quadrupole' and 'sextupole')
+        'pulsed_magnets' (equivalent to 'septum')
     symmetry -- lattice symmetry (draw only one period)
     gca -- use current pyplot Axes instance (default: False)
     is_interactive -- pyplot interactive status
+    show_label -- If True, show labels of the elements
 
     Returns:
     fig -- matplotlib Figure object
@@ -152,6 +161,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
             'dipole',
             'quadrupole',
             'sextupole',
+            'septum',
             'fast_corrector_core',
             'fast_corrector_coil',
             'slow_corrector_core',
@@ -178,6 +188,10 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
             selection.append('dipole')
             selection.append('quadrupole')
             selection.append('sextupole')
+        if 'pulsed_magnets' in selection:
+            selection.remove('pulsed_magnets')
+            selection.append('septum')
+
 
     if is_interactive is None:
         is_interactive = _pyplot.isinteractive()
@@ -209,17 +223,26 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     line.set_zorder(0)
     ax.add_line(line)
 
+    ax.set_ylim(offset-2.1*height, y_max)
+
     drawer = _LatticeDrawer(lattice, offset, height, draw_edges, family_data,
-        family_mapping, colours)
+        family_mapping, colours, show_label)
 
     if not gca:
         ax.set_xlim(0, lattice.length)
         ax.set_ylim(offset-height, offset+19*height)
     else:
-        _pyplot.ylim(offset-height, y_max)
+        if show_label:
+            _pyplot.ylim(offset-2.1*height, y_max)
+        else:
+            _pyplot.ylim(offset-height, y_max)
 
     for s in selection:
         ax.add_collection(drawer.patch_collections[s])
+
+    if show_label:
+        for l in drawer.patch_labels:
+            ax.text(x=l[0],y=l[1],s=l[2],rotation='vertical',fontsize=8)
 
     if is_interactive:
         _pyplot.interactive = True
@@ -232,13 +255,17 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
 class _LatticeDrawer(object):
 
     def __init__(self, lattice, offset, height, draw_edges, family_data,
-            family_mapping, colours):
+            family_mapping, colours, show_label):
+
+        self._show_label = show_label
         self._bpm_length = 0.10
+        self._coil_length = 0.15
 
         self._offset = offset
         self._height = height
 
         self._fast_corrector_height = 0.42*height
+        self._septum_height = 0.50*height
         self._coil_height = 0.10*height
         self._bpm_height = 0.10*height
 
@@ -248,6 +275,7 @@ class _LatticeDrawer(object):
         self._dipole_patches = []
         self._quadrupole_patches = []
         self._sextupole_patches = []
+        self._septum_patches = []
         self._fast_corrector_core_patches = []
         self._fast_corrector_coil_patches = []
         self._slow_corrector_core_patches = []
@@ -255,6 +283,8 @@ class _LatticeDrawer(object):
         self._skew_quadrupole_core_patches = []
         self._skew_quadrupole_coil_patches = []
         self._bpm_patches = []
+        if show_label:
+            self.patch_labels = []
 
         pos = _pyaccel.lattice.find_spos(lattice)
 
@@ -270,15 +300,18 @@ class _LatticeDrawer(object):
             for key in family_mapping.keys():
                 et = family_mapping[key]
 
-                # Flatten index list for segmented elements, if necessary
-                nr_segs = family_data[key].get('nr_segs', 1)
-                if nr_segs > 1:
-                    indices = []
-                    for v in family_data[key]['index']:
-                        for j in v:
-                            indices.append(j)
-                else:
-                    indices = family_data[key]['index']
+                indices = []
+                for v in family_data[key]['index']:
+                    if show_label:
+                        if self.patch_labels.count([pos[v[0]], self._offset-self._height, key+family_data[key]['instance'][family_data[key]['index'].index(v)]]) == 0:
+                            if key in ('ICT','FCT','BPM'):
+                                pass
+                            elif key == 'Scrn':
+                                self.patch_labels.append([pos[v[0]], self._offset+1.25*self._height, key+family_data[key]['instance'][family_data[key]['index'].index(v)]])
+                            else:
+                                self.patch_labels.append([pos[v[0]], self._offset-self._height, key+family_data[key]['instance'][family_data[key]['index'].index(v)]])
+                    for j in v:
+                        indices.append(j)
 
                 for i in indices:
                     if i > len(lattice):
@@ -303,6 +336,12 @@ class _LatticeDrawer(object):
                 self._sextupole_patches,
                 edgecolor=(ec if draw_edges else colours['sextupole']),
                 facecolor=colours['sextupole'],
+                zorder=2,
+            ),
+            'septum': _collections.PatchCollection(
+                self._septum_patches,
+                edgecolor=(ec if draw_edges else colours['septum']),
+                facecolor=colours['septum'],
                 zorder=2,
             ),
             'fast_corrector_core': _collections.PatchCollection(
@@ -355,6 +394,9 @@ class _LatticeDrawer(object):
 
         if element_type in ('marker', 'drift'):
             pass
+        elif element_type == 'pulsed_magnet':
+            r = self._get_septum_core(element, pos)
+            self._septum_patches.append(r)
         elif element_type == 'dipole':
             r = self._get_magnet_core(element, pos)
             self._dipole_patches.append(r)
@@ -380,10 +422,10 @@ class _LatticeDrawer(object):
             r2 = self._get_fast_horizontal_corrector_coil(element, pos)
             r3 = self._get_fast_vertical_corrector_coil(element, pos)
             self._fast_corrector_coil_patches.extend([r2, r3])
-        elif element_type == 'slow_horizontal_corrector':
+        elif element_type in ('slow_horizontal_corrector','horizontal_corrector'):
             r = self._get_slow_horizontal_corrector_coil(element, pos)
             self._slow_corrector_coil_patches.append(r)
-        elif element_type == 'slow_vertical_corrector':
+        elif element_type in ('slow_vertical_corrector','vertical_corrector'):
             r = self._get_slow_vertical_corrector_coil(element, pos)
             self._slow_corrector_coil_patches.append(r)
         elif element_type == 'skew_quadrupole':
@@ -396,16 +438,24 @@ class _LatticeDrawer(object):
             pass
 
     def _guess_element_type(self, element):
-        if element.pass_method == 'identity_pass':
+        if element.fam_name in ('bpm','BPM'):
+            return 'bpm'
+        elif element.pass_method == 'identity_pass':
             return 'marker'
         elif element.pass_method == 'drift_pass':
             return 'drift'
+        elif element.fam_name in ('EjeSF','EjeSG','InjSF','InjSG'):
+            return 'pulsed_magnet'
         elif element.angle != 0:
             return 'dipole'
         elif element.polynom_b[1] != 0:
             return 'quadrupole'
         elif element.polynom_b[2] != 0:
             return 'sextupole'
+        elif element.fam_name in ('CH','horizontal_corrector'):
+            return 'slow_horizontal_corrector'
+        elif element.fam_name in ('CV','vertical_corrector'):
+            return 'slow_vertical_corrector'
         else:
             return 'unknown'
 
@@ -414,7 +464,16 @@ class _LatticeDrawer(object):
         r = _patches.Rectangle(
             xy=corner,
             width=element.length,
-            height=self._height,
+            height=self._height
+        )
+        return r
+
+    def _get_septum_core(self, element, pos):
+        corner = (pos, self._offset-self._septum_height/2)
+        r = _patches.Rectangle(
+            xy=corner,
+            width=element.length,
+            height=self._septum_height
         )
         return r
 
@@ -428,11 +487,11 @@ class _LatticeDrawer(object):
         return r
 
     def _get_slow_horizontal_corrector_coil(self, element, pos):
-        corner = (pos, self._offset+self._height/2-self._coil_height)
+        corner = (pos-self._coil_length/2, self._offset+self._height/2-self._coil_height)
         return self._get_coil(element, corner)
 
     def _get_slow_vertical_corrector_coil(self, element, pos):
-        corner = (pos, self._offset-self._height/2)
+        corner = (pos-self._coil_length/2, self._offset-self._height/2)
         return self._get_coil(element, corner)
 
     def _get_fast_horizontal_corrector_coil(self, element, pos):
@@ -452,7 +511,7 @@ class _LatticeDrawer(object):
     def _get_coil(self, element, corner):
         r = _patches.Rectangle(
             xy=corner,
-            width=element.length,
+            width=self._coil_length,
             height=self._coil_height
         )
         return r
