@@ -561,7 +561,7 @@ def find_m66(accelerator, indices=None, closed_orbit=None):
     else:
         _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
 
-    _cumul_trans_matrices = _trackcpp.CppDoubleMatrixVector()
+    _cumul_trans_matrices = _trackcpp.CppMatrixVector()
     _m66 = _trackcpp.Matrix()
     _v0 = _trackcpp.CppDoublePos()
     r = _trackcpp.track_findm66(
@@ -611,7 +611,7 @@ def find_m44(accelerator, indices=None, energy_offset = 0.0, closed_orbit=None):
     else:
         _closed_orbit = _4Numpy2CppDoublePosVector(closed_orbit,de=energy_offset)
 
-    _cumul_trans_matrices = _trackcpp.CppDoubleMatrixVector()
+    _cumul_trans_matrices = _trackcpp.CppMatrixVector()
     _m44 = _trackcpp.Matrix()
     _v0 = _trackcpp.CppDoublePos()
     r = _trackcpp.track_findm66(
@@ -780,12 +780,12 @@ class MatrixList(object):
         """
         # TEST!
         if matrix_list is not None:
-            if isinstance(matrix_list, _trackcpp.CppDoubleMatrixVector):
+            if isinstance(matrix_list, _trackcpp.CppMatrixVector):
                 self._ml = matrix_list
             else:
                 raise TrackingException('invalid Matrix vector')
         else:
-            self._ml = _trackcpp.CppDoubleMatrixVector()
+            self._ml = _trackcpp.CppMatrixVector()
 
     def __len__(self):
         return len(self._ml)
