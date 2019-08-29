@@ -466,7 +466,7 @@ class Element(object):
     def KL(self):
         return self._e.polynom_b[1] * self._e.length
 
-    @K.setter
+    @KL.setter
     def KL(self, value):
         self._e.polynom_b[1] = value / self._e.length
 
