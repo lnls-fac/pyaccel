@@ -14,15 +14,15 @@ class AcceleratorException(Exception):
 @_interactive
 class Accelerator(object):
 
-    __isfrozen = False # this is used to prevent creation of new attributes
+    __isfrozen = False  # this is used to prevent creation of new attributes
 
     def __init__(self, **kwargs):
 
         if 'accelerator' in kwargs:
             a = kwargs['accelerator']
-            if isinstance(a,_trackcpp.Accelerator):
-                self._accelerator = a # points to the same object in memory
-            elif isinstance(a,Accelerator): # creates another object.
+            if isinstance(a, _trackcpp.Accelerator):
+                self._accelerator = a  # points to the same object in memory
+            elif isinstance(a, Accelerator):  # creates another object.
                 self._accelerator = _trackcpp.Accelerator()
                 self._accelerator.lattice = a._accelerator.lattice[:]
                 self._accelerator.cavity_on = a.cavity_on
@@ -59,33 +59,45 @@ class Accelerator(object):
             self._accelerator.vchamber_on = kwargs['vchamber_on']
 
         if self._accelerator.energy == 0:
-            self._brho, self._velocity, self._beta, self._gamma, self._accelerator.energy = _mp.beam_optics.beam_rigidity(gamma = 1.0)
+            self._brho, self._velocity, self._beta, self._gamma, \
+                self._accelerator.energy = \
+                _mp.beam_optics.beam_rigidity(gamma=1.0)
         else:
-            self._brho, self._velocity, self._beta, self._gamma, self._accelerator.energy = _mp.beam_optics.beam_rigidity(energy = self.energy)
+            self._brho, self._velocity, self._beta, self._gamma, \
+                self._accelerator.energy = \
+                _mp.beam_optics.beam_rigidity(energy=self.energy)
 
         self.__isfrozen = True
 
     def __setattr__(self, key, value):
         if self.__isfrozen and not hasattr(self, key):
-            raise AcceleratorException( "%r is a frozen class" % self )
+            raise AcceleratorException("%r is a frozen class" % self)
         object.__setattr__(self, key, value)
 
     def __delitem__(self, index):
-        if isinstance(index,(int,_np.int_)):
-            self._accelerator.lattice.erase(self._accelerator.lattice.begin() + int(index));
-        elif isinstance(index, (list,tuple)):
+        if isinstance(index, (int, _np.int_)):
+            self._accelerator.lattice.erase(
+                self._accelerator.lattice.begin() + int(index))
+        elif isinstance(index, (list, tuple, _np.ndarray)):
             for i in index:
-                self._accelerator.lattice.erase(self._accelerator.lattice.begin() + i);
+                self._accelerator.lattice.erase(
+                    self._accelerator.lattice.begin() + int(i))
         elif isinstance(index, slice):
             start, stop, step = index.indices(len(self._accelerator.lattice))
             iterator = range(start, stop, step)
             for i in iterator:
-                self._accelerator.lattice.erase(self._accelerator.lattice.begin() + i);
+                self._accelerator.lattice.erase(
+                    self._accelerator.lattice.begin() + i)
 
     def __getitem__(self, index):
-        if isinstance(index,(int, _np.int_)):
-            return _elements.Element(element=self._accelerator.lattice[int(index)])
-        elif isinstance(index, (list,tuple,_np.ndarray)) and all(isinstance(x, (int, _np.int_)) for x in index):
+        if isinstance(index, (int, _np.int_)):
+            return _elements.Element(
+                element=self._accelerator.lattice[int(index)])
+        elif isinstance(index, (list, tuple, _np.ndarray)):
+            try:
+                index = _np.array(index, dtype=int)
+            except TypeError:
+                raise TypeError('invalid index')
             lattice = _trackcpp.CppElementVector()
             for i in index:
                 lattice.append(self._accelerator.lattice[int(i)])
@@ -105,25 +117,28 @@ class Accelerator(object):
     def __setitem__(self, index, value):
         if isinstance(index, (int, _np.int_)):
             self._accelerator.lattice[int(index)] = value._e
-        elif isinstance(index, (list, tuple)):
-            if isinstance(value, (list, tuple, _np.ndarray,Accelerator)):
-                for i in range(len(value)):
-                    v = value[i]
+        elif isinstance(index, (list, tuple, _np.ndarray)):
+            if isinstance(value, (list, tuple, _np.ndarray, Accelerator)):
+                for i, v in zip(index, value):
                     if not isinstance(v, _elements.Element):
                         raise TypeError('invalid value')
-                    self._accelerator.lattice[index[i]] = v._e
+                    self._accelerator.lattice[int(i)] = v._e
             else:
                 if not isinstance(value, _elements.Element):
                     raise TypeError('invalid value')
-                for i in range(len(value)):
-                    self._accelerator.lattice[index[i]] = value._e
+                for i in index:
+                    self._accelerator.lattice[int(i)] = value._e
         elif isinstance(index, slice):
             start, stop, step = index.indices(len(self._accelerator.lattice))
             iterator = range(start, stop, step)
             if isinstance(value, (list, tuple, _np.ndarray, Accelerator)):
-                for i, j in zip(iterator, range(len(iterator))):
-                    self._accelerator.lattice[i] = value[j]._e
+                for i, v in zip(iterator, value):
+                    if not isinstance(v, _elements.Element):
+                        raise TypeError('invalid value')
+                    self._accelerator.lattice[i] = v._e
             else:
+                if not isinstance(value, _elements.Element):
+                    raise TypeError('invalid value')
                 for i in iterator:
                     self._accelerator.lattice[i] = value._e
 
@@ -132,7 +147,7 @@ class Accelerator(object):
 
     def __str__(self):
         r = ''
-        r +=   'energy         : ' + str(self._accelerator.energy) + ' eV'
+        r += 'energy         : ' + str(self._accelerator.energy) + ' eV'
         r += '\nharmonic_number: ' + str(self._accelerator.harmonic_number)
         r += '\ncavity_on      : ' + str(self._accelerator.cavity_on)
         r += '\nradiation_on   : ' + str(self._accelerator.radiation_on)
@@ -158,7 +173,7 @@ class Accelerator(object):
             raise TypeError(msg)
 
     def __rmul__(self, other):
-        if isinstance(other, int):
+        if isinstance(other, (int, _np.int_)):
             if other < 0:
                 raise ValueError('cannot multiply by negative integer')
             elif other == 0:
@@ -182,19 +197,21 @@ class Accelerator(object):
                     self.__class__.__name__ + "'"
             raise TypeError(msg)
 
-    def __eq__(self,other):
-        if not isinstance(other,Accelerator): return NotImplemented
+    def __eq__(self, other):
+        if not isinstance(other, Accelerator):
+            return NotImplemented
         return self._accelerator.isequal(other._accelerator)
 
     # to make the class objects pickalable:
     def __getstate__(self):
         stri = _trackcpp.String()
-        _trackcpp.write_flat_file_wrapper(stri,self._accelerator,False)
+        _trackcpp.write_flat_file_wrapper(stri, self._accelerator, False)
         return stri.data
-    def __setstate__(self,stridata):
+
+    def __setstate__(self, stridata):
         stri = _trackcpp.String(stridata)
         acc = Accelerator()
-        _trackcpp.read_flat_file_wrapper(stri,acc._accelerator,False)
+        _trackcpp.read_flat_file_wrapper(stri, acc._accelerator, False)
         self._accelerator = acc._accelerator
 
     def pop(self, index):
@@ -207,10 +224,11 @@ class Accelerator(object):
             raise TypeError('value must be Element')
         self._accelerator.lattice.append(value._e)
 
-    def extend(self,value):
-        if not isinstance(value,Accelerator):
+    def extend(self, value):
+        if not isinstance(value, Accelerator):
             raise TypeError('value must be Accelerator')
-        if value is self: value = Accelerator(accelerator=value)
+        if value is self:
+            value = Accelerator(accelerator=value)
         for el in value:
             self.append(el)
 
@@ -227,8 +245,8 @@ class Accelerator(object):
     @energy.setter
     def energy(self, value):
         self._brho, self._velocity, self._beta, \
-        self._gamma, self._accelerator.energy = \
-            _mp.beam_optics.beam_rigidity(energy = value)
+            self._gamma, self._accelerator.energy = \
+            _mp.beam_optics.beam_rigidity(energy=value)
 
     @property
     def gamma_factor(self):
@@ -237,8 +255,8 @@ class Accelerator(object):
     @gamma_factor.setter
     def gamma_factor(self, value):
         self._brho, self._velocity, self._beta, \
-        self._gamma, self._accelerator.energy = \
-            _mp.beam_optics.beam_rigidity(gamma = value)
+            self._gamma, self._accelerator.energy = \
+            _mp.beam_optics.beam_rigidity(gamma=value)
 
     @property
     def beta_factor(self):
@@ -247,8 +265,8 @@ class Accelerator(object):
     @beta_factor.setter
     def beta_factor(self, value):
         self._brho, self._velocity, self._beta, \
-        self._gamma, self._accelerator.energy = \
-            _mp.beam_optics.beam_rigidity(beta = value)
+            self._gamma, self._accelerator.energy = \
+            _mp.beam_optics.beam_rigidity(beta=value)
 
     @property
     def velocity(self):
@@ -258,8 +276,8 @@ class Accelerator(object):
     @velocity.setter
     def velocity(self, value):
         self._brho, self._velocity, self._beta, \
-        self._gamma, self._accelerator.energy = \
-            _mp.beam_optics.beam_rigidity(velocity = value)
+            self._gamma, self._accelerator.energy = \
+            _mp.beam_optics.beam_rigidity(velocity=value)
 
     @property
     def brho(self):
@@ -268,8 +286,8 @@ class Accelerator(object):
     @brho.setter
     def brho(self, value):
         self._brho, self._velocity, self._beta, \
-        self._gamma, self._accelerator.energy = \
-            _mp.beam_optics.beam_rigidity(brho = value)
+            self._gamma, self._accelerator.energy = \
+            _mp.beam_optics.beam_rigidity(brho=value)
 
     @property
     def harmonic_number(self):
@@ -278,7 +296,8 @@ class Accelerator(object):
     @harmonic_number.setter
     def harmonic_number(self, value):
         if not isinstance(value, int) or value < 1:
-            raise AcceleratorException('harmonic number has to be a positive integer')
+            raise AcceleratorException(
+                'harmonic number has to be a positive integer')
         self._accelerator.harmonic_number = value
 
     @property

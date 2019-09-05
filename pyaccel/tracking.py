@@ -572,7 +572,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
 
 
 @_interactive
-def find_m44(accelerator, indices='m66', energy_offset=0.0, closed_orbit=None):
+def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
     """Calculate 4D transfer matrices of elements in an accelerator.
 
     Keyword arguments:
@@ -581,7 +581,7 @@ def find_m44(accelerator, indices='m66', energy_offset=0.0, closed_orbit=None):
               cumul_trans_matrices is to be returned or a string:
                'open' : return the cumul_trans_matrices at the entrance of all
                          elements.
-               'm66'  : the cumul_trans_matrices is not returned.
+               'm44'  : the cumul_trans_matrices is not returned.
               If indices is None the cumul_trans_matrices is not returned.
     energy_offset
     closed_orbit
