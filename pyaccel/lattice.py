@@ -128,53 +128,54 @@ def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
     """Return a list with requested lattice data"""
     if indices is None:
         indices = range(len(lattice))
-    else:
-        try:
-            indices[0]
-        except:
-            indices = [indices]
+
+    indices, *_ = _process_args_errors(indices, 0.0)
 
     data = []
     if (m is not None) and (n is not None):
-        for idx in indices:
-            tdata = getattr(lattice[idx], attribute_name)
-            data.append(tdata[m][n])
+        for segs in indices:
+            for seg in segs:
+                tdata = getattr(lattice[seg], attribute_name)
+                data.append(tdata[m][n])
     elif (m is not None) and (n is None):
-        for idx in indices:
-            tdata = getattr(lattice[idx], attribute_name)
-            data.append(tdata[m])
+        for segs in indices:
+            for seg in segs:
+                tdata = getattr(lattice[seg], attribute_name)
+                data.append(tdata[m])
     else:
         # Check whether we have an Accelerator object
-        if (hasattr(lattice, '_accelerator') and
-                hasattr(lattice._accelerator, 'lattice') and
-                hasattr(lattice._accelerator.lattice[0], attribute_name)):
-            lattice = lattice._accelerator.lattice
-        for idx in indices:
-            tdata = getattr(lattice[idx], attribute_name)
-            data.append(tdata)
+        # if (hasattr(lattice, '_accelerator') and
+        #         hasattr(lattice._accelerator, 'lattice') and
+        #         hasattr(lattice._accelerator.lattice[0], attribute_name)):
+        #     lattice = lattice._accelerator.lattice
+        for segs in indices:
+            for seg in segs:
+                tdata = getattr(lattice[seg], attribute_name)
+                data.append(tdata)
 
     return data
 
 
 @_interactive
-def set_attribute(lattice, attribute_name, indices, values):
+def set_attribute(lattice, attribute_name, indices, values, m=None, n=None):
     """Set elements data."""
-    try:
-        indices[0]
-    except:
-        indices = [indices]
 
-    for idx in range(len(indices)):
-        if isinstance(values, (tuple, list)):
-            try:
-                isinstance(values[0],(tuple,list,_numpy.ndarray))
-                if len(values) == 1:
-                    values=[values[0]]*len(indices)
-                setattr(lattice[indices[idx]], attribute_name, values[idx])
-            except:
-                setattr(lattice[indices[idx]], attribute_name, values[idx])
-        else:
-            setattr(lattice[indices[idx]], attribute_name, values)
+    indices, values = _process_args_errors(indices, values)
+
+    if (m is not None) and (n is not None):
+        for idx, segs in enumerate(indices):
+            for seg in segs:
+                tdata = getattr(lattice[seg], attribute_name)
+                tdata[m][n] = values[idx]
+    elif (m is not None) and (n is None):
+        for idx, segs in enumerate(indices):
+            for seg in segs:
+                tdata = getattr(lattice[seg], attribute_name)
+                tdata[m] = values[idx]
+    else:
+        for idx, segs in enumerate(indices):
+            for seg in segs:
+                setattr(lattice[seg], attribute_name, values[idx])
 
 
 @_interactive

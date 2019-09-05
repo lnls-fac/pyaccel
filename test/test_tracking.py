@@ -17,7 +17,7 @@ class TestTracking(unittest.TestCase):
     def test_findm_66_len(self):
         the_ring = self.the_ring
         pyaccel.tracking.set_6d_tracking(the_ring)
-        m66, tm = pyaccel.tracking.find_m66(the_ring)
+        m66, tm = pyaccel.tracking.find_m66(the_ring, indices='open')
         self.assertEqual(len(tm), len(the_ring))
 
     def test_find_orbit6(self):
