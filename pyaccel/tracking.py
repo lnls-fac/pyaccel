@@ -216,7 +216,7 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
             particles_out[i, :] = _CppDoublePos2Numpy(p_out[0])
         else:
             for j, ind in enumerate(indices):
-                particles_out[i, :, j] = _CppDoublePos2Numpy(p_out[ind])
+                particles_out[i, :, j] = _CppDoublePos2Numpy(p_out[int(ind)])
 
         # fills vectors with info about particle loss
         if args.lost_plane:
