@@ -105,42 +105,36 @@ class Accelerator(object):
             lattice = self._accelerator.lattice[index]
         else:
             raise TypeError('invalid index')
-        a = Accelerator(
-                lattice=lattice,
-                energy=self._accelerator.energy,
-                harmonic_number=self._accelerator.harmonic_number,
-                cavity_on=self._accelerator.cavity_on,
-                radiation_on=self._accelerator.radiation_on,
-                vchamber_on=self._accelerator.vchamber_on)
-        return a
+        acc = Accelerator(
+            lattice=lattice,
+            energy=self._accelerator.energy,
+            harmonic_number=self._accelerator.harmonic_number,
+            cavity_on=self._accelerator.cavity_on,
+            radiation_on=self._accelerator.radiation_on,
+            vchamber_on=self._accelerator.vchamber_on)
+        return acc
 
     def __setitem__(self, index, value):
         if isinstance(index, (int, _np.int_)):
-            self._accelerator.lattice[int(index)] = value._e
+            index = [index, ]
         elif isinstance(index, (list, tuple, _np.ndarray)):
-            if isinstance(value, (list, tuple, _np.ndarray, Accelerator)):
-                for i, v in zip(index, value):
-                    if not isinstance(v, _elements.Element):
-                        raise TypeError('invalid value')
-                    self._accelerator.lattice[int(i)] = v._e
-            else:
-                if not isinstance(value, _elements.Element):
-                    raise TypeError('invalid value')
-                for i in index:
-                    self._accelerator.lattice[int(i)] = value._e
+            pass
         elif isinstance(index, slice):
-            start, stop, step = index.indices(len(self._accelerator.lattice))
-            iterator = range(start, stop, step)
-            if isinstance(value, (list, tuple, _np.ndarray, Accelerator)):
-                for i, v in zip(iterator, value):
-                    if not isinstance(v, _elements.Element):
-                        raise TypeError('invalid value')
-                    self._accelerator.lattice[i] = v._e
-            else:
-                if not isinstance(value, _elements.Element):
-                    raise TypeError('invalid value')
-                for i in iterator:
-                    self._accelerator.lattice[i] = value._e
+            start, stop, step = index.indices(len(self))
+            index = range(start, stop, step)
+        else:
+            raise TypeError('invalid index')
+
+        if isinstance(value, (list, tuple, _np.ndarray, Accelerator)):
+            if not all([isinstance(v, _elements.Element) for v in value]):
+                raise TypeError('invalid value')
+            for i, val in zip(index, value):
+                self._accelerator.lattice[int(i)] = val._e
+        elif isinstance(value, _elements.Element):
+            for i in index:
+                self._accelerator.lattice[int(i)] = value._e
+        else:
+            raise TypeError('invalid value')
 
     def __len__(self):
         return len(self._accelerator.lattice)
@@ -178,12 +172,11 @@ class Accelerator(object):
                 raise ValueError('cannot multiply by negative integer')
             elif other == 0:
                 return Accelerator(
-                        energy=self.energy,
-                        harmonic_number=self.harmonic_number,
-                        cavity_on=self.cavity_on,
-                        radiation_on=self.radiation_on,
-                        vchamber_on=self.vchamber_on
-                )
+                    energy=self.energy,
+                    harmonic_number=self.harmonic_number,
+                    cavity_on=self.cavity_on,
+                    radiation_on=self.radiation_on,
+                    vchamber_on=self.vchamber_on)
             else:
                 a = self[:]
                 other -= 1
