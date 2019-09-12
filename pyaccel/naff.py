@@ -15,31 +15,36 @@ PCEN ordering is preserved.
 
 import numpy as _numpy
 import trackcpp as _trackcpp
-import pyaccel.accelerator as _accelerator
 import pyaccel.utils as _utils
 
 
 _interactive = _utils.interactive
 
-class NaffException(Exception): pass
+
+class NaffException(Exception):
+    pass
+
 
 @_interactive
 def naff_traj(particles):
     """ Calculate tunes from tracking results."""
     return NotImplemented
 
+
 @_interactive
 def naff_general(Z,is_real=False, nr_ff=2, use_win=1):
-    """ CAlculate the first nr_ff fundamental frequencies from real (R) and (I) imaginary parts of signal"""
+    """ CAlculate the first nr_ff fundamental frequencies from real (R) and (I)
+        imaginary parts of signal"""
 
-    if (len(Z)-1) % 6: raise NaffException('Number of points minus 1 must be divisible by 6.')
+    if (len(Z)-1) % 6:
+        raise NaffException('Number of points minus 1 must be divisible by 6.')
 
-    ff = _trackcpp.CppDoubleVector(nr_ff,0.0)
-    Re = _trackcpp.CppDoubleVector(nr_ff,0.0)
-    Im = _trackcpp.CppDoubleVector(nr_ff,0.0)
-    _trackcpp.naff_general(Z.real,Z.imag,is_real,nr_ff,use_win,ff,Re,Im)
-    freq = _numpy.zeros(ff.size(),dtype=float)
-    Four = _numpy.zeros(ff.size(),dtype=complex)
+    ff = _trackcpp.CppDoubleVector(nr_ff, 0.0)
+    Re = _trackcpp.CppDoubleVector(nr_ff, 0.0)
+    Im = _trackcpp.CppDoubleVector(nr_ff, 0.0)
+    _trackcpp.naff_general(Z.real, Z.imag, is_real, nr_ff, use_win, ff, Re, Im)
+    freq = _numpy.zeros(ff.size(), dtype=float)
+    Four = _numpy.zeros(ff.size(), dtype=complex)
     for i in range(ff.size()):
         freq[i] = ff[i]
         Four[i] = Re[i] + 1j*Im[i]

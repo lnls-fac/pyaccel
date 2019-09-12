@@ -5,8 +5,7 @@ import ctypes as _ctypes
 import warnings as _warnings
 import numpy as _numpy
 import trackcpp as _trackcpp
-from pyaccel.utils import interactive as _interactive
-from pyaccel.utils import Polynom as _Polynom
+from pyaccel.utils import interactive as _interactive, Polynom as _Polynom
 
 
 _DBL_MAX = _trackcpp.get_double_max()
@@ -25,8 +24,8 @@ def marker(fam_name):
     Keyword arguments:
     fam_name -- family name
     """
-    e = _trackcpp.marker_wrapper(fam_name)
-    return Element(element=e)
+    ele = _trackcpp.marker_wrapper(fam_name)
+    return Element(element=ele)
 
 
 @_interactive
@@ -36,8 +35,8 @@ def bpm(fam_name):
     Keyword arguments:
     fam_name -- family name
     """
-    e = _trackcpp.bpm_wrapper(fam_name)
-    return Element(element=e)
+    ele = _trackcpp.bpm_wrapper(fam_name)
+    return Element(element=ele)
 
 
 @_interactive
@@ -48,12 +47,12 @@ def drift(fam_name, length):
     fam_name -- family name
     length -- [m]
     """
-    e = _trackcpp.drift_wrapper(fam_name, length)
-    return Element(element=e)
+    ele = _trackcpp.drift_wrapper(fam_name, length)
+    return Element(element=ele)
 
 
 @_interactive
-def hcorrector(fam_name,  length=0.0, hkick=0.0):
+def hcorrector(fam_name, length=0.0, hkick=0.0):
     """Create a horizontal corrector element.
 
     Keyword arguments:
@@ -61,8 +60,8 @@ def hcorrector(fam_name,  length=0.0, hkick=0.0):
     length -- [m]
     hkick -- horizontal kick [rad]
     """
-    e = _trackcpp.hcorrector_wrapper(fam_name, length, hkick)
-    return Element(element=e)
+    ele = _trackcpp.hcorrector_wrapper(fam_name, length, hkick)
+    return Element(element=ele)
 
 
 @_interactive
@@ -74,12 +73,12 @@ def vcorrector(fam_name, length=0.0, vkick=0.0):
     length -- [m]
     vkick -- vertical kick [rad]
     """
-    e = _trackcpp.vcorrector_wrapper(fam_name, length, vkick)
-    return Element(element=e)
+    ele = _trackcpp.vcorrector_wrapper(fam_name, length, vkick)
+    return Element(element=ele)
 
 
 @_interactive
-def corrector(fam_name,  length=0.0, hkick=0.0, vkick=0.0):
+def corrector(fam_name, length=0.0, hkick=0.0, vkick=0.0):
     """Create a corrector element.
 
     Keyword arguments:
@@ -88,14 +87,14 @@ def corrector(fam_name,  length=0.0, hkick=0.0, vkick=0.0):
     hkick -- horizontal kick [rad]
     vkick -- vertical kick [rad]
     """
-    e = _trackcpp.corrector_wrapper(fam_name, length, hkick, vkick)
-    return Element(element=e)
+    ele = _trackcpp.corrector_wrapper(fam_name, length, hkick, vkick)
+    return Element(element=ele)
 
 
 @_interactive
 def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
-        gap=0.0, fint_in=0.0, fint_out=0.0, polynom_a=None,
-        polynom_b=None, K=None, S=None):
+          gap=0.0, fint_in=0.0, fint_out=0.0, polynom_a=None,
+          polynom_b=None, K=None, S=None):
     """Create a rectangular dipole element.
 
     Keyword arguments:
@@ -108,12 +107,14 @@ def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
     S -- [m^-3]
     """
     polynom_a, polynom_b = _process_polynoms(polynom_a, polynom_b)
-    if K is None: K = polynom_b[1]
-    if S is None: S = polynom_b[2]
-    e = _trackcpp.rbend_wrapper(fam_name, length, angle, angle_in,
-            angle_out, gap, fint_in, fint_out, polynom_a, polynom_b,
-            K, S)
-    return Element(element=e)
+    if K is None:
+        K = polynom_b[1]
+    if S is None:
+        S = polynom_b[2]
+    ele = _trackcpp.rbend_wrapper(
+        fam_name, length, angle, angle_in, angle_out, gap, fint_in, fint_out,
+        polynom_a, polynom_b, K, S)
+    return Element(element=ele)
 
 
 @_interactive
@@ -126,8 +127,8 @@ def quadrupole(fam_name, length, K, nr_steps=10):
     K -- [m^-2]
     nr_steps -- number of steps (default 10)
     """
-    e = _trackcpp.quadrupole_wrapper(fam_name, length, K, nr_steps)
-    return Element(element=e)
+    ele = _trackcpp.quadrupole_wrapper(fam_name, length, K, nr_steps)
+    return Element(element=ele)
 
 
 @_interactive
@@ -155,22 +156,25 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     frequency -- [Hz]
     phase_lag -- [rad]
     """
-    e = _trackcpp.rfcavity_wrapper(fam_name, length, frequency, voltage, phase_lag)
-    return Element(element=e)
+    ele = _trackcpp.rfcavity_wrapper(
+        fam_name, length, frequency, voltage, phase_lag)
+    return Element(element=ele)
 
 
 def _process_polynoms(pa, pb):
     # Make sure pa and pb have same size and are initialized
     if pa is None:
-        pa = [0.0,0.0,0.0]
+        pa = [0.0, 0.0, 0.0]
     if pb is None:
-        pb = [0.0,0.0,0.0]
-    n = max([3, len(pa), len(pb)])
-    for i in range(len(pa), n):
-        pa.append(0.0)
-    for i in range(len(pb), n):
-        pb.append(0.0)
-    return pa, pb
+        pb = [0.0, 0.0, 0.0]
+    nmax = max(3, len(pa), len(pb))
+    pan = nmax * [0.0]
+    pbn = nmax * [0.0]
+    for i, a in enumerate(pa):
+        pan[i] = a
+    for i, b in enumerate(pb):
+        pbn[i] = b
+    return pan, pbn
 
 
 @_interactive
@@ -183,10 +187,11 @@ class Kicktable(object):
             filename = kwargs.get('filename', "")
             self._kicktable = _trackcpp.Kicktable(filename)
 
-    def __eq__(self,other):
-        if not isinstance(other,Kicktable): return NotImplemented
+    def __eq__(self, other):
+        if not isinstance(other, Kicktable):
+            return NotImplemented
         for attr in self._kicktable.__swig_getmethods__:
-            if getattr(self,attr) != getattr(other,attr):
+            if getattr(self, attr) != getattr(other, attr):
                 return False
         return True
 
@@ -228,39 +233,30 @@ class Element(object):
     _t_valid_types = (list, _numpy.ndarray)
     _r_valid_types = (_numpy.ndarray, )
 
-    def __init__(self, **kwargs):
-        if 'element' in kwargs:
-            if isinstance(kwargs['element'],_trackcpp.Element):
-                copy = kwargs.get('copy',False)
-                if copy:
-                    self._e = _trackcpp.Element(kwargs['element'])
-                else:
-                    self._e = kwargs['element']
-            elif isinstance(kwargs['element'],Element):
-                copy = kwargs.get('copy',True)
-                if copy:
-                    self._e = _trackcpp.Element(kwargs['element']._e)
-                else:
-                    self._e = kwargs['element']._e
-            else:
-                raise TypeError('element must be a trackcpp.Element or a Element object.')
+    def __init__(self, element=None, fam_name='', length=0.0):
+        if element is None:
+            element = _trackcpp.Element(fam_name, length)
+        elif isinstance(element, _trackcpp.Element):
+            pass
+        elif isinstance(element, Element):
+            element = element._e
         else:
-            fam_name = kwargs.get('fam_name', "")
-            length = kwargs.get('length', 0.0)
-            self._e = _trackcpp.Element(fam_name, length)
+            raise TypeError(
+                'element must be a trackcpp.Element or a Element object.')
+        self._e = _trackcpp.Element(element)
 
-    def __eq__(self,other):
-        if not isinstance(other,Element): return NotImplemented
+    def __eq__(self, other):
+        if not isinstance(other, Element):
+            return NotImplemented
         for attr in self._e.__swig_getmethods__:
-            self_attr = getattr(self,attr)
-            if isinstance(self_attr,_numpy.ndarray):
-                if (self_attr != getattr(other,attr)).any():
+            self_attr = getattr(self, attr)
+            if isinstance(self_attr, _numpy.ndarray):
+                if (self_attr != getattr(other, attr)).any():
                     return False
             else:
-                if self_attr != getattr(other,attr):
+                if self_attr != getattr(other, attr):
                     return False
         return True
-
 
     @property
     def fam_name(self):
@@ -504,7 +500,7 @@ class Element(object):
 
     @property
     def hkick_polynom(self):
-        return self._e.polynom_b[0] *(- self._e.length)
+        return self._e.polynom_b[0] * (-self._e.length)
 
     @hkick_polynom.setter
     def hkick_polynom(self, value):
@@ -520,8 +516,7 @@ class Element(object):
 
     @property
     def polynom_a(self):
-        p = _Polynom(self._e.polynom_a)
-        return p
+        return _Polynom(self._e.polynom_a)
 
     @polynom_a.setter
     def polynom_a(self, value):
@@ -529,8 +524,7 @@ class Element(object):
 
     @property
     def polynom_b(self):
-        p = _Polynom(self._e.polynom_b)
-        return p
+        return _Polynom(self._e.polynom_b)
 
     @polynom_b.setter
     def polynom_b(self, value):
@@ -577,13 +571,13 @@ class Element(object):
         self._set_c_array_from_matrix(self._e.r_out, _DIMS, value)
 
     def _set_c_array_from_vector(self, array, size, values):
-        if not (size == len(values)):
+        if not size == len(values):
             raise ValueError("array and vector must have same size")
         for i in range(size):
             _trackcpp.c_array_set(array, i, values[i])
 
     def _set_c_array_from_matrix(self, array, shape, values):
-        if not (shape == values.shape):
+        if not shape == values.shape:
             raise ValueError("array and matrix must have same shape")
         rows, cols = shape
         for i in range(rows):
@@ -620,7 +614,7 @@ class Element(object):
 
     def __str__(self):
         fmtstr = '\n{0:<11s}: {1} {2}'
-        r  =   ''
+        r = ''
         r += fmtstr[1:].format('fam_name', self.fam_name, '')
         r += fmtstr.format('pass_method', self.pass_method, '')
         if self.length != 0:
@@ -644,9 +638,11 @@ class Element(object):
         if self.thin_SL != 0:
             r += fmtstr.format('thin_SL', self.thin_SL, '1/m²')
         if not all([v == 0 for v in self.polynom_a]):
-            r += fmtstr.format('polynom_a', self.polynom_a, '1/m¹, 1/m², 1/m³, ...')
+            r += fmtstr.format(
+                'polynom_a', self.polynom_a, '1/m¹, 1/m², 1/m³, ...')
         if not all([v == 0 for v in self.polynom_b]):
-            r += fmtstr.format('polynom_b', self.polynom_b, '1/m¹, 1/m², 1/m³, ...')
+            r += fmtstr.format(
+                'polynom_b', self.polynom_b, '1/m¹, 1/m², 1/m³, ...')
         if self.hkick != 0:
             r += fmtstr.format('hkick', self.hkick, 'rad')
         if self.vkick != 0:
@@ -659,11 +655,11 @@ class Element(object):
             r += fmtstr.format('phase_lag', self.phase_lag, 'rad')
         if self.hmin != -_DBL_MAX:
             r += fmtstr.format('hmin', self.hmin, 'm')
-        if self.hmax !=  _DBL_MAX:
+        if self.hmax != _DBL_MAX:
             r += fmtstr.format('hmax', self.hmax, 'm')
         if self.vmin != -_DBL_MAX:
             r += fmtstr.format('vmin', self.vmin, 'm')
-        if self.vmax !=  _DBL_MAX:
+        if self.vmax != _DBL_MAX:
             r += fmtstr.format('vmax', self.vmax, 'm')
         if self.kicktable is not None:
             r += fmtstr.format('kicktable', self.kicktable.filename, '')
@@ -679,4 +675,6 @@ class Element(object):
         return r
 
 
-_warnings.filterwarnings("ignore", "Item size computed from the PEP 3118 buffer format string does not match the actual item size.")
+_warnings.filterwarnings(
+    "ignore", "Item size computed from the PEP 3118 \
+    buffer format string does not match the actual item size.")

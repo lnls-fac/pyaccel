@@ -3,9 +3,10 @@ import sys as _sys
 import math as _math
 import numpy as _np
 import mathphys as _mp
+import trackcpp as _trackcpp
 import pyaccel.lattice as _lattice
 import pyaccel.tracking as _tracking
-import trackcpp as _trackcpp
+import pyaccel.accelerator as _accelerator
 from pyaccel.utils import interactive as _interactive
 
 
@@ -17,32 +18,34 @@ class Twiss:
 
     def __init__(self, **kwargs):
         if 'twiss' in kwargs:
-            if isinstance(kwargs['twiss'],_trackcpp.Twiss):
-                copy = kwargs.get('copy',False)
+            if isinstance(kwargs['twiss'], _trackcpp.Twiss):
+                copy = kwargs.get('copy', False)
                 if copy:
                     self._t = _trackcpp.Twiss(kwargs['twiss'])
                 else:
                     self._t = kwargs['twiss']
-            elif isinstance(kwargs['twiss'],Twiss):
-                copy = kwargs.get('copy',True)
+            elif isinstance(kwargs['twiss'], Twiss):
+                copy = kwargs.get('copy', True)
                 if copy:
                     self._t = _trackcpp.Twiss(kwargs['twiss']._t)
                 else:
                     self._t = kwargs['twiss']._t
             else:
-                raise TypeError('twiss must be a trackcpp.Twiss or a Twiss object.')
+                raise TypeError(
+                    'twiss must be a trackcpp.Twiss or a Twiss object.')
         else:
             self._t = _trackcpp.Twiss()
 
-    def __eq__(self,other):
-        if not isinstance(other,Twiss): return NotImplemented
+    def __eq__(self, other):
+        if not isinstance(other, Twiss):
+            return NotImplemented
         for attr in self._t.__swig_getmethods__:
-            self_attr = getattr(self,attr)
-            if isinstance(self_attr,_np.ndarray):
-                if (self_attr != getattr(other,attr)).any():
+            self_attr = getattr(self, attr)
+            if isinstance(self_attr, _np.ndarray):
+                if (self_attr != getattr(other, attr)).any():
                     return False
             else:
-                if self_attr != getattr(other,attr):
+                if self_attr != getattr(other, attr):
                     return False
         return True
 
@@ -104,7 +107,8 @@ class Twiss:
 
     @property
     def co(self):
-        return _np.array([self.rx, self.px, self.ry, self.py, self.de, self.dl])
+        return _np.array([
+            self.rx, self.px, self.ry, self.py, self.de, self.dl])
 
     @co.setter
     def co(self, value):
@@ -194,46 +198,49 @@ class Twiss:
 
     def __str__(self):
         r = ''
-        r +=   'spos          : ' + '{0:+10.3e}'.format(self.spos)
-        r += '\nrx, ry        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.rx, self.ry)
-        r += '\npx, py        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.px, self.py)
-        r += '\nde, dl        : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.de, self.dl)
-        r += '\nmux, muy      : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.mux, self.muy)
-        r += '\nbetax, betay  : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.betax, self.betay)
-        r += '\nalphax, alphay: ' + '{0:+10.3e}, {1:+10.3e}'.format(self.alphax, self.alphay)
-        r += '\netax, etapx   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etax, self.etapx)
-        r += '\netay, etapy   : ' + '{0:+10.3e}, {1:+10.3e}'.format(self.etay, self.etapy)
+        r += 'spos          : ' + '{0:+10.3e}'.format(self.spos)
+        fmt = '{0:+10.3e}, {1:+10.3e}'
+        r += '\nrx, ry        : ' + fmt.format(self.rx, self.ry)
+        r += '\npx, py        : ' + fmt.format(self.px, self.py)
+        r += '\nde, dl        : ' + fmt.format(self.de, self.dl)
+        r += '\nmux, muy      : ' + fmt.format(self.mux, self.muy)
+        r += '\nbetax, betay  : ' + fmt.format(self.betax, self.betay)
+        r += '\nalphax, alphay: ' + fmt.format(self.alphax, self.alphay)
+        r += '\netax, etapx   : ' + fmt.format(self.etax, self.etapx)
+        r += '\netay, etapy   : ' + fmt.format(self.etay, self.etapy)
         return r
 
     def make_dict(self):
-        co    =  self.co
-        beta  = [self.betax, self.betay]
+        co = self.co
+        beta = [self.betax, self.betay]
         alpha = [self.alphax, self.alphay]
-        etax  = [self.etax, self.etapx]
-        etay  = [self.etay, self.etapy]
-        mu    = [self.mux, self.muy]
-        _dict = {'co': co, 'beta': beta, 'alpha': alpha, 'etax': etax, 'etay': etay, 'mu': mu}
-        return _dict
+        etax = [self.etax, self.etapx]
+        etay = [self.etay, self.etapy]
+        mu = [self.mux, self.muy]
+        return {
+            'co': co, 'beta': beta, 'alpha': alpha,
+            'etax': etax, 'etay': etay, 'mu': mu}
 
     @staticmethod
-    def make_new(*args, **kwargs):
+    def make_new(*args, **kwrgs):
         """Build a Twiss object.
         """
         if args:
             if isinstance(args[0], dict):
-                kwargs = args[0]
+                kwrgs = args[0]
         n = Twiss()
-        n.co = kwargs['co'] if 'co' in kwargs else (0.0,)*6
-        n.mux,    n.muy    = kwargs['mu']    if 'mu'    in kwargs else (0.0, 0.0)
-        n.betax,  n.betay  = kwargs['beta']  if 'beta'  in kwargs else (0.0, 0.0)
-        n.alphax, n.alphay = kwargs['alpha'] if 'alpha' in kwargs else (0.0, 0.0)
-        n.etax,   n.etapx  = kwargs['etax']  if 'etax'  in kwargs else (0.0, 0.0)
-        n.etay,   n.etapy  = kwargs['etay']  if 'etay'  in kwargs else (0.0, 0.0)
+        n.co = kwrgs['co'] if 'co' in kwrgs else (0.0,)*6
+        n.mux, n.muy = kwrgs['mu'] if 'mu' in kwrgs else (0.0, 0.0)
+        n.betax, n.betay = kwrgs['beta'] if 'beta' in kwrgs else (0.0, 0.0)
+        n.alphax, n.alphay = kwrgs['alpha'] if 'alpha' in kwrgs else (0.0, 0.0)
+        n.etax, n.etapx = kwrgs['etax'] if 'etax' in kwrgs else (0.0, 0.0)
+        n.etay, n.etapy = kwrgs['etay'] if 'etay' in kwrgs else (0.0, 0.0)
         return n
 
 
 @_interactive
-def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'open', energy_offset=None):
+def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
+               indices='open', energy_offset=None):
     """Return Twiss parameters of uncoupled dynamics.
 
     Keyword arguments:
@@ -241,8 +248,8 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
     init_twiss    -- Twiss parameters at the start of first element
     fixed_point   -- 6D position at the start of first element
     indices       -- Open or closed
-    energy_offset -- float denoting the energy deviation (used only for periodic
-                     solutions).
+    energy_offset -- float denoting the energy deviation (used only for
+                    periodic solutions).
 
     Returns:
     tw -- list of Twiss objects (closed orbit data is in the objects vector)
@@ -256,45 +263,57 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
     else:
         raise OpticsException("invalid value for 'indices' in calc_twiss")
 
-    _m66   = _trackcpp.Matrix()
+    _m66 = _trackcpp.Matrix()
     _twiss = _trackcpp.CppTwissVector()
 
     if init_twiss is not None:
-        ''' as a transport line: uses init_twiss '''
+        # as a transport line: uses init_twiss
         _init_twiss = init_twiss._t
         if fixed_point is None:
             _fixed_point = _init_twiss.co
         else:
-            raise OpticsException('arguments init_twiss and fixed_point are mutually exclusive')
-        r = _trackcpp.calc_twiss(accelerator._accelerator, _fixed_point, _m66, _twiss, _init_twiss, closed_flag)
+            raise OpticsException(
+                'arguments init_twiss and fixed_point are mutually exclusive')
+        r = _trackcpp.calc_twiss(
+            accelerator._accelerator, _fixed_point, _m66, _twiss,
+            _init_twiss, closed_flag)
 
     else:
-        ''' as a periodic system: try to find periodic solution '''
+        # as a periodic system: try to find periodic solution
         if accelerator.harmonic_number == 0:
-            raise OpticsException('Either harmonic number was not set or calc_twiss was'
+            raise OpticsException(
+                'Either harmonic number was not set or calc_twiss was'
                 'invoked for transport line without initial twiss')
 
         if fixed_point is None:
             _closed_orbit = _trackcpp.CppDoublePosVector()
             _fixed_point_guess = _trackcpp.CppDoublePos()
-            if energy_offset is not None: _fixed_point_guess.de = energy_offset
+            if energy_offset is not None:
+                _fixed_point_guess.de = energy_offset
 
             if not accelerator.cavity_on and not accelerator.radiation_on:
-                r = _trackcpp.track_findorbit4(accelerator._accelerator, _closed_orbit, _fixed_point_guess)
+                r = _trackcpp.track_findorbit4(
+                    accelerator._accelerator, _closed_orbit,
+                    _fixed_point_guess)
             elif not accelerator.cavity_on and accelerator.radiation_on:
-                raise OpticsException('The radiation is on but the cavity is off')
+                raise OpticsException(
+                    'The radiation is on but the cavity is off')
             else:
-                r = _trackcpp.track_findorbit6(accelerator._accelerator, _closed_orbit, _fixed_point_guess)
+                r = _trackcpp.track_findorbit6(
+                    accelerator._accelerator, _closed_orbit,
+                    _fixed_point_guess)
 
             if r > 0:
-                raise _tracking.TrackingException(_trackcpp.string_error_messages[r])
+                raise _tracking.TrackingException(
+                    _trackcpp.string_error_messages[r])
             _fixed_point = _closed_orbit[0]
 
         else:
             _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
             if energy_offset is not None: _fixed_point.de = energy_offset
 
-        r = _trackcpp.calc_twiss(accelerator._accelerator, _fixed_point, _m66, _twiss)
+        r = _trackcpp.calc_twiss(
+            accelerator._accelerator, _fixed_point, _m66, _twiss)
 
     if r > 0:
         raise OpticsException(_trackcpp.string_error_messages[r])
@@ -309,35 +328,38 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None, indices = 'o
 def calc_emittance_coupling(accelerator):
     # I copied the code below from:
     # http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
-    def fitEllipse(x,y):
-        x = x[:,_np.newaxis]
-        y = y[:,_np.newaxis]
+    def fitEllipse(x, y):
+        x = x[:, _np.newaxis]
+        y = y[:, _np.newaxis]
         D = _np.hstack((x*x, x*y, y*y, x, y, _np.ones_like(x)))
-        S = _np.dot(D.T,D)
-        C = _np.zeros([6,6])
-        C[0,2] = C[2,0] = 2; C[1,1] = -1
+        S = _np.dot(D.T, D)
+        C = _np.zeros([6, 6])
+        C[0, 2] = C[2, 0] = 2
+        C[1, 1] = -1
         E, V = _np.linalg.eig(_np.linalg.solve(S, C))
         n = _np.argmax(_np.abs(E))
-        a = V[:,n]
-        b,c,d,f,g,a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
-        up    = 2*(a*f*f+c*d*d+g*b*b-2*b*d*f-a*c*g)
-        down1 = (b*b-a*c)*( (c-a)*_np.sqrt(1+4*b*b/((a-c)*(a-c)))-(c+a))
-        down2 = (b*b-a*c)*( (a-c)*_np.sqrt(1+4*b*b/((a-c)*(a-c)))-(c+a))
+        a = V[:, n]
+        b, c, d, f, g, a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
+        up = 2*(a*f*f + c*d*d + g*b*b - 2*b*d*f - a*c*g)
+        down1 = (b*b-a*c) * ((c-a) * _np.sqrt(1 + 4*b*b / ((a-c)*(a-c)))-(c+a))
+        down2 = (b*b-a*c) * ((a-c) * _np.sqrt(1 + 4*b*b / ((a-c)*(a-c)))-(c+a))
         res1 = _np.sqrt(up/down1)
         res2 = _np.sqrt(up/down2)
-        return _np.array([res1, res2]) #returns the axes of the ellipse
+        return _np.array([res1, res2])  # returns the axes of the ellipse
 
     acc = accelerator[:]
-    acc.cavity_on    = False
+    acc.cavity_on = False
     acc.radiation_on = False
 
     orb = _tracking.find_orbit4(acc)
-    rin = _np.array([2e-5+orb[0],0+orb[1],1e-8+orb[2],0+orb[3],0,0],dtype=float)
-    rout, *_ = _tracking.ring_pass(acc, rin, nr_turns=100, turn_by_turn='closed',element_offset = 0)
-    r = _np.dstack([rin[None,:,None],rout])
-    ax,bx = fitEllipse(r[0][0],r[0][1])
-    ay,by = fitEllipse(r[0][2],r[0][3])
-    return (ay*by) / (ax*bx) # ey/ex
+    rin = _np.array(
+        [2e-5+orb[0], 0+orb[1], 1e-8+orb[2], 0+orb[3], 0, 0], dtype=float)
+    rout, *_ = _tracking.ring_pass(
+        acc, rin, nr_turns=100, turn_by_turn='closed', element_offset=0)
+    r = _np.dstack([rin[None, :, None], rout])
+    ax, bx = fitEllipse(r[0][0], r[0][1])
+    ay, by = fitEllipse(r[0][2], r[0][3])
+    return (ay*by) / (ax*bx)  # ey/ex
 
 
 @_interactive
@@ -380,29 +402,29 @@ def get_revolution_frequency(accelerator):
 def get_traces(accelerator=None, m66=None, closed_orbit=None):
     """Return traces of 6D one-turn transfer matrix"""
     if m66 is None:
-        m66 = _tracking.find_m66(accelerator,
-                                indices = 'm66', closed_orbit = closed_orbit)
-    trace_x = m66[0,0] + m66[1,1]
-    trace_y = m66[2,2] + m66[3,3]
-    trace_z = m66[4,4] + m66[5,5]
+        m66 = _tracking.find_m66(
+            accelerator, indices='m66', closed_orbit=closed_orbit)
+    trace_x = m66[0, 0] + m66[1, 1]
+    trace_y = m66[2, 2] + m66[3, 3]
+    trace_z = m66[4, 4] + m66[5, 5]
     return trace_x, trace_y, trace_z, m66, closed_orbit
 
 
 @_interactive
-def get_frac_tunes(accelerator=None, m66=None, closed_orbit=None, coupled=False):
+def get_frac_tunes(accelerator=None, m66=None, closed_orbit=None,
+                   coupled=False):
     """Return fractional tunes of the accelerator"""
 
-    trace_x, trace_y, trace_z, m66, closed_orbit = get_traces(accelerator,
-                                                   m66 = m66,
-                                                   closed_orbit = closed_orbit)
+    trace_x, trace_y, trace_z, m66, closed_orbit = get_traces(
+        accelerator, m66=m66, closed_orbit=closed_orbit)
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
     tune_z = _math.acos(trace_z/2.0)/2.0/_math.pi
     if coupled:
         tunes = _np.log(_np.linalg.eigvals(m66))/2.0/_math.pi/1j
-        tune_x = tunes[_np.argmin(abs(_np.sin(tunes.real) - _math.sin(tune_x)))]
-        tune_y = tunes[_np.argmin(abs(_np.sin(tunes.real) - _math.sin(tune_y)))]
-        tune_z = tunes[_np.argmin(abs(_np.sin(tunes.real) - _math.sin(tune_z)))]
+        tune_x = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_x)))]
+        tune_y = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_y)))]
+        tune_z = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_z)))]
 
     return tune_x, tune_y, tune_z, trace_x, trace_y, trace_z, m66, closed_orbit
 
@@ -416,238 +438,62 @@ def get_chromaticities(accelerator):
 def get_mcf(accelerator, order=1, energy_offset=None):
     """Return momentum compaction factor of the accelerator"""
     if energy_offset is None:
-        energy_offset = _np.linspace(-1e-3,1e-3,11)
+        energy_offset = _np.linspace(-1e-3, 1e-3, 11)
 
-    accel=accelerator[:]
+    accel = accelerator[:]
     _tracking.set_4d_tracking(accel)
-    ring_length = _lattice.length(accel)
+    leng = accel.length
 
     dl = _np.zeros(_np.size(energy_offset))
-    for i in range(len(energy_offset)):
-        fp = _tracking.find_orbit4(accel,energy_offset[i])
-        X0 = _np.concatenate([fp,[energy_offset[i],0]]).tolist()
-        T = _tracking.ring_pass(accel,X0)
-        dl[i] = T[0][5]/ring_length
+    for i, ene in enumerate(energy_offset):
+        fp = _tracking.find_orbit4(accel, ene)
+        X0 = _np.concatenate([fp.flatten(), [ene, 0]])
+        T, *_ = _tracking.ring_pass(accel, X0)
+        dl[i] = T[0, 5]/leng
 
-    polynom = _np.polyfit(energy_offset,dl,order)
+    polynom = _np.polyfit(energy_offset, dl, order)
     a = _np.fliplr([polynom])[0].tolist()
     a = a[1:]
     if len(a) == 1:
-        a=a[0]
+        a = a[0]
     return a
 
 
 @_interactive
-def get_radiation_integrals(accelerator,
-                          twiss=None,
-                          m66=None,
-                          closed_orbit=None):
-    """Calculate radiation integrals for periodic systems"""
-
-    if twiss is None or m66 is None:
-        fixed_point = closed_orbit if closed_orbit is None else closed_orbit[:,0]
-        twiss, m66 = calc_twiss(accelerator, fixed_point=fixed_point)
-
-    spos = _lattice.find_spos(accelerator)
-
-    # # Old get twiss
-    # etax,etapx,betax,alphax = twiss,('etax','etapx','betax','alphax'))
-
-    etax, etapx, betax, alphax = twiss.etax, twiss.etapx, twiss.betax, twiss.alphax
-
-    if len(spos) != len(accelerator) + 1:
-        spos = _np.resize(spos,len(accelerator)+1); spos[-1] = spos[-2] + accelerator[-1].length
-        etax = _np.resize(etax,len(accelerator)+1); etax[-1] = etax[0]
-        etapx = _np.resize(etapx,len(accelerator)+1); etapx[-1] = etapx[0]
-        betax = _np.resize(betax,len(accelerator)+1); betax[-1] = betax[0]
-        alphax = _np.resize(alphax,len(accelerator)+1); alphax[-1] = alphax[0]
-    gammax = (1+alphax**2)/betax
-    n = len(accelerator)
-    angle, angle_in, angle_out, K = _np.zeros((4,n))
-    for i in range(n):
-        angle[i] = accelerator._accelerator.lattice[i].angle
-        angle_in[i] = accelerator._accelerator.lattice[i].angle_in
-        angle_out[i] = accelerator._accelerator.lattice[i].angle_out
-        K[i] = accelerator._accelerator.lattice[i].polynom_b[1]
-    idx, *_ = _np.nonzero(angle)
-    leng = spos[idx+1]-spos[idx]
-    rho  = leng/angle[idx]
-    angle_in = angle_in[idx]
-    angle_out = angle_out[idx]
-    K = K[idx]
-    etax_in, etax_out = etax[idx], etax[idx+1]
-    etapx_in, etapx_out = etapx[idx], etapx[idx+1]
-    betax_in, betax_out = betax[idx], betax[idx+1]
-    alphax_in, alphax_out = alphax[idx], alphax[idx+1]
-    gammax_in, gammax_out = gammax[idx], gammax[idx+1]
-    H_in = betax_in*etapx_in**2 + 2*alphax_in*etax_in*etapx_in+gammax_in*etax_in**2
-    H_out = betax_out*etapx_out**2 + 2*alphax_out*etax_out*etapx_out+gammax_out*etax_out**2
-
-    etax_avg = 0.5*(etax_in+etax_out)
-    rho2, rho3 = rho**2, rho**3
-    rho3abs = _np.abs(rho3)
-
-    integrals = [0.0]*6
-    integrals[0] = _np.dot(etax_avg/rho, leng)
-    integrals[1] = _np.dot(1/rho2, leng)
-    integrals[2] = _np.dot(1/rho3abs, leng)
-    integrals[3] = sum((etax_in/rho2)*_np.tan(angle_in)) + \
-                   sum((etax_out/rho2)*_np.tan(angle_out)) + \
-                   _np.dot((etax_avg/rho3)*(1+2*rho2*K), leng)
-    integrals[4] = _np.dot(0.5*(H_in+H_out)/rho3abs, leng)
-    integrals[5] = _np.dot((K*etax_avg)**2, leng)
-
-    return integrals, twiss, m66
-
-
-@_interactive
-def get_natural_energy_spread(accelerator):
-    Cq = _mp.constants.Cq
-    gamma = accelerator.gamma_factor
-    integrals, *_ = get_radiation_integrals(accelerator)
-    natural_energy_spread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
-    return natural_energy_spread
-
-
-@_interactive
-def get_natural_emittance(accelerator):
-    Cq = _mp.constants.Cq
-    gamma = accelerator.gamma_factor
-    integrals, *_ = get_radiation_integrals(accelerator)
-
-    damping = _np.zeros(3)
-    damping[0] = 1.0 - integrals[3]/integrals[1]
-    damping[1] = 1.0
-    damping[2] = 2.0 + integrals[3]/integrals[1]
-
-    natural_emittance = Cq*(gamma**2)*integrals[4]/(damping[0]*integrals[1])
-    return natural_emittance
-
-
-@_interactive
-def get_energy_loss_per_turn(accelerator, integrals = None):
-    if integrals is None:
-        integrals, *_ = get_radiation_integrals(accelerator)
-    E0 = accelerator.energy
-    rad_cgamma = _mp.constants.rad_cgamma
-    U0 = rad_cgamma*((E0/1e9)**4)*integrals[1]/(2*_math.pi)*1e9
-    return U0
-
-
-@_interactive
-def get_natural_bunch_length(accelerator):
-    c = _mp.constants.light_speed
-    e0 = accelerator.energy
-    gamma = accelerator.gamma_factor
-    beta = accelerator.beta_factor
-    harmon = accelerator.harmonic_number
-
-    integrals, *_ = get_radiation_integrals(accelerator)
-    rev_freq = get_revolution_frequency(accelerator)
-    compaction_factor = get_mcf(accelerator)
-
-    etac = gamma**(-2) - compaction_factor
-
-    freq = get_rf_frequency(accelerator)
-    v_cav = get_rf_voltage(accelerator)
-    radiation = get_energy_loss_per_turn(accelerator, integrals = integrals)
-    overvoltage = v_cav/radiation
-
-    syncphase = _math.pi - _math.asin(1/overvoltage)
-    synctune = _math.sqrt((etac * harmon * v_cav * _math.cos(syncphase))/(2*_math.pi*e0))
-    natural_energy_spread = get_natural_energy_spread(accelerator)
-    bunch_length = beta* c *abs(etac)* natural_energy_spread /( synctune * rev_freq *2*_math.pi)
-    return bunch_length
-
-
-@_interactive
-def get_equilibrium_parameters(accelerator,
-                             twiss=None,
-                             m66=None,
-                             closed_orbit=None):
-
-    c = _mp.constants.light_speed
-    Cq = _mp.constants.Cq
-    Ca = _mp.constants.Ca
-
-    e0 = accelerator.energy
-    gamma = accelerator.gamma_factor
-    beta = accelerator.beta_factor
-    harmon = accelerator.harmonic_number
-    circumference = accelerator.length
-    rev_time = circumference / accelerator.velocity
-    rev_freq = get_revolution_frequency(accelerator)
-
-    compaction_factor = get_mcf(accelerator)
-    etac = gamma**(-2) - compaction_factor
-
-    integrals, *args = get_radiation_integrals(accelerator,twiss,m66,closed_orbit)
-
-    damping = _np.zeros(3)
-    damping[0] = 1.0 - integrals[3]/integrals[1]
-    damping[1] = 1.0
-    damping[2] = 2.0 + integrals[3]/integrals[1]
-
-    radiation_damping = _np.zeros(3)
-    radiation_damping[0] = 1.0/(Ca*((e0/1e9)**3)*integrals[1]*damping[0]/circumference)
-    radiation_damping[1] = 1.0/(Ca*((e0/1e9)**3)*integrals[1]*damping[1]/circumference)
-    radiation_damping[2] = 1.0/(Ca*((e0/1e9)**3)*integrals[1]*damping[2]/circumference)
-
-    radiation = get_energy_loss_per_turn(accelerator, integrals)
-    natural_energy_spread = _math.sqrt( Cq*(gamma**2)*integrals[2]/(2*integrals[1] + integrals[3]))
-    natural_emittance = Cq*(gamma**2)*integrals[4]/(damping[0]*integrals[1])
-
-    freq = get_rf_frequency(accelerator)
-    v_cav = get_rf_voltage(accelerator)
-    overvoltage = v_cav/radiation
-
-    syncphase = _math.pi - _math.asin(1.0/overvoltage)
-    synctune = _math.sqrt((etac * harmon * v_cav * _math.cos(syncphase))/(2*_math.pi*e0))
-    rf_energy_acceptance = _math.sqrt(v_cav*_math.sin(syncphase)*2*(_math.sqrt((overvoltage**2)-1.0)
-                        - _math.acos(1.0/overvoltage))/(_math.pi*harmon*abs(etac)*e0))
-    bunch_length = beta* c *abs(etac)* natural_energy_spread /( synctune * rev_freq *2*_math.pi)
-
-    summary=dict(compaction_factor = compaction_factor, radiation_integrals = integrals, damping_numbers = damping,
-        damping_times = radiation_damping, natural_energy_spread = natural_energy_spread, etac = etac,
-        natural_emittance = natural_emittance, overvoltage = overvoltage, syncphase = syncphase,
-        synctune = synctune, rf_energy_acceptance = rf_energy_acceptance, bunch_length = bunch_length)
-
-    return [summary, integrals] + args
-
-
-@_interactive
-def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, indices='open'):
+def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, twiss=None,
+                  indices='open'):
     """Return beamsizes (stddev) along ring"""
 
     # twiss parameters
-    fixed_point = closed_orbit if closed_orbit is None else closed_orbit[:,0]
-    twiss, *_ = calc_twiss(accelerator, fixed_point=fixed_point, indices=indices)
+    twi = twiss
+    if twi is None:
+        fpnt = closed_orbit if closed_orbit is None else closed_orbit[:, 0]
+        twi, *_ = calc_twiss(accelerator, fixed_point=fpnt, indices=indices)
 
-    # Old get twiss
-    # betax, alphax, etax, etapx = get_twiss(twiss, ('betax','alphax','etax','etapx'))
-    # betay, alphay, etay, etapy = get_twiss(twiss, ('betay','alphay','etay','etapy'))
-
-    betax, alphax, etax, etapx = twiss.betax, twiss.alphax, twiss.etax, twiss.etapx
-    betay, alphay, etay, etapy = twiss.betay, twiss.alphay, twiss.etay, twiss.etapy
+    betax, alphax, etax, etapx = twi.betax, twi.alphax, twi.etax, twi.etapx
+    betay, alphay, etay, etapy = twi.betay, twi.alphay, twi.etay, twi.etapy
 
     gammax = (1.0 + alphax**2)/betax
     gammay = (1.0 + alphay**2)/betay
+
     # emittances and energy spread
-    summary, *_ = get_equilibrium_parameters(accelerator)
-    e0 = summary['natural_emittance']
-    sigmae = summary['natural_energy_spread']
+    equi = EquilibriumParameters(accelerator)
+    e0 = equi.emit0
+    sigmae = equi.espread0
     ey = e0 * coupling / (1.0 + coupling)
     ex = e0 * 1 / (1.0 + coupling)
+
     # beamsizes per se
-    sigmax  = _np.sqrt(ex * betax + (sigmae * etax)**2)
-    sigmay  = _np.sqrt(ey * betay + (sigmae * etay)**2)
+    sigmax = _np.sqrt(ex * betax + (sigmae * etax)**2)
+    sigmay = _np.sqrt(ey * betay + (sigmae * etay)**2)
     sigmaxl = _np.sqrt(ex * gammax + (sigmae * etapx)**2)
     sigmayl = _np.sqrt(ey * gammay + (sigmae * etapy)**2)
     return sigmax, sigmay, sigmaxl, sigmayl, ex, ey, summary, twiss
 
 
 @_interactive
-def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_point=None, energy_offset=0.0):
+def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None,
+                              fixed_point=None, energy_offset=0.0):
     """Return linear transverse horizontal and vertical physical acceptances"""
 
     m66 = None
@@ -713,6 +559,262 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None, fixed_po
         return accepx, accepy, twiss
     else:
         return accepx, accepy, twiss, m66
+
+
+class EquilibriumParameters:
+
+    def __init__(self, accelerator):
+        self._acc = _accelerator.Accelerator()
+        self._m66 = None
+        self._twi = None
+        self._alpha = 0.0
+        self._integrals = _np.zeros(6)
+        self._damping = _np.zeros(3)
+        self._radiation_damping = _np.zeros(3)
+        self.accelerator = accelerator
+
+    def __str__(self):
+        r = ''
+        fmt = '{:<30s}: '
+        fmtn = '{:.4f}'
+        ints = 'I1,I2,I3,I3a,I4,I5'.split(',')
+        r += fmt.format(', '.join(ints))
+        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+        r += '\n'
+
+        ints = 'Jx,Jy,Je'.split(',')
+        r += fmt.format(', '.join(ints))
+        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+        r += '\n'
+
+        ints = 'taux,tauy,taue'.split(',')
+        r += fmt.format(', '.join(ints) + '[ms]')
+        r += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
+        r += '\n'
+
+        fmte = fmt + fmtn
+        r += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
+        r += fmte.format('\nenergy loss [keV]', self.U0/1000)
+        r += fmte.format('\novervoltage', self.overvoltage)
+        r += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
+        r += fmte.format('\nsync tune', self.synctune)
+        r += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
+        r += fmte.format('\nnatural espread [%]', self.espread0*100)
+        r += fmte.format('\nbunch length [mm]', self.bunch_length*1000)
+        return r
+
+    @property
+    def accelerator(self):
+        return self._acc
+
+    @accelerator.setter
+    def accelerator(self, acc):
+        if isinstance(acc, _accelerator.Accelerator):
+            self._acc = acc
+            self._calc_radiation_integrals()
+
+    @property
+    def twiss(self):
+        return self._twi
+
+    @property
+    def m66(self):
+        return self._m66
+
+    @property
+    def I1(self):
+        return self._integrals[0]
+
+    @property
+    def I2(self):
+        return self._integrals[1]
+
+    @property
+    def I3(self):
+        return self._integrals[2]
+
+    @property
+    def I3a(self):
+        return self._integrals[3]
+
+    @property
+    def I4(self):
+        return self._integrals[4]
+
+    @property
+    def I5(self):
+        return self._integrals[5]
+
+    @property
+    def Jx(self):
+        return 1.0 - self.I4/self.I2
+
+    @property
+    def Jy(self):
+        return 1.0
+
+    @property
+    def Je(self):
+        return 2.0 + self.I4/self.I2
+
+    @property
+    def alphax(self):
+        Ca = _mp.constants.Ca
+        E0 = self._acc.energy / 1e9  # in GeV
+        leng = self._acc.length
+        return Ca * E0**3 * self.I2 * self.Jx / leng
+
+    @property
+    def alphay(self):
+        Ca = _mp.constants.Ca
+        E0 = self._acc.energy / 1e9  # in GeV
+        leng = self._acc.length
+        return Ca * E0**3 * self.I2 * self.Jy / leng
+
+    @property
+    def alphae(self):
+        Ca = _mp.constants.Ca
+        E0 = self._acc.energy / 1e9  # in GeV
+        leng = self._acc.length
+        return Ca * E0**3 * self.I2 * self.Je / leng
+
+    @property
+    def taux(self):
+        return 1/self.alphax
+
+    @property
+    def tauy(self):
+        return 1/self.alphay
+
+    @property
+    def taue(self):
+        return 1/self.alphae
+
+    @property
+    def espread0(self):
+        Cq = _mp.constants.Cq
+        gamma = self._acc.gamma_factor
+        return _math.sqrt(Cq * gamma**2 * self.I3 / (2*self.I2 + self.I4))
+
+    @property
+    def emit0(self):
+        Cq = _mp.constants.Cq
+        gamma = self._acc.gamma_factor
+        return Cq * gamma**2 * self.I5 / (self.Jx*self.I2)
+
+    @property
+    def U0(self):
+        E0 = self._acc.energy / 1e9  # in GeV
+        rad_cgamma = _mp.constants.rad_cgamma
+        return rad_cgamma/(2*_math.pi) * E0**4 * self.I2 * 1e9  # in GeV
+
+    @property
+    def overvoltage(self):
+        v_cav = get_rf_voltage(self._acc)
+        return v_cav/self.U0
+
+    @property
+    def syncphase(self):
+        return _math.pi - _math.asin(1/self.overvoltage)
+
+    @property
+    def alpha(self):
+        return self._alpha
+
+    @property
+    def etac(self):
+        gamma = self._acc.gamma_factor
+        return 1/(gamma*gamma) - self.alpha
+
+    @property
+    def synctune(self):
+        E0 = self._acc.energy
+        v_cav = get_rf_voltage(self._acc)
+        harmon = self._acc.harmonic_number
+        return _math.sqrt(
+            self.etac*harmon*v_cav*_math.cos(self.syncphase)/(2*_math.pi*E0))
+
+    @property
+    def bunch_length(self):
+        c = _mp.constants.light_speed
+        beta = self._acc.beta_factor
+        rev_freq = get_revolution_frequency(self._acc)
+
+        bunlen = beta * c * abs(self.etac) * self.espread0
+        bunlen /= 2*_math.pi * self.synctune * rev_freq
+        return bunlen
+
+    @property
+    def rf_acceptance(self):
+        E0 = self._acc.energy
+        sph = self.syncphase
+        V = get_rf_voltage(self._acc)
+        ov = self.overvoltage
+        h = self._acc.harmonic_number
+        etac = self.etac
+
+        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
+        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
+        return _math.sqrt(eaccep2)
+
+    @staticmethod
+    def calcH(beta, alpha, x, xl):
+        gamma = (1 + alpha**2) / beta
+        return beta*xl**2 + 2*alpha*x*xl + gamma*x**2
+
+    def _calc_radiation_integrals(self):
+        """Calculate radiation integrals for periodic systems"""
+
+        acc = self._acc
+        twi, m66 = calc_twiss(acc, indices='closed')
+        self._twi = twi
+        self._m66 = m66
+        self._alpha = get_mcf(acc)
+
+        spos = _lattice.find_spos(acc, indices='closed')
+        etax, etapx, betax, alphax = twi.etax, twi.etapx, twi.betax, twi.alphax
+
+        n = len(acc)
+        angle, angle_in, angle_out, K = _np.zeros((4, n))
+        for i in range(n):
+            angle[i] = acc[i].angle
+            angle_in[i] = acc[i].angle_in
+            angle_out[i] = acc[i].angle_out
+            K[i] = acc[i].K
+
+        idx, *_ = _np.nonzero(angle)
+        leng = spos[idx+1]-spos[idx]
+        rho = leng/angle[idx]
+        angle_in = angle_in[idx]
+        angle_out = angle_out[idx]
+        K = K[idx]
+        etax_in, etax_out = etax[idx], etax[idx+1]
+        etapx_in, etapx_out = etapx[idx], etapx[idx+1]
+        betax_in, betax_out = betax[idx], betax[idx+1]
+        alphax_in, alphax_out = alphax[idx], alphax[idx+1]
+
+        H_in = self.calcH(betax_in, alphax_in, etax_in, etapx_in)
+        H_out = self.calcH(betax_out, alphax_out, etax_in, etapx_out)
+
+        etax_avg = (etax_in + etax_out) / 2
+        H_avg = (H_in + H_out) / 2
+        rho2, rho3 = rho**2, rho**3
+        rho3abs = _np.abs(rho3)
+
+        integrals = _np.zeros(6)
+        integrals[0] = _np.dot(etax_avg/rho, leng)
+        integrals[1] = _np.dot(1/rho2, leng)
+        integrals[2] = _np.dot(1/rho3abs, leng)
+
+        integrals[3] = _np.dot(etax_avg/rho3 * (1+2*rho2*K), leng)
+        # for general wedge magnets:
+        integrals[3] += sum((etax_in/rho2) * _np.tan(angle_in))
+        integrals[3] += sum((etax_out/rho2) * _np.tan(angle_out))
+
+        integrals[4] = _np.dot((K*etax_avg)**2, leng)
+        integrals[5] = _np.dot(H_avg / rho3abs, leng)
+
+        self._integrals = integrals
 
 
 class TwissList(object):

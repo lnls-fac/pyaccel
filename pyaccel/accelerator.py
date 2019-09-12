@@ -25,6 +25,7 @@ class Accelerator(object):
             elif isinstance(a, Accelerator):  # creates another object.
                 self._accelerator = _trackcpp.Accelerator()
                 self._accelerator.lattice = a._accelerator.lattice[:]
+                self._accelerator.energy = a.energy
                 self._accelerator.cavity_on = a.cavity_on
                 self._accelerator.radiation_on = a.radiation_on
                 self._accelerator.vchamber_on = a.vchamber_on
@@ -63,9 +64,9 @@ class Accelerator(object):
                 self._accelerator.energy = \
                 _mp.beam_optics.beam_rigidity(gamma=1.0)
         else:
-            self._brho, self._velocity, self._beta, self._gamma, \
-                self._accelerator.energy = \
-                _mp.beam_optics.beam_rigidity(energy=self.energy)
+            self._brho, self._velocity, self._beta, self._gamma, energy = \
+                _mp.beam_optics.beam_rigidity(energy=self.energy/1e9)
+            self._accelerator.energy = energy * 1e9
 
         self.__isfrozen = True
 
@@ -237,9 +238,9 @@ class Accelerator(object):
 
     @energy.setter
     def energy(self, value):
-        self._brho, self._velocity, self._beta, \
-            self._gamma, self._accelerator.energy = \
-            _mp.beam_optics.beam_rigidity(energy=value)
+        self._brho, self._velocity, self._beta, self._gamma, energy = \
+            _mp.beam_optics.beam_rigidity(energy=value/1e9)
+        self._accelerator.energy = energy * 1e9
 
     @property
     def gamma_factor(self):
@@ -247,9 +248,9 @@ class Accelerator(object):
 
     @gamma_factor.setter
     def gamma_factor(self, value):
-        self._brho, self._velocity, self._beta, \
-            self._gamma, self._accelerator.energy = \
+        self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(gamma=value)
+        self._accelerator.energy = energy * 1e9
 
     @property
     def beta_factor(self):
@@ -257,9 +258,9 @@ class Accelerator(object):
 
     @beta_factor.setter
     def beta_factor(self, value):
-        self._brho, self._velocity, self._beta, \
-            self._gamma, self._accelerator.energy = \
+        self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(beta=value)
+        self._accelerator.energy = energy * 1e9
 
     @property
     def velocity(self):
@@ -268,9 +269,9 @@ class Accelerator(object):
 
     @velocity.setter
     def velocity(self, value):
-        self._brho, self._velocity, self._beta, \
-            self._gamma, self._accelerator.energy = \
+        self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(velocity=value)
+        self._accelerator.energy = energy * 1e9
 
     @property
     def brho(self):
@@ -278,9 +279,9 @@ class Accelerator(object):
 
     @brho.setter
     def brho(self, value):
-        self._brho, self._velocity, self._beta, \
-            self._gamma, self._accelerator.energy = \
+        self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(brho=value)
+        self._accelerator.energy = energy * 1e9
 
     @property
     def harmonic_number(self):

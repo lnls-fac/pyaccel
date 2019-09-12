@@ -14,7 +14,6 @@ module, import it from pyaccel.utils with
     'from pyaccel.utils import interactive'
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
 import pyaccel as _pyaccel
 
