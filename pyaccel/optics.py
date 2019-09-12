@@ -576,23 +576,23 @@ class EquilibriumParameters:
     def __str__(self):
         r = ''
         fmt = '{:<30s}: '
-        fmtn = '{:.4f}'
-        ints = 'I1,I2,I3,I3a,I4,I5'.split(',')
-        r += fmt.format(', '.join(ints))
-        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-        r += '\n'
-
-        ints = 'Jx,Jy,Je'.split(',')
-        r += fmt.format(', '.join(ints))
-        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-        r += '\n'
-
-        ints = 'taux,tauy,taue'.split(',')
-        r += fmt.format(', '.join(ints) + '[ms]')
-        r += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
-        r += '\n'
+        fmtn = '{:.4g}'
 
         fmte = fmt + fmtn
+        r += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
+
+        ints = 'I1,I2,I3,I3a,I4,I5,I6'.split(',')
+        r += '\n' + fmt.format(', '.join(ints))
+        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        ints = 'Jx,Jy,Je'.split(',')
+        r += '\n' + fmt.format(', '.join(ints))
+        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        ints = 'taux,tauy,taue'.split(',')
+        r += '\n' + fmt.format(', '.join(ints) + ' [ms]')
+        r += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
+
         r += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
         r += fmte.format('\nenergy loss [keV]', self.U0/1000)
         r += fmte.format('\novervoltage', self.overvoltage)
@@ -601,6 +601,7 @@ class EquilibriumParameters:
         r += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
         r += fmte.format('\nnatural espread [%]', self.espread0*100)
         r += fmte.format('\nbunch length [mm]', self.bunch_length*1000)
+        r += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
         return r
 
     @property
@@ -644,6 +645,10 @@ class EquilibriumParameters:
     @property
     def I5(self):
         return self._integrals[5]
+
+    @property
+    def I6(self):
+        return self._integrals[6]
 
     @property
     def Jx(self):
@@ -801,18 +806,19 @@ class EquilibriumParameters:
         rho2, rho3 = rho**2, rho**3
         rho3abs = _np.abs(rho3)
 
-        integrals = _np.zeros(6)
+        integrals = _np.zeros(7)
         integrals[0] = _np.dot(etax_avg/rho, leng)
         integrals[1] = _np.dot(1/rho2, leng)
         integrals[2] = _np.dot(1/rho3abs, leng)
+        integrals[3] = _np.dot(1/rho3, leng)
 
-        integrals[3] = _np.dot(etax_avg/rho3 * (1+2*rho2*K), leng)
+        integrals[4] = _np.dot(etax_avg/rho3 * (1+2*rho2*K), leng)
         # for general wedge magnets:
-        integrals[3] += sum((etax_in/rho2) * _np.tan(angle_in))
-        integrals[3] += sum((etax_out/rho2) * _np.tan(angle_out))
+        integrals[4] += sum((etax_in/rho2) * _np.tan(angle_in))
+        integrals[4] += sum((etax_out/rho2) * _np.tan(angle_out))
 
-        integrals[4] = _np.dot((K*etax_avg)**2, leng)
         integrals[5] = _np.dot(H_avg / rho3abs, leng)
+        integrals[6] = _np.dot((K*etax_avg)**2, leng)
 
         self._integrals = integrals
 
