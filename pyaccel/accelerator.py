@@ -92,8 +92,9 @@ class Accelerator(object):
 
     def __getitem__(self, index):
         if isinstance(index, (int, _np.int_)):
-            return _elements.Element(
-                element=self._accelerator.lattice[int(index)])
+            ele = _elements.Element()
+            ele._e = self._accelerator.lattice[int(index)]
+            return ele
         elif isinstance(index, (list, tuple, _np.ndarray)):
             try:
                 index = _np.array(index, dtype=int)
