@@ -480,35 +480,23 @@ class Element(object):
 
     @property
     def KxL(self):
-        if self.pass_method == 'matrix_pass':
-            return -self._e.matrix66[1][0]
-        else:
-            return self._e.polynom_b[1] * self._e.length
+        return -self._e.matrix66[1][0]
 
     @KxL.setter
     def KxL(self, value):
-        if self.pass_method == 'matrix_pass':
-            lst = list(self._e.matrix66[1])
-            lst[0] = -value
-            self._e.matrix66[1] = tuple(lst)
-        else:
-            self._e.polynom_b[1] = value / self._e.length
+        lst = list(self._e.matrix66[1])
+        lst[0] = -value
+        self._e.matrix66[1] = tuple(lst)
 
     @property
     def KyL(self):
-        if self.pass_method == 'matrix_pass':
-            return -self._e.matrix66[3][2]
-        else:
-            return -self._e.polynom_b[1] * self._e.length
+        return -self._e.matrix66[3][2]
 
     @KyL.setter
     def KyL(self, value):
-        if self.pass_method == 'matrix_pass':
-            lst = list(self._e.matrix66[3])
-            lst[2] = -value
-            self._e.matrix66[3] = tuple(lst)
-        else:
-            self._e.polynom_b[1] = -value / self._e.length
+        lst = list(self._e.matrix66[3])
+        lst[2] = -value
+        self._e.matrix66[3] = tuple(lst)
 
     @property
     def S(self):
@@ -544,35 +532,23 @@ class Element(object):
 
     @property
     def KsxL(self):
-        if self.pass_method == 'matrix_pass':
-            return -self._e.matrix66[1][2]
-        else:
-            return self._e.polynom_a[1] * self._e.length
+        return -self._e.matrix66[1][2]
 
     @KsxL.setter
     def KsxL(self, value):
-        if self.pass_method == 'matrix_pass':
-            lst = list(self._e.matrix66[1])
-            lst[2] = -value
-            self._e.matrix66[1] = tuple(lst)
-        else:
-            self._e.polynom_a[1] = value / self._e.length
+        lst = list(self._e.matrix66[1])
+        lst[2] = -value
+        self._e.matrix66[1] = tuple(lst)
 
     @property
     def KsyL(self):
-        if self.pass_method == 'matrix_pass':
-            return -self._e.matrix66[3][0]
-        else:
-            return self._e.polynom_a[1] * self._e.length
+        return -self._e.matrix66[3][0]
 
     @KsyL.setter
     def KsyL(self, value):
-        if self.pass_method == 'matrix_pass':
-            lst = list(self._e.matrix66[3])
-            lst[0] = -value
-            self._e.matrix66[3] = tuple(lst)
-        else:
-            self._e.polynom_a[1] = value / self._e.length
+        lst = list(self._e.matrix66[3])
+        lst[0] = -value
+        self._e.matrix66[3] = tuple(lst)
 
     @property
     def hkick_polynom(self):
