@@ -516,19 +516,19 @@ class Element(object):
 
     @property
     def Ks(self):
-        return self._e.polynom_a[1]
+        return -self._e.polynom_a[1]
 
     @Ks.setter
     def Ks(self, value):
-        self._e.polynom_a[1] = value
+        self._e.polynom_a[1] = -value
 
     @property
     def KsL(self):
-        return self._e.polynom_a[1] * self._e.length
+        return -self._e.polynom_a[1] * self._e.length
 
     @KsL.setter
     def KsL(self, value):
-        self._e.polynom_a[1] = value / self._e.length
+        self._e.polynom_a[1] = -value / self._e.length
 
     @property
     def KsxL(self):
