@@ -52,6 +52,18 @@ def drift(fam_name, length):
 
 
 @_interactive
+def matrix(fam_name, length):
+    """Create a matrix element.
+
+    Keyword arguments:
+    fam_name -- family name
+    length -- [m]
+    """
+    ele = _trackcpp.matrix_wrapper(fam_name, length)
+    return Element(element=ele)
+
+
+@_interactive
 def hcorrector(fam_name, length=0.0, hkick=0.0):
     """Create a horizontal corrector element.
 
@@ -467,6 +479,38 @@ class Element(object):
         self._e.polynom_b[1] = value / self._e.length
 
     @property
+    def KxL(self):
+        if self.pass_method == 'matrix_pass':
+            return -self._e.matrix66[1][0]
+        else:
+            return self._e.polynom_b[1] * self._e.length
+
+    @KxL.setter
+    def KxL(self, value):
+        if self.pass_method == 'matrix_pass':
+            lst = list(self._e.matrix66[1])
+            lst[0] = -value
+            self._e.matrix66[1] = tuple(lst)
+        else:
+            self._e.polynom_b[1] = value / self._e.length
+
+    @property
+    def KyL(self):
+        if self.pass_method == 'matrix_pass':
+            return -self._e.matrix66[3][2]
+        else:
+            return -self._e.polynom_b[1] * self._e.length
+
+    @KyL.setter
+    def KyL(self, value):
+        if self.pass_method == 'matrix_pass':
+            lst = list(self._e.matrix66[3])
+            lst[2] = -value
+            self._e.matrix66[3] = tuple(lst)
+        else:
+            self._e.polynom_b[1] = -value / self._e.length
+
+    @property
     def S(self):
         return self._e.polynom_b[2]
 
@@ -499,6 +543,38 @@ class Element(object):
         self._e.polynom_a[1] = value / self._e.length
 
     @property
+    def KsxL(self):
+        if self.pass_method == 'matrix_pass':
+            return -self._e.matrix66[1][2]
+        else:
+            return self._e.polynom_a[1] * self._e.length
+
+    @KsxL.setter
+    def KsxL(self, value):
+        if self.pass_method == 'matrix_pass':
+            lst = list(self._e.matrix66[1])
+            lst[2] = -value
+            self._e.matrix66[1] = tuple(lst)
+        else:
+            self._e.polynom_a[1] = value / self._e.length
+
+    @property
+    def KsyL(self):
+        if self.pass_method == 'matrix_pass':
+            return -self._e.matrix66[3][0]
+        else:
+            return self._e.polynom_a[1] * self._e.length
+
+    @KsyL.setter
+    def KsyL(self, value):
+        if self.pass_method == 'matrix_pass':
+            lst = list(self._e.matrix66[3])
+            lst[0] = -value
+            self._e.matrix66[3] = tuple(lst)
+        else:
+            self._e.polynom_a[1] = value / self._e.length
+
+    @property
     def hkick_polynom(self):
         return self._e.polynom_b[0] * (-self._e.length)
 
@@ -529,6 +605,18 @@ class Element(object):
     @polynom_b.setter
     def polynom_b(self, value):
         self._e.polynom_b[:] = value[:]
+
+    @property
+    def matrix66(self):
+        return _numpy.array(self._e.matrix66)
+
+    @matrix66.setter
+    def matrix66(self, value):
+        tups = []
+        for i in range(6):
+            tups.append(tuple(float(value[i][j]) for j in range(6)))
+        for i in range(6):
+            self._e.matrix66[i] = tups[i]
 
     @property
     def t_in(self):
