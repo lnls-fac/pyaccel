@@ -47,8 +47,36 @@ class Polynom(_numpy.ndarray):
             self._polynom[index] = value
         super().__setitem__(index, value)
 
-    def __eq__(self,other):
-        if not isinstance(other,Polynom): return NotImplemented
-        if len(self) != len(other): return False
-        if (self != other).any(): return False
+    def __eq__(self, other):
+        if not isinstance(other, Polynom):
+            return NotImplemented
+        if len(self) != len(other):
+            return False
+        if (self != other).any():
+            return False
         return True
+
+
+# class Matrix(_numpy.ndarray):
+
+#     def __new__(cls, polynom):
+#         shape = (len(polynom), len(polynom[0]))
+#         array = _numpy.ndarray.__new__(cls, shape=shape)
+#         for i, pol in enumerate(polynom):
+#             array[i] = pol[:]
+#         array._polynom = polynom
+#         return array
+
+#     def __setitem__(self, index, value):
+#         if hasattr(self, '_polynom'):
+#             self._polynom[index] = value
+#         super().__setitem__(index, value)
+
+#     def __eq__(self, other):
+#         if not isinstance(other, Polynom):
+#             return NotImplemented
+#         if len(self) != len(other):
+#             return False
+#         if (self != other).any():
+#             return False
+#         return True

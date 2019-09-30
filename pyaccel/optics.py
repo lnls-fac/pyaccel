@@ -274,10 +274,6 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
         else:
             raise OpticsException(
                 'arguments init_twiss and fixed_point are mutually exclusive')
-        r = _trackcpp.calc_twiss(
-            accelerator._accelerator, _fixed_point, _m66, _twiss,
-            _init_twiss, closed_flag)
-
     else:
         # as a periodic system: try to find periodic solution
         if accelerator.harmonic_number == 0:
@@ -310,11 +306,14 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
 
         else:
             _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
-            if energy_offset is not None: _fixed_point.de = energy_offset
+            if energy_offset is not None:
+                _fixed_point.de = energy_offset
 
-        r = _trackcpp.calc_twiss(
-            accelerator._accelerator, _fixed_point, _m66, _twiss)
+        _init_twiss = _trackcpp.Twiss()
 
+    r = _trackcpp.calc_twiss(
+        accelerator._accelerator, _fixed_point, _m66, _twiss,
+        _init_twiss, closed_flag)
     if r > 0:
         raise OpticsException(_trackcpp.string_error_messages[r])
 
@@ -936,6 +935,36 @@ class TwissList(object):
     def etapy(self):
         etapy = _np.array([float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
         return etapy if len(etapy) > 1 else etapy[0]
+
+    @property
+    def rx(self):
+        res = _np.array([float(ptl.co.rx) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def ry(self):
+        res = _np.array([float(ptl.co.ry) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def px(self):
+        res = _np.array([float(ptl.co.px) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def py(self):
+        res = _np.array([float(ptl.co.py) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def de(self):
+        res = _np.array([float(ptl.co.de) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def dl(self):
+        res = _np.array([float(ptl.co.dl) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
 
     @property
     def co(self):

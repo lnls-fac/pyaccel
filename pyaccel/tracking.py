@@ -116,7 +116,10 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
                         ex.3: particles = numpy.zeros((Np,6))
     indices     -- list of indices corresponding to accelerator elements at
                    whose entrances, tracked particles positions are to be
-                   stored; string 'open' corresponds to selecting all elements.
+                   stored; string:
+                   'open': corresponds to selecting all elements.
+                   'closed' : equal 'open' plus the position at the end of the
+                              last element.
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
 
@@ -432,6 +435,8 @@ def find_orbit4(accelerator, energy_offset=0, indices=None,
               closed orbit data is to be returned or a string:
                'open'  : return the closed orbit at the entrance of all
                          elements.
+               'closed' : equal 'open' plus the orbit at the end of the last
+                          element.
               If indices is None the closed orbit is returned only at the
               entrance of the first element.
     fixed_point_guess -- A 6D position where to start the search of the closed
@@ -463,7 +468,7 @@ def find_orbit4(accelerator, energy_offset=0, indices=None,
 
     closed_orbit = _numpy.zeros((len(indices), 4))
     for i, ind in enumerate(indices):
-        closed_orbit[i] = _CppDoublePos24Numpy(_closed_orbit[ind])
+        closed_orbit[i] = _CppDoublePos24Numpy(_closed_orbit[int(ind)])
 
     return closed_orbit.T
 
@@ -483,6 +488,8 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
               closed orbit data is to be returned or a string:
                'open'  : return the closed orbit at the entrance of all
                          elements.
+               'closed' : equal 'open' plus the orbit at the end of the last
+                        element.
              If indices is None the closed orbit is returned only at the
              entrance of the first element.
     fixed_point_guess -- A 6D position where to start the search of the closed
@@ -496,7 +503,7 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     Raises TrackingException
     """
-    indices = _process_indices(accelerator, indices, closed=False)
+    indices = _process_indices(accelerator, indices)
 
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()
@@ -512,7 +519,7 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     closed_orbit = _numpy.zeros((len(indices), 6))
     for i, ind in enumerate(indices):
-        closed_orbit[i] = _CppDoublePos2Numpy(_closed_orbit[ind])
+        closed_orbit[i] = _CppDoublePos2Numpy(_closed_orbit[int(ind)])
 
     return closed_orbit.T
 
@@ -527,6 +534,8 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
               cumul_trans_matrices is to be returned or a string:
                'open' : return the cumul_trans_matrices at the entrance of all
                          elements.
+               'closed' : equal 'open' plus the matrix at the end of the last
+                        element.
                'm66'  : the cumul_trans_matrices is not returned.
               If indices is None the cumul_trans_matrices is not returned.
     closed_orbit
@@ -537,8 +546,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
     """
     if indices == 'm66':
         indices = None
-    indices = _process_indices(
-        accelerator, indices, proc_none=False, closed=False)
+    indices = _process_indices(accelerator, indices, proc_none=False)
 
     if closed_orbit is None:
         # Closed orbit is calculated by trackcpp
@@ -556,7 +564,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
     _m66 = _trackcpp.Matrix()
     _v0 = _trackcpp.CppDoublePos()
     r = _trackcpp.track_findm66(
-        accelerator._accelerator, _closed_orbit, _cumul_trans_matrices,
+        accelerator._accelerator, _closed_orbit[0], _cumul_trans_matrices,
         _m66, _v0)
 
     if r > 0:
@@ -581,6 +589,8 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
               cumul_trans_matrices is to be returned or a string:
                'open' : return the cumul_trans_matrices at the entrance of all
                          elements.
+                'closed' : equal 'open' plus the matrix at the end of the last
+                        element.
                'm44'  : the cumul_trans_matrices is not returned.
               If indices is None the cumul_trans_matrices is not returned.
     energy_offset
@@ -593,7 +603,7 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
     if indices == 'm44':
         indices = None
     indices = _process_indices(
-        accelerator, indices, proc_none=False, closed=False)
+        accelerator, indices, proc_none=False)
 
     if closed_orbit is None:
         # calcs closed orbit if it was not passed.
@@ -613,7 +623,7 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
     _m44 = _trackcpp.Matrix()
     _v0 = _trackcpp.CppDoublePos()
     r = _trackcpp.track_findm66(
-        accelerator._accelerator, _closed_orbit, _cumul_trans_matrices,
+        accelerator._accelerator, _closed_orbit[0], _cumul_trans_matrices,
         _m44, _v0)
 
     if r > 0:
