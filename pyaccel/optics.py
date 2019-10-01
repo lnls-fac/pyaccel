@@ -313,9 +313,12 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
 
     r = _trackcpp.calc_twiss(
         accelerator._accelerator, _fixed_point, _m66, _twiss,
-        _init_twiss, closed_flag)
+        _init_twiss)
     if r > 0:
         raise OpticsException(_trackcpp.string_error_messages[r])
+
+    if not closed_flag:
+        _twiss.pop_back()
 
     twiss = TwissList(_twiss)
     m66 = _tracking._CppMatrix2Numpy(_m66)
