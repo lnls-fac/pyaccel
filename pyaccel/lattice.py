@@ -1,5 +1,6 @@
 
 import math as _math
+from copy import deepcopy as _dcopy
 import numpy as _numpy
 import mathphys as _mp
 import trackcpp as _trackcpp
@@ -133,31 +134,25 @@ def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
     if indices is None:
         indices = range(len(lattice))
 
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, values, isflat = _process_args_errors(indices, 0.0)
 
-    data = []
     if (m is not None) and (n is not None):
-        for segs in indices:
-            for seg in segs:
+        for i, segs in enumerate(indices):
+            for j, seg in enumerate(segs):
                 tdata = getattr(lattice[seg], attribute_name)
-                data.append(tdata[m][n])
+                values[i][j] = tdata[m][n]
     elif (m is not None) and (n is None):
-        for segs in indices:
-            for seg in segs:
+        for i, segs in enumerate(indices):
+            for j, seg in enumerate(segs):
                 tdata = getattr(lattice[seg], attribute_name)
-                data.append(tdata[m])
+                values[i][j] = tdata[m]
     else:
-        # Check whether we have an Accelerator object
-        # if (hasattr(lattice, '_accelerator') and
-        #         hasattr(lattice._accelerator, 'lattice') and
-        #         hasattr(lattice._accelerator.lattice[0], attribute_name)):
-        #     lattice = lattice._accelerator.lattice
-        for segs in indices:
-            for seg in segs:
+        for i, segs in enumerate(indices):
+            for j, seg in enumerate(segs):
                 tdata = getattr(lattice[seg], attribute_name)
-                data.append(tdata)
+                values[i][j] = tdata
 
-    return data
+    return _process_output(values, isflat)
 
 
 @_interactive
@@ -351,18 +346,16 @@ def get_error_misalignment_x(lattice, indices):
     """
 
     # processes arguments
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, _, isflat = _process_args_errors(indices, 0.0)
 
     # loops over elements and gets error from T_IN
     values = []
     for segs in indices:
         # it is possible to also have yaw errors,so:
         misx = -(lattice[segs[0]].t_in[0] - lattice[segs[-1]].t_out[0])/2
-        values.extend(len(segs)*[misx])
+        values.append(len(segs)*[misx])
 
-    if len(values) == 1:
-        return values[0]
-    return values
+    return _process_output(values, isflat)
 
 
 @_interactive
@@ -383,13 +376,13 @@ def set_error_misalignment_x(lattice, indices, values):
     """
 
     ''' processes arguments '''
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its T1 and T2 fields
-    for segs, val in zip(indices, values):
+    for segs, vals in zip(indices, values):
         # it is possible to also have yaw errors, so:
         yaw = (lattice[segs[0]].t_in[0] + lattice[segs[-1]].t_out[0])/2
-        for idx in segs:
+        for idx, val in zip(segs, vals):
             lattice[idx].t_in[0] = yaw - val
             lattice[idx].t_out[0] = yaw + val
 
@@ -412,11 +405,11 @@ def add_error_misalignment_x(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its T1 and T2 fields
-    for segs, val in zip(indices, values):
-        for idx in segs:
+    for segs, vals in zip(indices, values):
+        for idx, val in zip(segs, vals):
             lattice[idx].t_in[0] += -val
             lattice[idx].t_out[0] += val
 
@@ -440,17 +433,15 @@ def get_error_misalignment_y(lattice, indices):
     """
 
     # processes arguments
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, _, isflat = _process_args_errors(indices, 0.0)
 
     # loops over elements and gets error from T_IN
     values = []
     for segs in indices:
         # it is possible to also have pitch errors,so:
         misy = -(lattice[segs[0]].t_in[2] - lattice[segs[-1]].t_out[2])/2
-        values.extend(len(segs)*[misy])
-    if len(values) == 1:
-        return values[0]
-    return values
+        values.append(len(segs)*[misy])
+    return _process_output(values, isflat)
 
 
 @_interactive
@@ -996,18 +987,36 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
 def _process_args_errors(indices, values):
     types = (int, _numpy.int_)
+    isflat = False
     if isinstance(indices, types):
         indices = [[indices]]
     elif len(indices) > 0 and isinstance(indices[0], types):
         indices = [[ind] for ind in indices]
+        isflat = True
 
     types = (int, float, _numpy.int_, _numpy.float_)
     if isinstance(values, types):
-        values = len(indices) * [values]
+        values = [len(ind) * [values] for ind in indices]
     if len(values) != len(indices):
         raise IndexError('length of values differs from length of indices.')
-    return indices, values
 
+    newvalues = []
+    for ind, vals in zip(indices, values):
+        if isinstance(vals, types):
+            vals = len(ind) * [vals]
+        if len(vals) != len(ind):
+            raise IndexError(
+                'length of values differs from length of indices.')
+        newvalues.append(vals)
+    return indices, newvalues, isflat
+
+
+def _process_output(values, isflat):
+    if isflat:
+        values = flatten(values)
+    if len(values) == 1:
+        values = values[0]
+    return values
 
 def _is_equal(a, b):
     # checks for strings
