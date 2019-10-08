@@ -735,6 +735,8 @@ class Element(object):
             r += fmtstr.format('r_in', '6x6 matrix', '')
         if not (self.r_out == _numpy.eye(_NUM_COORDS)).all():
             r += fmtstr.format('r_out', '6x6 matrix', '')
+        if not (self.matrix66 == _numpy.eye(_NUM_COORDS)).all():
+            r += fmtstr.format('matrix66', '6x6 matrix', '')
 
         return r
 
