@@ -517,9 +517,8 @@ def get_error_rotation_roll(lattice, indices):
     # loops over elements and gets error from R_IN
     values = []
     for segs in indices:
-        for idx in segs:
-            angle = _math.asin(lattice[idx].r_in[0, 2])
-            values.append(angle)
+        angle = _math.asin(lattice[segs[0]].r_in[0, 2])
+        values.append(len(segs) * [angle])
     return _process_output(values, isflat)
 
 
@@ -544,11 +543,11 @@ def set_error_rotation_roll(lattice, indices, values):
     indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its R1 and R2 fields
-    for segs, vals in zip(indices, values):
-        for idx, val in zip(segs, vals):
-            cos, sin = _math.cos(val), _math.sin(val)
-            rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
-            rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
+    for segs, val in zip(indices, values):
+        cos, sin = _math.cos(val[0]), _math.sin(val[0])
+        rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
+        rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
+        for idx in segs:
             ele = lattice[idx]
             if ele.angle != 0 and ele.length != 0:
                 rho = ele.length / ele.angle
@@ -585,12 +584,12 @@ def add_error_rotation_roll(lattice, indices, values):
     indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its R1 and R2 fields
-    for segs, vals in zip(indices, values):
+    for segs, val in zip(indices, values):
+        cos, sin = _math.cos(val[0]), _math.sin(val[0])
+        rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
+        rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
 
-        for idx, val in zip(segs, vals):
-            cos, sin = _math.cos(val), _math.sin(val)
-            rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
-            rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
+        for idx in segs:
             ele = lattice[idx]
             if ele.angle != 0 and ele.length != 0:
                 rho = ele.length / ele.angle
@@ -631,7 +630,7 @@ def get_error_rotation_pitch(lattice, indices):
     values = []
     for segs in indices:
         ang = lattice[segs[0]].t_in[3]
-        values.extend(len(segs)*[-ang])
+        values.append(len(segs)*[-ang])
 
     return _process_output(values, isflat)
 
@@ -657,24 +656,23 @@ def set_error_rotation_pitch(lattice, indices, values):
     indices, values, _ = _process_args_errors(indices, values)
 
     # set new values to first T1 and last T2
-    for segs, angs in zip(indices, values):
-        for ang in angs:  # Doubt!!!
-            angy = -ang
-            L = sum([lattice[ii].length for ii in segs])
-            # It is possible that there is a misalignment error, so:
-            misy = (lattice[segs[0]].t_in[2] - lattice[segs[-1]].t_out[2])/2
+    for segs, ang in zip(indices, values):
+        angy = -ang[0]
+        L = sum([lattice[ii].length for ii in segs])
+        # It is possible that there is a misalignment error, so:
+        misy = (lattice[segs[0]].t_in[2] - lattice[segs[-1]].t_out[2])/2
 
-            # correction of the path length
-            old_angx = lattice[segs[0]].t_in[1]
-            path = -(L/2)*(angy*angy + old_angx*old_angx)
+        # correction of the path length
+        old_angx = lattice[segs[0]].t_in[1]
+        path = -(L/2)*(angy*angy + old_angx*old_angx)
 
-            # Apply the errors only to the entrance of the first and exit of the
-            # last segment:
-            lattice[segs[0]].t_in[2] = -(L/2)*angy + misy
-            lattice[segs[-1]].t_out[2] = -(L/2)*angy - misy
-            lattice[segs[0]].t_in[3] = angy
-            lattice[segs[-1]].t_out[3] = -angy
-            lattice[segs[-1]].t_out[5] = path
+        # Apply the errors only to the entrance of the first and exit of the
+        # last segment:
+        lattice[segs[0]].t_in[2] = -(L/2)*angy + misy
+        lattice[segs[-1]].t_out[2] = -(L/2)*angy - misy
+        lattice[segs[0]].t_in[3] = angy
+        lattice[segs[-1]].t_out[3] = -angy
+        lattice[segs[-1]].t_out[5] = path
 
 
 @_interactive
@@ -698,20 +696,19 @@ def add_error_rotation_pitch(lattice, indices, values):
     indices, values, _ = _process_args_errors(indices, values)
 
     # set new values to first T1 and last T2. Uses small angle approximation
-    for segs, angs in zip(indices, values):
-        for ang in angs:  # Doubt!!!
-            angy = -ang
-            L = sum([lattice[ii].length for ii in segs])
+    for segs, ang in zip(indices, values):
+        angy = -ang[0]
+        L = sum([lattice[ii].length for ii in segs])
 
-            # correction of the path length
-            old_angy = lattice[segs[0]].t_in[3]
-            path = -(L/2)*((angy+old_angy)*(angy+old_angy) - old_angy*old_angy)
+        # correction of the path length
+        old_angy = lattice[segs[0]].t_in[3]
+        path = -(L/2)*((angy+old_angy)*(angy+old_angy) - old_angy*old_angy)
 
-            # Apply the errors only to the entrance of the first and exit of the
-            # last segment:
-            lattice[segs[0]].t_in += _numpy.array([0, 0, -(L/2)*angy, angy, 0, 0])
-            lattice[segs[-1]].t_out += _numpy.array(
-                [0, 0, -(L/2)*angy, -angy, 0, path])
+        # Apply the errors only to the entrance of the first and exit of the
+        # last segment:
+        lattice[segs[0]].t_in += _numpy.array([0, 0, -(L/2)*angy, angy, 0, 0])
+        lattice[segs[-1]].t_out += _numpy.array(
+            [0, 0, -(L/2)*angy, -angy, 0, path])
 
 
 @_interactive
@@ -739,8 +736,7 @@ def get_error_rotation_yaw(lattice, indices):
     values = []
     for segs in indices:
         ang = lattice[segs[0]].t_in[1]
-        values.extend(len(segs)*[-ang])
-
+        values.append(len(segs)*[-ang])
     return _process_output(values, isflat)
 
 
@@ -764,24 +760,23 @@ def set_error_rotation_yaw(lattice, indices, values):
     indices, values, _ = _process_args_errors(indices, values)
 
     # set new values to first T1 and last T2
-    for segs, angs in zip(indices, values):
-        for ang in angs:
-            angx = -ang
-            L = sum([lattice[ii].length for ii in segs])
-            # It is possible that there is a misalignment error, so:
-            misx = (lattice[segs[0]].t_in[0] - lattice[segs[-1]].t_out[0])/2
+    for segs, ang in zip(indices, values):
+        angx = -ang[0]
+        L = sum([lattice[ii].length for ii in segs])
+        # It is possible that there is a misalignment error, so:
+        misx = (lattice[segs[0]].t_in[0] - lattice[segs[-1]].t_out[0])/2
 
-            # correction of the path length
-            old_angy = lattice[segs[0]].t_in[3]
-            path = -(L/2)*(angx*angx + old_angy*old_angy)
+        # correction of the path length
+        old_angy = lattice[segs[0]].t_in[3]
+        path = -(L/2)*(angx*angx + old_angy*old_angy)
 
-            # Apply the errors only to the entrance of the first and exit of the
-            # last segment:
-            lattice[segs[0]].t_in[0] = -(L/2)*angx+misx
-            lattice[segs[-1]].t_out[0] = -(L/2)*angx-misx
-            lattice[segs[0]].t_in[1] = angx
-            lattice[segs[-1]].t_out[1] = -angx
-            lattice[segs[-1]].t_out[5] = path
+        # Apply the errors only to the entrance of the first and exit of the
+        # last segment:
+        lattice[segs[0]].t_in[0] = -(L/2)*angx+misx
+        lattice[segs[-1]].t_out[0] = -(L/2)*angx-misx
+        lattice[segs[0]].t_in[1] = angx
+        lattice[segs[-1]].t_out[1] = -angx
+        lattice[segs[-1]].t_out[5] = path
 
 
 @_interactive
@@ -805,20 +800,19 @@ def add_error_rotation_yaw(lattice, indices, values):
     indices, values, _ = _process_args_errors(indices, values)
 
     # set new values to first T1 and last T2. Uses small angle approximation
-    for segs, angs in zip(indices, values):
-        for ang in angs:
-            angx = -ang
-            L = sum([lattice[ii].length for ii in segs])
+    for segs, ang in zip(indices, values):
+        angx = -ang[0]
+        L = sum([lattice[ii].length for ii in segs])
 
-            # correction of the path length
-            old_angx = lattice[segs[0]].t_in[1]
-            path = -(L/2)*((angx+old_angx)*(angx+old_angx) - old_angx*old_angx)
+        # correction of the path length
+        old_angx = lattice[segs[0]].t_in[1]
+        path = -(L/2)*((angx+old_angx)*(angx+old_angx) - old_angx*old_angx)
 
-            # Apply the errors only to the entrance of the first and exit of the
-            # last segment:
-            lattice[segs[0]].t_in += _numpy.array([-(L/2)*angx, angx, 0, 0, 0, 0])
-            lattice[segs[-1]].t_out += _numpy.array(
-                [-(L/2)*angx, -angx, 0, 0, 0, path])
+        # Apply the errors only to the entrance of the first and exit of the
+        # last segment:
+        lattice[segs[0]].t_in += _numpy.array([-(L/2)*angx, angx, 0, 0, 0, 0])
+        lattice[segs[-1]].t_out += _numpy.array(
+            [-(L/2)*angx, -angx, 0, 0, 0, path])
 
 
 @_interactive
