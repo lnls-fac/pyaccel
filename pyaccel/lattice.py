@@ -1,5 +1,7 @@
 
 import math as _math
+from collections.abc import Iterable
+from copy import deepcopy as _dcopy
 import numpy as _numpy
 import mathphys as _mp
 import trackcpp as _trackcpp
@@ -14,14 +16,13 @@ class LatticeError(Exception):
 @_interactive
 def flatten(elist):
     """Take a list-of-list-of-... elements and flattens it:
-            a simple list of lattice elements"""
+            a simple list of elements"""
     flat_elist = []
     for element in elist:
-        try:
-            element.fam_name
-            flat_elist.append(element)
-        except:
+        if isinstance(element, Iterable):
             flat_elist.extend(flatten(element))
+        else:
+            flat_elist.append(element)
     return flat_elist
 
 
@@ -115,15 +116,8 @@ def find_indices(lattice, attribute_name, value, comparison=None):
     indices = []
     for i, ele in enumerate(lattice):
         attrib = getattr(ele, attribute_name)
-        try:
-            boo = comparison(attrib, value)
-            if not isinstance(boo, (_numpy.bool_, bool)):
-                raise TypeError
-            if boo:
-                indices.append(i)
-        except TypeError:
-            raise TypeError(
-                'Comparison must take two arguments and return boolean.')
+        if comparison(attrib, value):
+            indices.append(i)
     return indices
 
 
@@ -133,53 +127,47 @@ def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
     if indices is None:
         indices = range(len(lattice))
 
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, values, isflat = _process_args_errors(indices, 0.0)
 
-    data = []
     if (m is not None) and (n is not None):
-        for segs in indices:
-            for seg in segs:
+        for i, segs in enumerate(indices):
+            for j, seg in enumerate(segs):
                 tdata = getattr(lattice[seg], attribute_name)
-                data.append(tdata[m][n])
+                values[i][j] = tdata[m][n]
     elif (m is not None) and (n is None):
-        for segs in indices:
-            for seg in segs:
+        for i, segs in enumerate(indices):
+            for j, seg in enumerate(segs):
                 tdata = getattr(lattice[seg], attribute_name)
-                data.append(tdata[m])
+                values[i][j] = tdata[m]
     else:
-        # Check whether we have an Accelerator object
-        # if (hasattr(lattice, '_accelerator') and
-        #         hasattr(lattice._accelerator, 'lattice') and
-        #         hasattr(lattice._accelerator.lattice[0], attribute_name)):
-        #     lattice = lattice._accelerator.lattice
-        for segs in indices:
-            for seg in segs:
+        for i, segs in enumerate(indices):
+            for j, seg in enumerate(segs):
                 tdata = getattr(lattice[seg], attribute_name)
-                data.append(tdata)
+                values[i][j] = tdata
 
-    return data
+    return _process_output(values, isflat)
 
 
 @_interactive
 def set_attribute(lattice, attribute_name, indices, values, m=None, n=None):
     """Set elements data."""
 
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     if (m is not None) and (n is not None):
-        for idx, segs in enumerate(indices):
-            for seg in segs:
+        for segs, vals in zip(indices, values):
+            for seg, val in zip(segs, vals):
                 tdata = getattr(lattice[seg], attribute_name)
-                tdata[m][n] = values[idx]
+                tdata[m][n] = val
     elif (m is not None) and (n is None):
-        for idx, segs in enumerate(indices):
-            for seg in segs:
+        for segs, vals in zip(indices, values):
+            for seg, val in zip(segs, val):
                 tdata = getattr(lattice[seg], attribute_name)
-                tdata[m] = values[idx]
+                tdata[m] = val
     else:
-        for idx, segs in enumerate(indices):
-            for seg in segs:
-                setattr(lattice[seg], attribute_name, values[idx])
+        for segs, vals in zip(indices, values):
+            for seg, val in zip(segs, vals):
+                setattr(lattice[seg], attribute_name, val)
 
 
 @_interactive
@@ -351,18 +339,16 @@ def get_error_misalignment_x(lattice, indices):
     """
 
     # processes arguments
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, _, isflat = _process_args_errors(indices, 0.0)
 
     # loops over elements and gets error from T_IN
     values = []
     for segs in indices:
         # it is possible to also have yaw errors,so:
         misx = -(lattice[segs[0]].t_in[0] - lattice[segs[-1]].t_out[0])/2
-        values.extend(len(segs)*[misx])
+        values.append(len(segs)*[misx])
 
-    if len(values) == 1:
-        return values[0]
-    return values
+    return _process_output(values, isflat)
 
 
 @_interactive
@@ -383,13 +369,13 @@ def set_error_misalignment_x(lattice, indices, values):
     """
 
     ''' processes arguments '''
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its T1 and T2 fields
-    for segs, val in zip(indices, values):
+    for segs, vals in zip(indices, values):
         # it is possible to also have yaw errors, so:
         yaw = (lattice[segs[0]].t_in[0] + lattice[segs[-1]].t_out[0])/2
-        for idx in segs:
+        for idx, val in zip(segs, vals):
             lattice[idx].t_in[0] = yaw - val
             lattice[idx].t_out[0] = yaw + val
 
@@ -412,11 +398,11 @@ def add_error_misalignment_x(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its T1 and T2 fields
-    for segs, val in zip(indices, values):
-        for idx in segs:
+    for segs, vals in zip(indices, values):
+        for idx, val in zip(segs, vals):
             lattice[idx].t_in[0] += -val
             lattice[idx].t_out[0] += val
 
@@ -440,17 +426,15 @@ def get_error_misalignment_y(lattice, indices):
     """
 
     # processes arguments
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, _, isflat = _process_args_errors(indices, 0.0)
 
     # loops over elements and gets error from T_IN
     values = []
     for segs in indices:
         # it is possible to also have pitch errors,so:
         misy = -(lattice[segs[0]].t_in[2] - lattice[segs[-1]].t_out[2])/2
-        values.extend(len(segs)*[misy])
-    if len(values) == 1:
-        return values[0]
-    return values
+        values.append(len(segs)*[misy])
+    return _process_output(values, isflat)
 
 
 @_interactive
@@ -471,13 +455,13 @@ def set_error_misalignment_y(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its T1 and T2 fields
-    for segs, val in zip(indices, values):
+    for segs, vals in zip(indices, values):
         # it is possible to also have yaw errors, so:
         pitch = (lattice[segs[0]].t_in[2] + lattice[segs[-1]].t_out[2])/2
-        for idx in segs:
+        for idx, val in zip(segs, vals):
             lattice[idx].t_in[2] = pitch - val
             lattice[idx].t_out[2] = pitch + val
 
@@ -500,11 +484,11 @@ def add_error_misalignment_y(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its T1 and T2 fields
-    for segs, val in zip(indices, values):
-        for idx in segs:
+    for segs, vals in zip(indices, values):
+        for idx, val in zip(segs, vals):
             lattice[idx].t_in[2] += -val
             lattice[idx].t_out[2] += val
 
@@ -528,17 +512,14 @@ def get_error_rotation_roll(lattice, indices):
     """
 
     #  processes arguments
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, _, isflat = _process_args_errors(indices, 0.0)
 
     # loops over elements and gets error from R_IN
     values = []
     for segs in indices:
-        for idx in segs:
-            angle = _math.asin(lattice[idx].r_in[0, 2])
-            values.append(angle)
-    if len(values) == 1:
-        return values[0]
-    return values
+        angle = _math.asin(lattice[segs[0]].r_in[0, 2])
+        values.append(len(segs) * [angle])
+    return _process_output(values, isflat)
 
 
 @_interactive
@@ -559,14 +540,13 @@ def set_error_rotation_roll(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its R1 and R2 fields
     for segs, val in zip(indices, values):
-        cos, sin = _math.cos(val), _math.sin(val)
+        cos, sin = _math.cos(val[0]), _math.sin(val[0])
         rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
         rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
-
         for idx in segs:
             ele = lattice[idx]
             if ele.angle != 0 and ele.length != 0:
@@ -601,11 +581,11 @@ def add_error_rotation_roll(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its R1 and R2 fields
     for segs, val in zip(indices, values):
-        cos, sin = _math.cos(val), _math.sin(val)
+        cos, sin = _math.cos(val[0]), _math.sin(val[0])
         rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
         rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
 
@@ -644,17 +624,15 @@ def get_error_rotation_pitch(lattice, indices):
     """
 
     # processes arguments
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, _, isflat = _process_args_errors(indices, 0.0)
 
     # loops over elements and gets error from T_IN
     values = []
     for segs in indices:
         ang = lattice[segs[0]].t_in[3]
-        values.extend(len(segs)*[-ang])
+        values.append(len(segs)*[-ang])
 
-    if len(values) == 1:
-        return values[0]
-    return values
+    return _process_output(values, isflat)
 
 
 @_interactive
@@ -675,11 +653,11 @@ def set_error_rotation_pitch(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # set new values to first T1 and last T2
     for segs, ang in zip(indices, values):
-        angy = -ang
+        angy = -ang[0]
         L = sum([lattice[ii].length for ii in segs])
         # It is possible that there is a misalignment error, so:
         misy = (lattice[segs[0]].t_in[2] - lattice[segs[-1]].t_out[2])/2
@@ -715,11 +693,11 @@ def add_error_rotation_pitch(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # set new values to first T1 and last T2. Uses small angle approximation
     for segs, ang in zip(indices, values):
-        angy = -ang
+        angy = -ang[0]
         L = sum([lattice[ii].length for ii in segs])
 
         # correction of the path length
@@ -752,17 +730,14 @@ def get_error_rotation_yaw(lattice, indices):
     """
 
     # processes arguments
-    indices, *_ = _process_args_errors(indices, 0.0)
+    indices, _, isflat = _process_args_errors(indices, 0.0)
 
     # loops over elements and gets error from T_IN
     values = []
     for segs in indices:
         ang = lattice[segs[0]].t_in[1]
-        values.extend(len(segs)*[-ang])
-
-    if len(values) == 1:
-        return values[0]
-    return values
+        values.append(len(segs)*[-ang])
+    return _process_output(values, isflat)
 
 
 @_interactive
@@ -782,11 +757,11 @@ def set_error_rotation_yaw(lattice, indices, values):
         with the same length as indices. Unit [rad]
     """
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # set new values to first T1 and last T2
     for segs, ang in zip(indices, values):
-        angx = -ang
+        angx = -ang[0]
         L = sum([lattice[ii].length for ii in segs])
         # It is possible that there is a misalignment error, so:
         misx = (lattice[segs[0]].t_in[0] - lattice[segs[-1]].t_out[0])/2
@@ -822,11 +797,11 @@ def add_error_rotation_yaw(lattice, indices, values):
     """
 
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
     # set new values to first T1 and last T2. Uses small angle approximation
     for segs, ang in zip(indices, values):
-        angx = -ang
+        angx = -ang[0]
         L = sum([lattice[ii].length for ii in segs])
 
         # correction of the path length
@@ -857,10 +832,10 @@ def add_error_excitation_main(lattice, indices, values):
         with the same length as indices. Unit: Relative value
     """
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
-    for segs, error in zip(indices, values):
-        for idx in segs:
+    for segs, errors in zip(indices, values):
+        for idx, error in zip(segs, errors):
             ele = lattice[idx]
             if ele.angle != 0:
                 rho = ele.length / ele.angle
@@ -892,10 +867,10 @@ def add_error_excitation_kdip(lattice, indices, values):
         with the same length as indices.
     """
     # processes arguments
-    indices, values = _process_args_errors(indices, values)
+    indices, values, _ = _process_args_errors(indices, values)
 
-    for segs, error in zip(indices, values):
-        for idx in segs:
+    for segs, errors in zip(indices, values):
+        for idx, error in zip(segs, errors):
             ele = lattice[idx]
             if ele.angle == 0:
                 raise TypeError(
@@ -996,17 +971,36 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
 def _process_args_errors(indices, values):
     types = (int, _numpy.int_)
+    isflat = False
     if isinstance(indices, types):
         indices = [[indices]]
     elif len(indices) > 0 and isinstance(indices[0], types):
         indices = [[ind] for ind in indices]
+        isflat = True
 
     types = (int, float, _numpy.int_, _numpy.float_)
     if isinstance(values, types):
-        values = len(indices) * [values]
+        values = [len(ind) * [values] for ind in indices]
     if len(values) != len(indices):
         raise IndexError('length of values differs from length of indices.')
-    return indices, values
+
+    newvalues = []
+    for ind, vals in zip(indices, values):
+        if isinstance(vals, types):
+            vals = len(ind) * [vals]
+        if len(vals) != len(ind):
+            raise IndexError(
+                'length of values differs from length of indices.')
+        newvalues.append(vals)
+    return indices, newvalues, isflat
+
+
+def _process_output(values, isflat):
+    if isflat:
+        values = flatten(values)
+    if len(values) == 1:
+        values = values[0]
+    return values
 
 
 def _is_equal(a, b):
