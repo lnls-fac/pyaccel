@@ -55,7 +55,7 @@ def shift(lattice, start):
 
 @_interactive
 def length(lattice):
-    return sum([e.length for e in lattice])
+    return sum(map(lambda x: x.length, lattice))
 
 
 @_interactive
@@ -78,13 +78,12 @@ def find_spos(lattice, indices='open'):
             return pos
         else:
             raise TypeError('indices string not supported')
+    elif isinstance(indices, (int, _numpy.ndarray, list)):
+        return pos[indices]
+    elif isinstance(indices, tuple):
+        return pos[list(indices)]
     else:
-        if isinstance(indices, int):
-            return pos[indices]
-        elif isinstance(indices, (list, tuple)):
-            return pos[list(indices)]
-        else:
-            raise TypeError('indices type not supported')
+        raise TypeError('indices type not supported')
 
 
 @_interactive
