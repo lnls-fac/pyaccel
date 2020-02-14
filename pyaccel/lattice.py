@@ -19,7 +19,7 @@ def flatten(elist):
             a simple list of elements"""
     flat_elist = []
     for element in elist:
-        if isinstance(element, Iterable):
+        if isinstance(element, Iterable) and not isinstance(element, str):
             flat_elist.extend(flatten(element))
         else:
             flat_elist.append(element)
