@@ -52,13 +52,13 @@ def lifetime(model, Vx, Vy, spread, P, I, n_bunches, emit, sig_S, acoplamento, a
     sig      = pyaccel.optics.get_beam_size(model)
     eta_x    = twiss.etax
     
-    tau_es = elastic(Vx, Vy, Bx, By)
+    tau_es = elastic(Vx, Vy, Bx, By, c, qe, epsilon0, Kb, Z, E0, T, P)/3600
 
-    tau_is = inelastic(accep, P)
+    tau_is = inelastic(accep, P)/3600
 
-    tau_T = Touschek (emit, acoplamento, Bx, By, eta_x, spread, sig_S, Ib)
+    tau_T = Touschek (emit, acoplamento, Bx, By, eta_x, spread, accep, sig_S, Ib, T_rev, qe, r0, c, gamma)/3600
 
-    tau = ((1/tau_es+1/tau_is+1/tau_T)**-1)/3600
+    tau = ((1/tau_es+1/tau_is+1/tau_T)**-1)
 
     return tau_es, tau_is, tau_T, tau 
 
@@ -94,7 +94,7 @@ def elastic(Vx, Vy, Bx, By, c, qe, epsilon0, Kb, Z, E0, T, P):
     print(2*math.pi/F[5])
     inv_es = Const*Z**2/(E0**2)/T/theta_y**2*F*P
 
-    return inv_es**-1
+    return inv_es[0]**-1
     
 def inelastic(accep, P):
 
@@ -104,7 +104,7 @@ def inelastic(accep, P):
 
     return inv_is**-1
 
-def Touschek(emit, acoplamento, Bx, By, eta_x, spread, sig_S, Ib, T_rev, qe, r0, c, gamma):
+def Touschek(emit, acoplamento, Bx, By, eta_x, spread, accep, sig_S, Ib, T_rev, qe, r0, c, gamma):
 
     #Calcula Touschek
     Dp = 1e-1
@@ -118,7 +118,7 @@ def Touschek(emit, acoplamento, Bx, By, eta_x, spread, sig_S, Ib, T_rev, qe, r0,
     N = Ib * T_rev / qe 
     inv_T = (r0**2*c/8/math.pi)*N/gamma**2/ accep**3 * Dp / V
 
-    return (inv_T)**-1
+    return (inv_T[0])**-1
 
 
 
