@@ -2,6 +2,7 @@ import pyaccel
 import pymodels
 
 import numpy as np
+from scipy import fixed_quad
 import math
 
 #Life time calculations
@@ -17,6 +18,7 @@ natural_emit = 0.25e-9 # m rad
 bunch_lengh = 2.3e-3 #m
 coupling = 0.01
 energy_accep = 0.03
+ring_loc = 0
 
 
 
@@ -94,7 +96,7 @@ def elastic(Vx, Vy, Bx, By, c, qe, epsilon0, Kb, Z, E0, T, P):
     print(2*math.pi/F[5])
     inv_es = Const*Z**2/(E0**2)/T/theta_y**2*F*P
 
-    return inv_es[0]**-1
+    return inv_es[ring_loc]**-1
     
 def inelastic(accep, P):
 
@@ -111,16 +113,24 @@ def Touschek(emit, acoplamento, Bx, By, eta_x, spread, accep, sig_S, Ib, T_rev, 
     emitx = emit*(1-acoplamento)
     emity = emit*acoplamento
     V = np.zeros(len(Bx))
+    sigx = np.zeros(len(Bx))
     for i in range (len(Bx)):
-        sigx = math.sqrt(emitx*Bx[i]+(eta_x[i]*spread)**2)
+        sigx[i] = math.sqrt(emitx*Bx[i]+(eta_x[i]*spread)**2)
         sigy = math.sqrt(emity*By[i])
-        V[i] = sig_S * sigx * sigy
+        V[i] = sig_S * sigx[i] * sigy
     N = Ib * T_rev / qe 
     inv_T = (r0**2*c/8/math.pi)*N/gamma**2/ accep**3 * Dp / V
 
-    return (inv_T[0])**-1
+    return (inv_T[ring_loc])**-1
 
-
+def Calc_D(accep, sigx,gamma):
+    eps = (accep/(sigx*gamma))**2
+    f1 = math.exp(-x)*math.log(x)/x
+    f2 = math.exp(-x)/x
+    I1 = fixed_quad(f1, eps, 100*eps)
+    I2 = fixed_quad(f2, eps, 100*eps)
+    D = math.sqrt(eps)(-3*math.exp(-eps)/2+eps*I1/2+(3*eps-eps*math.log(eps)+2)*I2
+    return D
 
 tau = lifetime(model, abertura_x, abertura_y, energy_spread, vac, I, n_bunches, natural_emit, bunch_lengh, coupling, energy_accep)
 
