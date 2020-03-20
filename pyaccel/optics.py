@@ -327,7 +327,10 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
 
 
 @_interactive
-def calc_emittance_coupling(accelerator):
+def calc_emittance_coupling(accelerator,
+                            mode='fitting',
+                            x0=1e-5, y0=1e-8,
+                            nr_turns=100):
     # I copied the code below from:
     # http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
     def fitEllipse(x, y):
@@ -349,20 +352,44 @@ def calc_emittance_coupling(accelerator):
         res2 = _np.sqrt(up/down2)
         return _np.array([res1, res2])  # returns the axes of the ellipse
 
+    def calc_emittances(orbit, twiss, idx=0):
+        alphax = twiss.alphax[idx]
+        betax = twiss.betax[idx]
+        gammax = (1 + alphax*alphax)/betax
+
+        alphay = twiss.alphay[idx]
+        betay = twiss.betay[idx]
+        gammay = (1 + alphay*alphay)/betay
+
+        x, xl, y, yl = orbit[0, :], orbit[1, :], orbit[2, :], orbit[3, :]
+
+        emitx = gammax * x**2 + 2 * alphax * x * xl + betax * xl**2
+        emity = gammay * y**2 + 2 * alphay * y * yl + betay * yl**2
+        return _np.mean(emitx), _np.mean(emity)
+
     acc = accelerator[:]
     acc.cavity_on = False
     acc.radiation_on = False
 
     orb = _tracking.find_orbit4(acc)
     rin = _np.array(
-        [2e-5+orb[0], 0+orb[1], 1e-8+orb[2], 0+orb[3], 0, 0], dtype=float)
+            [x0+orb[0], 0+orb[1], y0+orb[2], 0+orb[3], 0, 0], dtype=float)
     rout, *_ = _tracking.ring_pass(
-        acc, rin, nr_turns=100, turn_by_turn='closed', element_offset=0)
-    r = _np.dstack([rin[None, :, None], rout])
-    ax, bx = fitEllipse(r[0][0], r[0][1])
-    ay, by = fitEllipse(r[0][2], r[0][3])
-    return (ay*by) / (ax*bx)  # ey/ex
+        acc, rin, nr_turns=nr_turns, turn_by_turn='closed', element_offset=0)
 
+    if mode == 'fitting':
+        r = _np.dstack([rin[None, :, None], rout])
+        ax, bx = fitEllipse(r[0][0], r[0][1])
+        ay, by = fitEllipse(r[0][2], r[0][3])
+        emitx = ax * bx
+        emity = ay * by
+    elif mode == 'twiss':
+        twiss, *_ = calc_twiss(acc)
+        dr = rout[0, :, :] - _np.vstack((orb, _np.array([[0], [0]])))
+        emitx, emity = calc_emittances(dr, twiss)
+    else:
+        raise Exception('Invalid mode, set fitting or twiss')
+    return emity / emitx
 
 @_interactive
 def get_rf_frequency(accelerator):
