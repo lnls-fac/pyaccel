@@ -345,12 +345,14 @@ def calc_emittance_coupling(accelerator,
         n = _np.argmax(_np.abs(E))
         a = V[:, n]
         b, c, d, f, g, a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
-        up = 2*(a*f*f + c*d*d + g*b*b - 2*b*d*f - a*c*g)
-        down1 = (b*b-a*c) * ((c-a) * _np.sqrt(1 + 4*b*b / ((a-c)*(a-c)))-(c+a))
-        down2 = (b*b-a*c) * ((a-c) * _np.sqrt(1 + 4*b*b / ((a-c)*(a-c)))-(c+a))
-        res1 = _np.sqrt(up/down1)
-        res2 = _np.sqrt(up/down2)
-        return _np.array([res1, res2])  # returns the axes of the ellipse
+        numerator = 2*(a*f*f + c*d*d + g*b*b - 2*b*d*f - a*c*g)
+        denominator1 = (b*b-a*c) * ((c-a) * _np.sqrt(
+            1 + 4*b*b / ((a-c)*(a-c)))-(c+a))
+        denominator2 = (b*b-a*c) * ((a-c) * _np.sqrt(
+            1 + 4*b*b / ((a-c)*(a-c)))-(c+a))
+        axis1 = _np.sqrt(numerator/denominator1)
+        axis2 = _np.sqrt(numerator/denominator2)
+        return _np.array([axis1, axis2])  # returns the axes of the ellipse
 
     def calc_emittances(orbit, twiss, idx=0):
         alphax = twiss.alphax[idx]
