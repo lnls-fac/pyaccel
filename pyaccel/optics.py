@@ -331,8 +331,10 @@ def calc_emittance_coupling(accelerator,
                             mode='fitting',
                             x0=1e-5, y0=1e-8,
                             nr_turns=100):
-    # I copied the code below from:
+    # Code copied from:
     # http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
+    # In order to check the nomenclature used, please go to:
+    # https://mathworld.wolfram.com/Ellipse.html
     def fitEllipse(x, y):
         x = x[:, _np.newaxis]
         y = y[:, _np.newaxis]
