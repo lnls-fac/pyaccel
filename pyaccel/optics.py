@@ -448,7 +448,7 @@ def get_traces(accelerator=None,
             raise Exception('Set valid dimension: 4D or 6D')
     trace_x = m1turn[0, 0] + m1turn[1, 1]
     trace_y = m1turn[2, 2] + m1turn[3, 3]
-    trace_z = 0
+    trace_z = 2
     if dim == '6D':
         trace_z = m1turn[4, 4] + m1turn[5, 5]
     return trace_x, trace_y, trace_z, m1turn, closed_orbit
