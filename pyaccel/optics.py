@@ -463,8 +463,17 @@ def get_frac_tunes(accelerator=None, m66=None, closed_orbit=None,
 
 
 @_interactive
-def get_chromaticities(accelerator):
-    raise OpticsException('not implemented')
+def get_chromaticities(accelerator, energy_offset=1e-6):
+    acc = accelerator[:]
+    acc.cavity_on = True
+    acc.radiation_on = True
+    cod = _tracking.find_orbit6(acc)
+    nux, nuy, *_ = get_frac_tunes(acc, closed_orbit=cod)
+    cod[4] += energy_offset
+    nux_den, nuy_den, *_ = get_frac_tunes(acc, closed_orbit=cod)
+    chromx = (nux_den - nux)/energy_offset
+    chromy = (nuy_den - nuy)/energy_offset
+    return chromx, chromy
 
 
 @_interactive
