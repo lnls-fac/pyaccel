@@ -441,9 +441,11 @@ def get_traces(accelerator=None,
             m1turn = _tracking.find_m44(
                 accelerator, indices='m44', energy_offset=energy_offset,
                 closed_orbit=closed_orbit)
-        else:
+        elif dim == '6D':
             m1turn = _tracking.find_m66(
                 accelerator, indices='m66', closed_orbit=closed_orbit)
+        else:
+            raise Exception('Set valid dimension: 4D or 6D')
     trace_x = m1turn[0, 0] + m1turn[1, 1]
     trace_y = m1turn[2, 2] + m1turn[3, 3]
     trace_z = 0
