@@ -432,39 +432,64 @@ def get_revolution_frequency(accelerator):
 
 
 @_interactive
-def get_traces(accelerator=None, m66=None, closed_orbit=None):
+def get_traces(accelerator=None,
+               m1turn=None, closed_orbit=None, dim='6D',
+               energy_offset=0.0):
     """Return traces of 6D one-turn transfer matrix"""
-    if m66 is None:
-        m66 = _tracking.find_m66(
-            accelerator, indices='m66', closed_orbit=closed_orbit)
-    trace_x = m66[0, 0] + m66[1, 1]
-    trace_y = m66[2, 2] + m66[3, 3]
-    trace_z = m66[4, 4] + m66[5, 5]
-    return trace_x, trace_y, trace_z, m66, closed_orbit
+    if m1turn is None:
+        if dim == '4D':
+            m1turn = _tracking.find_m44(
+                accelerator, indices='m44', energy_offset=energy_offset,
+                closed_orbit=closed_orbit)
+        elif dim == '6D':
+            m1turn = _tracking.find_m66(
+                accelerator, indices='m66', closed_orbit=closed_orbit)
+        else:
+            raise Exception('Set valid dimension: 4D or 6D')
+    trace_x = m1turn[0, 0] + m1turn[1, 1]
+    trace_y = m1turn[2, 2] + m1turn[3, 3]
+    trace_z = 2
+    if dim == '6D':
+        trace_z = m1turn[4, 4] + m1turn[5, 5]
+    return trace_x, trace_y, trace_z, m1turn, closed_orbit
 
 
 @_interactive
-def get_frac_tunes(accelerator=None, m66=None, closed_orbit=None,
-                   coupled=False):
+def get_frac_tunes(accelerator=None, m1turn=None, dim='6D', closed_orbit=None,
+                   energy_offset=0.0, coupled=False):
     """Return fractional tunes of the accelerator"""
 
-    trace_x, trace_y, trace_z, m66, closed_orbit = get_traces(
-        accelerator, m66=m66, closed_orbit=closed_orbit)
+    trace_x, trace_y, trace_z, m1turn, closed_orbit = get_traces(
+        accelerator, m1turn=m1turn, dim=dim, closed_orbit=closed_orbit,
+        energy_offset=energy_offset)
     tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
     tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
     tune_z = _math.acos(trace_z/2.0)/2.0/_math.pi
     if coupled:
-        tunes = _np.log(_np.linalg.eigvals(m66))/2.0/_math.pi/1j
+        tunes = _np.log(_np.linalg.eigvals(m1turn))/2.0/_math.pi/1j
         tune_x = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_x)))]
         tune_y = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_y)))]
         tune_z = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_z)))]
 
-    return tune_x, tune_y, tune_z, trace_x, trace_y, trace_z, m66, closed_orbit
+    return tune_x, tune_y, tune_z, trace_x, trace_y, trace_z, m1turn, closed_orbit
 
 
 @_interactive
-def get_chromaticities(accelerator):
-    raise OpticsException('not implemented')
+def get_chromaticities(accelerator, energy_offset=1e-6):
+    cav_on = accelerator.cavity_on
+    rad_on = accelerator.radiation_on
+    accelerator.radiation_on = False
+    accelerator.cavity_on = False
+
+    nux, nuy, *_ = get_frac_tunes(accelerator, dim='4D', energy_offset=0.0)
+    nux_den, nuy_den, *_ = get_frac_tunes(
+        accelerator, dim='4D', energy_offset=energy_offset)
+    chromx = (nux_den - nux)/energy_offset
+    chromy = (nuy_den - nuy)/energy_offset
+
+    accelerator.cavity_on = cav_on
+    accelerator.radiation_on = rad_on
+    return chromx, chromy
 
 
 @_interactive
