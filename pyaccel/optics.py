@@ -581,37 +581,20 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None,
 
     # calcs acceptance with beta at entrance of elements
     betax_sqrt, betay_sqrt = _np.sqrt(betax), _np.sqrt(betay)
-    local_accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
-    local_accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
-    local_accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
-    local_accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
-    local_accepx_pos[local_accepx_pos < 0] = 0
-    local_accepx_neg[local_accepx_neg < 0] = 0
-    local_accepx_pos[local_accepy_pos < 0] = 0
-    local_accepx_neg[local_accepy_neg < 0] = 0
-    accepx_in = [min(local_accepx_pos[i],local_accepx_neg[i])**2 for i in range(n)]
-    accepy_in = [min(local_accepy_pos[i],local_accepy_neg[i])**2 for i in range(n)]
+    accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
+    accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
+    accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
+    accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
+    accepx_pos[accepx_pos < 0] = 0
+    accepx_neg[accepx_neg < 0] = 0
+    accepx_pos[accepy_pos < 0] = 0
+    accepx_neg[accepy_neg < 0] = 0
+    accepx = _np.min([accepx_pos, accepx_neg], axis=0)
+    accepx *= accepx
+    accepy = _np.min([accepy_pos, accepy_neg], axis=0)
+    accepy *= accepy
 
-    # calcs acceptance with beta at exit of elements
-    betax_sqrt, betay_sqrt = _np.roll(betax_sqrt,-1), _np.roll(betay_sqrt,-1)
-    local_accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
-    local_accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
-    local_accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
-    local_accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
-    local_accepx_pos[local_accepx_pos < 0] = 0
-    local_accepx_neg[local_accepx_neg < 0] = 0
-    local_accepx_pos[local_accepy_pos < 0] = 0
-    local_accepx_neg[local_accepy_neg < 0] = 0
-    accepx_out = [min(local_accepx_pos[i],local_accepx_neg[i])**2 for i in range(n)]
-    accepy_out = [min(local_accepy_pos[i],local_accepy_neg[i])**2 for i in range(n)]
-
-    accepx = [min(accepx_in[i],accepx_out[i]) for i in range(n)]
-    accepy = [min(accepy_in[i],accepy_out[i]) for i in range(n)]
-
-    if m66 is None:
-        return accepx, accepy, twiss
-    else:
-        return accepx, accepy, twiss, m66
+    return accepx, accepy, twiss
 
 
 class EquilibriumParameters:
@@ -819,6 +802,21 @@ class EquilibriumParameters:
     def calcH(beta, alpha, x, xl):
         gamma = (1 + alpha**2) / beta
         return beta*xl**2 + 2*alpha*x*xl + gamma*x**2
+
+    def as_dict(self):
+        pars = {
+            'twiss',
+            'I1', 'I2', 'I3', 'I3a', 'I4', 'I5', 'I6',
+            'Jx', 'Jy', 'Je',
+            'alphax', 'alphay', 'alphae',
+            'taux', 'tauy', 'taue',
+            'espread0', 'emit0', 'bunch_length',
+            'U0', 'overvoltage', 'syncphase', 'synctune',
+            'alpha', 'etac', 'rf_acceptance',
+            }
+        dic = {par: getattr(self, par) for par in pars}
+        dic['energy'] = self.accelerator.energy
+        return dic
 
     def _calc_radiation_integrals(self):
         """Calculate radiation integrals for periodic systems"""
