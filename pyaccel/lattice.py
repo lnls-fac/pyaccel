@@ -88,8 +88,7 @@ def find_spos(lattice, indices='open'):
 
 @_interactive
 def find_indices(lattice, attribute_name, value, comparison=None):
-    """Return a list with indices (i) of elements that match criteria
-    'lattice[i].attribute_name == value'.
+    """Return a list with indices (i) of elements that match a given criteria.
 
     Keyword arguments:
     lattice: accelerator model.
