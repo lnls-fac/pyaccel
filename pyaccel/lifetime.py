@@ -15,7 +15,7 @@ if _implib.util.find_spec('scipy'):
 
 
 class Lifetime:
-    """ Class which calculates the lifetime for a given accelerator."""
+    """Class which calculates the lifetime for a given accelerator."""
 
     # Constant factors
     _MBAR_2_PASCAL = 1.0e-3 / _u.pascal_2_bar
@@ -62,7 +62,7 @@ class Lifetime:
 
     @property
     def curr_per_bunch(self):
-        """Current per bunch in mA."""
+        """Return current per bunch, in mA."""
         return self._curr_per_bun
 
     @curr_per_bunch.setter
@@ -147,7 +147,7 @@ class Lifetime:
 
     @property
     def taux(self):
-        """Horizontal damping Time in s"""
+        """Horizontal damping Time in s."""
         if self._taux is not None:
             return self._taux
         return self._eqpar.taux
@@ -158,7 +158,7 @@ class Lifetime:
 
     @property
     def tauy(self):
-        """Vertical damping Time in s"""
+        """Vertical damping Time in s."""
         if self._tauy is not None:
             return self._tauy
         return self._eqpar.tauy
@@ -265,7 +265,7 @@ class Lifetime:
     def touschek_data(self):
         """Calculate loss rate due to Touschek beam lifetime.
 
-        arguments:
+        parameters used in calculation:
 
         emit0        = Natural emittance in m.rad
         energy       = Bunch energy in [GeV]
@@ -273,27 +273,18 @@ class Lifetime:
         espread      = relative energy spread,
         bunch_length = bunch length in [m]
         coupling     = emittance coupling factor (emity = coupling*emitx)
-        en_accep =
-            energy acceptance of the machine. May be a dictionary with keys:
-            pos = positive acceptance for a selection of points in the ring
-            neg = negative acceptance for a selection of points in the ring
-                    (remember: min(accep_din, accep_rf))
-            spos = Longitudinal position where pos and neg were calculated.
-            Or a 2-tuple with positive and negative accep for the whole ring.
+        accepen      = relative energy acceptance of the machine.
+
         twiss = pyaccel.TwissList object or similar object with fields:
                 spos, betax, betay, etax, etay, alphax, alphay, etapx, etapy
 
         output:
 
         dictionary with fields:
-        rate     = loss rate along the ring [1/s]
-        avg_rate = average loss rate along the ring [1/s]
-        pos      = longitudinal position where loss rate was calculated [m]
-        volume   = volume of the beam along the ring [m^3]
-
-        WARNING: if en_accep is a dictionary the limits of the
-        calculation will be defined by the initial and final points of the
-        acceptance and not by the optical functions.
+            rate     = loss rate along the ring [1/s]
+            avg_rate = average loss rate along the ring [1/s]
+            pos      = longitudinal position where loss rate was calculated [m]
+            volume   = volume of the beam along the ring [m^3]
         """
         self._load_touschek_integration_table()
         gamma = self._acc.gamma_factor
@@ -371,21 +362,20 @@ class Lifetime:
         """
         Calculate beam loss rate due to elastic scattering from residual gas.
 
-        Pressure and betas can be supplied as numbers or numpy arrays. In case
-        arrays are supplied, lengths must be equal; the loss rate returned will
-        be an array of same length.
+        Parameters used in calculations:
+        accepx, accepy = [horizontal, vertical] acceptance [m·rad]
+        avg_pressure   = Residual gas pressure [mbar]
+        atomic number  = Residual gas atomic number (default: 7)
+        temperature    = [K] (default: 300)
+        energy         = Beam energy
+        twiss          = Twis parameters
 
-        Positional arguments:
-        accep_x, accep_y -- [horizontal, vertical] [m·rad]
-        pressure -- Residual gas pressure [mbar]
+        output:
 
-        Keyword arguments:
-        z -- Residual gas atomic number (default: 7)
-        temperature -- [K] (default: 300)
-        energy -- Beam energy [GeV]
-        twiss  -- Twis parameters
-
-        Returns loss rate [1/s].
+        dictionary with fields:
+            rate     = loss rate along the ring [1/s]
+            avg_rate = average loss rate along the ring [1/s]
+            pos      = longitudinal position where loss rate was calculated [m]
         """
         accep_x = self.accepx
         accep_y = self.accepy
@@ -438,19 +428,18 @@ class Lifetime:
         """
         Calculate loss rate due to inelastic scattering beam lifetime.
 
-        Pressure can be supplied as a number or numpy array.
-        In case an array is supplied, the loss rate returned will be an array
-        of same length.
+        Parameters used in calculations:
+        accepen       = Relative energy acceptance
+        avg_pressure  = Residual gas pressure [mbar]
+        atomic_number = Residual gas atomic number (default: 7)
+        temperature   = [K] (default: 300)
 
-        Positional arguments:
-        en_accep -- Relative energy acceptance
-        pressure -- Residual gas pressure [mbar]
+        output:
 
-        Keyword arguments:
-        atomic_number -- Residual gas atomic number (default: 7)
-        temperature -- [K] (default: 300)
-
-        Returns loss rate [1/s].
+        dictionary with fields:
+            rate     = loss rate along the ring [1/s]
+            avg_rate = average loss rate along the ring [1/s]
+            pos      = longitudinal position where loss rate was calculated [m]
         """
         en_accep = self.accepen
         pressure = self.avg_pressure
@@ -481,25 +470,20 @@ class Lifetime:
 
     @property
     def quantumx_data(self):
-        """Beam loss rates due to quantum excitation and radiation damping.
-
-        Acceptances can be supplied as numbers or numpy arrays.
-        In case arrays are supplied, the corresponding loss rates returned
-        will also be arrays.
+        """Beam loss rates in horizontal plane due to quantum excitation.
 
         Positional arguments:
-        accep_x -- horizontal acceptance [m·rad]
-        en_accep -- Relative energy acceptance
-        coupling -- coupling between vertical and horizontal planes
+        accepx   = horizontal acceptance [m·rad]
+        coupling = emittances ratio
+        emit0    = transverse emittance [m·rad]
+        taux     = horizontal damping time [s]
 
-        Keyword arguments:
-        emit0 -- natural emittance [m·rad]
-        espread -- relative energy spread
-        taux -- horizontal damping time [s]
-        tauy -- vertical damping time [s]
-        taue -- longitudinal damping time [s]
+        output:
 
-        Returns loss rates (horizontal, vertical, longitudinal) [1/s].
+        dictionary with fields:
+            rate     = loss rate along the ring [1/s]
+            avg_rate = average loss rate along the ring [1/s]
+            pos      = longitudinal position where loss rate was calculated [m]
         """
         accep_x = self.accepx
         coupling = self.coupling
@@ -523,25 +507,20 @@ class Lifetime:
 
     @property
     def quantumy_data(self):
-        """Beam loss rates due to quantum excitation and radiation damping.
-
-        Acceptances can be supplied as numbers or numpy arrays.
-        In case arrays are supplied, the corresponding loss rates returned
-        will also be arrays.
+        """Beam loss rates in vertical plane due to quantum excitation.
 
         Positional arguments:
-        accep_y -- vertical acceptance [m·rad]
-        en_accep -- Relative energy acceptance
-        coupling -- coupling between vertical and horizontal planes
+        accepy   = vertical acceptance [m·rad]
+        coupling = emittances ratio
+        emit0    = transverse emittance [m·rad]
+        tauy     = vertical damping time [s]
 
-        Keyword arguments:
-        emit0 -- natural emittance [m·rad]
-        espread -- relative energy spread
-        taux -- horizontal damping time [s]
-        tauy -- vertical damping time [s]
-        taue -- longitudinal damping time [s]
+        output:
 
-        Returns loss rates (horizontal, vertical, longitudinal) [1/s].
+        dictionary with fields:
+            rate     = loss rate along the ring [1/s]
+            avg_rate = average loss rate along the ring [1/s]
+            pos      = longitudinal position where loss rate was calculated [m]
         """
         accep_y = self.accepy
         coupling = self.coupling
@@ -565,25 +544,19 @@ class Lifetime:
 
     @property
     def quantume_data(self):
-        """Beam loss rates due to quantum excitation and radiation damping.
-
-        Acceptances can be supplied as numbers or numpy arrays.
-        In case arrays are supplied, the corresponding loss rates returned
-        will also be arrays.
+        """Beam loss rates in longitudinal plane due to quantum excitation.
 
         Positional arguments:
-        accep_x, accep_y -- [horizontal, vertical] [m·rad]
-        en_accep -- Relative energy acceptance
-        coupling -- coupling between vertical and horizontal planes
+        accepen   = longitudinal acceptance [m·rad]
+        espread0  = relative energy spread
+        taue      = longitudinal damping time [s]
 
-        Keyword arguments:
-        emit0 -- natural emittance [m·rad]
-        espread -- relative energy spread
-        taux -- horizontal damping time [s]
-        tauy -- vertical damping time [s]
-        taue -- longitudinal damping time [s]
+        output:
 
-        Returns loss rates (horizontal, vertical, longitudinal) [1/s].
+        dictionary with fields:
+            rate     = loss rate along the ring [1/s]
+            avg_rate = average loss rate along the ring [1/s]
+            pos      = longitudinal position where loss rate was calculated [m]
         """
         en_accep = self.accepen
         espread = self.espread0
@@ -650,7 +623,7 @@ class Lifetime:
 
     @classmethod
     def get_touschek_integration_table(cls):
-        """Return Touschek data."""
+        """Return Touschek interpolation table."""
         cls._load_touschek_integration_table()
         return cls._KSI_TABLE, cls._D_TABLE
 
