@@ -390,12 +390,10 @@ class Lifetime:
         energy_joule = energy / _u.joule_2_eV
 
         spos = twiss.spos
-        # _, idx = _np.unique(accep_x['spos'], return_index=True)
-        # _, idy = _np.unique(accep_y['spos'], return_index=True)
-        # accep_x = _np.interp(spos, accep_x['spos'][idx], accep_x['acc'][idx])
-        # accep_y = _np.interp(spos, accep_y['spos'][idy], accep_y['acc'][idy])
-        accep_x = accep_x['acc']
-        accep_y = accep_y['acc']
+        _, idx = _np.unique(accep_x['spos'], return_index=True)
+        _, idy = _np.unique(accep_y['spos'], return_index=True)
+        accep_x = _np.interp(spos, accep_x['spos'][idx], accep_x['acc'][idx])
+        accep_y = _np.interp(spos, accep_y['spos'][idy], accep_y['acc'][idy])
 
         thetax = _np.sqrt(accep_x/betax)
         thetay = _np.sqrt(accep_y/betay)
