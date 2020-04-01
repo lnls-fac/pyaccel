@@ -1,81 +1,694 @@
+"""Beam lifetime calculation."""
 
+import os as _os
+import importlib as _implib
+from copy import deepcopy as _dcopy
 import numpy as _np
-import mathphys as _mp
-import pyaccel.optics as _optics
-import pyaccel.lattice as _lattice
-from pyaccel.utils import interactive as _interactive
+
+from mathphys import constants as _cst, units as _u, \
+    beam_optics as _beam
+
+from . import optics as _optics
+
+if _implib.util.find_spec('scipy'):
+    import scipy.integrate as _integrate
 
 
-@_interactive
-def calc_lifetimes(accelerator, n=None, coupling=None, pressure_profile=None,
-                   twiss=None, eq_parameters=None):
+class Lifetime:
+    """ Class which calculates the lifetime for a given accelerator."""
 
-    parameters, twiss = _process_args(
-        accelerator, twiss, eq_parameters, n, coupling, pressure_profile)
+    # Constant factors
+    _MBAR_2_PASCAL = 1.0e-3 / _u.pascal_2_bar
 
-    # Acceptances
-    energy_acceptance = parameters['rf_energy_acceptance']
-    accepx, accepy, *_ = _optics.get_transverse_acceptance(
-        accelerator, twiss, energy_offset=0.0)
-    transverse_acceptances = [min(accepx), min(accepy)]
+    _D_TOUSCHEK_FILE = _os.path.join(
+        _os.path.dirname(__file__), 'data', 'd_touschek.npz')
 
-    # Average pressure
-    s, pressure = pressure_profile
-    avg_pressure = _np.trapz(pressure, s) / (s[-1]-s[0])
+    _KSI_TABLE = None
+    _D_TABLE = None
 
-    # Loss rates
-    spos = _lattice.find_spos(accelerator)
-    e_rate_spos = _mp.beam_lifetime.calc_elastic_loss_rate(
-        transverse_acceptances, avg_pressure, z=7, temperature=300,
-        **parameters)
-    e_rate = _np.trapz(e_rate_spos, spos) / (spos[-1]-spos[0])
+    def __init__(self, accelerator):
+        """."""
+        self._acc = accelerator
+        self._eqpar = _optics.EquilibriumParameters(accelerator)
+        res = _optics.get_transverse_acceptance(self._acc, self._eqpar.twiss)
+        self._accepx_nom = _np.min(res[0])
+        self._accepy_nom = _np.min(res[1])
+        self._curr_per_bun = 100/864
+        self._avg_pressure = 1e-9
+        self._coupling = 0.03
+        self._atomic_number = 7
+        self._temperature = 300
+        self._taux = self._tauy = self._taue = None
+        self._emit0 = self._espread0 = self._bunch_length = None
+        self._accepx = self._accepy = self._accepen = None
 
-    i_rate = _mp.beam_lifetime.calc_inelastic_loss_rate(
-        energy_acceptance, avg_pressure, z=7, temperature=300)
+    @property
+    def accelerator(self):
+        """."""
+        return self._acc
 
-    q_rate = sum(_mp.beam_lifetime.calc_quantum_loss_rates(
-        transverse_acceptances, energy_acceptance, coupling, **parameters))
+    @accelerator.setter
+    def accelerator(self, val):
+        self._eqpar = _optics.EquilibriumParameters(val)
+        res = _optics.get_transverse_acceptance(val, self._eqpar.twiss)
+        self._accepx_nom = _np.min(res[0])
+        self._accepy_nom = _np.min(res[1])
+        self._acc = val
 
-    tous_lt = _mp.beam_lifetime.calc_touschek_loss_rate(
-        [-energy_acceptance, energy_acceptance],
-        twiss, coupling, n, **parameters)
+    @property
+    def equi_params(self):
+        """."""
+        return self._eqpar
 
-    # Lifetimes
-    e_lifetime = float("inf") if e_rate == 0.0 else 1.0/e_rate
-    i_lifetime = float("inf") if i_rate == 0.0 else 1.0/i_rate
-    q_lifetime = float("inf") if q_rate == 0.0 else 1.0/q_rate
-    t_coeff = tous_lt['ave_rate']
+    @property
+    def curr_per_bunch(self):
+        """Current per bunch in mA."""
+        return self._curr_per_bun
 
-    return e_lifetime, i_lifetime, q_lifetime, t_coeff
+    @curr_per_bunch.setter
+    def curr_per_bunch(self, val):
+        self._curr_per_bun = float(val)
 
+    @property
+    def particles_per_bunch(self):
+        """Particles per bunch."""
+        return int(_beam.calc_number_of_electrons(
+            self._acc.energy * _u.eV_2_GeV, self.curr_per_bunch,
+            self._acc.length))
 
-def _process_args(accelerator, twiss=None, eq_parameters=None, n=None,
-                  coupling=None, pressure_profile=None):
+    @property
+    def avg_pressure(self):
+        """Average Pressure in mbar."""
+        return self._avg_pressure
 
-    m66 = None
-    closed_orbit = None
+    @avg_pressure.setter
+    def avg_pressure(self, val):
+        self._avg_pressure = float(val)
 
-    if twiss is None:
-        twiss, m66 = _optics.calc_twiss(accelerator)
-    if eq_parameters is None:
-        eq_parameters, *_ = _optics.get_equilibrium_parameters(
-            accelerator, twiss, m66)
-    if n is None:
-        raise Exception('Number of electrons per bunch was not set')
-    if coupling is None:
-        raise Exception('Coupling coefficient was not set')
-    if pressure_profile is None:
-        raise Exception('Pressure profile was not set')
+    @property
+    def coupling(self):
+        """Emittances ratio."""
+        return self._coupling
 
-    betax, betay, alphax = twiss.betax, twiss.betay, twiss.alphax
-    etax,  etay, etapx = twiss.etax, twiss.etay, twiss.etapx
+    @coupling.setter
+    def coupling(self, val):
+        self._coupling = float(val)
 
-    parameters = {}
-    parameters.update(eq_parameters)
-    parameters['energy'] = accelerator.energy
-    parameters['energy_spread'] = parameters.pop('natural_energy_spread')
-    parameters['betax'], parameters['betay'] = betax, betay
-    parameters['etax'], parameters['etay'] = etax, etay
-    parameters['alphax'], parameters['etapx'] = alphax, etapx
+    @property
+    def atomic_number(self):
+        """Atomic number of residual gas."""
+        return self._atomic_number
 
-    return parameters, twiss
+    @atomic_number.setter
+    def atomic_number(self, val):
+        self._atomic_number = int(val)
+
+    @property
+    def temperature(self):
+        """Average Temperature of residual gas."""
+        return self._temperature
+
+    @temperature.setter
+    def temperature(self, val):
+        self._temperature = float(val)
+
+    @property
+    def emit0(self):
+        """Transverse Emittance in m.rad."""
+        if self._emit0 is not None:
+            return self._emit0
+        return self._eqpar.emit0
+
+    @emit0.setter
+    def emit0(self, val):
+        self._emit0 = float(val)
+
+    @property
+    def espread0(self):
+        """Relative energy spread."""
+        if self._espread0 is not None:
+            return self._espread0
+        return self._eqpar.espread0
+
+    @espread0.setter
+    def espread0(self, val):
+        self._espread0 = float(val)
+
+    @property
+    def bunch_length(self):
+        """Bunch length in m."""
+        if self._bunch_length is not None:
+            return self._bunch_length
+        return self._eqpar.bunch_length
+
+    @bunch_length.setter
+    def bunch_length(self, val):
+        self._bunch_length = float(val)
+
+    @property
+    def taux(self):
+        """Horizontal damping Time in s"""
+        if self._taux is not None:
+            return self._taux
+        return self._eqpar.taux
+
+    @taux.setter
+    def taux(self, val):
+        self._taux = float(val)
+
+    @property
+    def tauy(self):
+        """Vertical damping Time in s"""
+        if self._tauy is not None:
+            return self._tauy
+        return self._eqpar.tauy
+
+    @tauy.setter
+    def tauy(self, val):
+        self._tauy = float(val)
+
+    @property
+    def taue(self):
+        """Longitudinal damping Time in s."""
+        if self._taue is not None:
+            return self._taue
+        return self._eqpar.taue
+
+    @taue.setter
+    def taue(self, val):
+        self._taue = float(val)
+
+    @property
+    def accepen(self):
+        """Longitudinal acceptance."""
+        if self._accepen is not None:
+            return self._accepen
+        dic = dict()
+        rf_accep = self._eqpar.rf_acceptance
+        dic['spos'] = self._eqpar.twiss.spos
+        dic['accp'] = dic['spos']*0 + rf_accep
+        dic['accn'] = dic['spos']*0 - rf_accep
+        return dic
+
+    @accepen.setter
+    def accepen(self, val):
+        if isinstance(val, dict):
+            if {'spos', 'accp', 'accn'} - val.keys():
+                raise KeyError(
+                    "Dictionary must contain keys 'spos', 'accp', 'accn'")
+            spos = val['spos']
+            accp = val['accp']
+            accn = val['accn']
+        elif isinstance(val, (list, tuple, _np.ndarray)):
+            spos = self._eqpar.twiss.spos
+            accp = spos*0.0 + val[1]
+            accn = spos*0.0 + val[0]
+        elif isinstance(val, (int, _np.int, float, _np.float)):
+            spos = self._eqpar.twiss.spos
+            accp = spos*0.0 + val
+            accn = spos*0.0 - val
+        else:
+            raise TypeError('Wrong value for energy acceptance')
+        self._accepen = _dcopy(dict(spos=spos, accp=accp, accn=accn))
+
+    @property
+    def accepx(self):
+        """Horizontal acceptance."""
+        if self._accepx is not None:
+            return self._accepx
+        dic = dict()
+        dic['spos'] = self._eqpar.twiss.spos
+        dic['acc'] = dic['spos']*0 + self._accepx_nom
+        return dic
+
+    @accepx.setter
+    def accepx(self, val):
+        if isinstance(val, dict):
+            if {'spos', 'acc'} - val.keys():
+                raise KeyError(
+                    "Dictionary must contain keys 'spos', 'acc'")
+            spos = val['spos']
+            acc = val['acc']
+        elif isinstance(val, (int, _np.int, float, _np.float)):
+            spos = self._eqpar.twiss.spos
+            acc = spos*0.0 + val
+        else:
+            raise TypeError('Wrong value for energy acceptance')
+        self._accepx = _dcopy(dict(spos=spos, acc=acc))
+
+    @property
+    def accepy(self):
+        """Horizontal acceptance."""
+        if self._accepy is not None:
+            return self._accepy
+        dic = dict()
+        dic['spos'] = self._eqpar.twiss.spos
+        dic['acc'] = dic['spos']*0 + self._accepy_nom
+        return dic
+
+    @accepy.setter
+    def accepy(self, val):
+        if isinstance(val, dict):
+            if {'spos', 'acc'} - val.keys():
+                raise KeyError(
+                    "Dictionary must contain keys 'spos', 'acc'")
+            spos = val['spos']
+            acc = val['acc']
+        elif isinstance(val, (int, _np.int, float, _np.float)):
+            spos = self._eqpar.twiss.spos
+            acc = spos*0.0 + val
+        else:
+            raise TypeError('Wrong value for energy acceptance')
+        self._accepy = _dcopy(dict(spos=spos, acc=acc))
+
+    @property
+    def touschek_data(self):
+        """Calculate loss rate due to Touschek beam lifetime.
+
+        arguments:
+
+        emit0        = Natural emittance in m.rad
+        energy       = Bunch energy in [GeV]
+        nr_part      = Number of electrons ber bunch
+        espread      = relative energy spread,
+        bunch_length = bunch length in [m]
+        coupling     = emittance coupling factor (emity = coupling*emitx)
+        en_accep =
+            energy acceptance of the machine. May be a dictionary with keys:
+            pos = positive acceptance for a selection of points in the ring
+            neg = negative acceptance for a selection of points in the ring
+                    (remember: min(accep_din, accep_rf))
+            spos = Longitudinal position where pos and neg were calculated.
+            Or a 2-tuple with positive and negative accep for the whole ring.
+        twiss = pyaccel.TwissList object or similar object with fields:
+                spos, betax, betay, etax, etay, alphax, alphay, etapx, etapy
+
+        output:
+
+        dictionary with fields:
+        rate     = loss rate along the ring [1/s]
+        avg_rate = average loss rate along the ring [1/s]
+        pos      = longitudinal position where loss rate was calculated [m]
+        volume   = volume of the beam along the ring [m^3]
+
+        WARNING: if en_accep is a dictionary the limits of the
+        calculation will be defined by the initial and final points of the
+        acceptance and not by the optical functions.
+        """
+        self._load_touschek_integration_table()
+        gamma = self._acc.gamma_factor
+        en_accep = self.accepen
+        twiss = self._eqpar.twiss
+        coup = self.coupling
+        emit0 = self.emit0
+        espread = self.espread0
+        bunlen = self.bunch_length
+        nr_part = self.particles_per_bunch
+
+        _, ind = _np.unique(twiss.spos, return_index=True)
+        spos = en_accep['spos']
+        accp = en_accep['accp']
+        accn = en_accep['accn']
+
+        # calcular o tempo de vida a cada 10 cm do anel:
+        npoints = int((spos[-1] - spos[0])/0.1)
+        s_calc = _np.linspace(spos[0], spos[-1], npoints)
+        d_accp = _np.interp(s_calc, spos, accp)
+        d_accn = _np.interp(s_calc, spos, -accn)
+
+        # if momentum aperture is 0, set it to 1e-4:
+        d_accp[d_accp == 0] = 1e-4
+        d_accn[d_accn == 0] = 1e-4
+
+        betax = _np.interp(s_calc, twiss.spos[ind], twiss.betax[ind])
+        alphax = _np.interp(s_calc, twiss.spos[ind], twiss.alphax[ind])
+        etax = _np.interp(s_calc, twiss.spos[ind], twiss.etax[ind])
+        etaxl = _np.interp(s_calc, twiss.spos[ind], twiss.etapx[ind])
+        betay = _np.interp(s_calc, twiss.spos[ind], twiss.betay[ind])
+        etay = _np.interp(s_calc, twiss.spos[ind], twiss.etay[ind])
+
+        # Volume do bunch
+        sigy = _np.sqrt(etay**2*espread**2 + betay*emit0*(coup/(1+coup)))
+        sigx = _np.sqrt(etax**2*espread**2 + betax*emit0*(1/(1+coup)))
+        vol = bunlen * sigx * sigy
+
+        # Tamanho betatron horizontal do bunch
+        sigxb = emit0 * betax / (1+coup)
+
+        fator = betax*etaxl + alphax*etax
+        a_var = 1 / (4*espread**2) + (etax**2 + fator**2) / (4*sigxb)
+        b_var = betax*fator / (2*sigxb)
+        c_var = betax**2 / (4*sigxb) - b_var**2 / (4*a_var)
+
+        # Limite de integração inferior
+        ksip = (2*_np.sqrt(c_var)/gamma * d_accp)**2
+        ksin = (2*_np.sqrt(c_var)/gamma * d_accn)**2
+
+        # Interpola d_touschek
+        d_pos = _np.interp(
+            ksip, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
+        d_neg = _np.interp(
+            ksin, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
+
+        # Tempo de vida touschek inverso
+        const = (_cst.electron_radius**2 * _cst.light_speed) / (8*_np.pi)
+        ratep = const * nr_part/gamma**2 / d_accp**3 * d_pos / vol
+        raten = const * nr_part/gamma**2 / d_accn**3 * d_neg / vol
+        rate = (ratep + raten) / 2
+
+        # Tempo de vida touschek inverso médio
+        avg_rate = _np.trapz(rate, x=s_calc) / (s_calc[-1] - s_calc[0])
+        return dict(rate=rate, avg_rate=avg_rate, volume=vol, pos=s_calc)
+
+    @property
+    def lossrate_touschek(self):
+        """."""
+        data = self.touschek_data
+        return data['avg_rate']
+
+    @property
+    def elastic_data(self):
+        """
+        Calculate beam loss rate due to elastic scattering from residual gas.
+
+        Pressure and betas can be supplied as numbers or numpy arrays. In case
+        arrays are supplied, lengths must be equal; the loss rate returned will
+        be an array of same length.
+
+        Positional arguments:
+        accep_x, accep_y -- [horizontal, vertical] [m·rad]
+        pressure -- Residual gas pressure [mbar]
+
+        Keyword arguments:
+        z -- Residual gas atomic number (default: 7)
+        temperature -- [K] (default: 300)
+        energy -- Beam energy [GeV]
+        twiss  -- Twis parameters
+
+        Returns loss rate [1/s].
+        """
+        accep_x = self.accepx
+        accep_y = self.accepy
+        pressure = self.avg_pressure
+        twiss = self._eqpar.twiss
+        energy = self._acc.energy
+        beta = self._acc.beta_factor
+        atomic_number = self.atomic_number
+        temperature = self.temperature
+
+        betax, betay = twiss.betax, twiss.betay
+        energy_joule = energy / _u.joule_2_eV
+
+        spos = twiss.spos
+        # _, idx = _np.unique(accep_x['spos'], return_index=True)
+        # _, idy = _np.unique(accep_y['spos'], return_index=True)
+        # accep_x = _np.interp(spos, accep_x['spos'][idx], accep_x['acc'][idx])
+        # accep_y = _np.interp(spos, accep_y['spos'][idy], accep_y['acc'][idy])
+        accep_x = accep_x['acc']
+        accep_y = accep_y['acc']
+
+        thetax = _np.sqrt(accep_x/betax)
+        thetay = _np.sqrt(accep_y/betay)
+        ratio = thetay / thetax
+
+        f_x = 2*_np.arctan(ratio) + _np.sin(2*_np.arctan(ratio))
+        f_x *= pressure * self._MBAR_2_PASCAL * betax / accep_x
+        f_y = _np.pi - 2*_np.arctan(ratio) + _np.sin(2*_np.arctan(ratio))
+        f_y *= pressure * self._MBAR_2_PASCAL * betay / accep_y
+
+        # Constant
+        rate = _cst.light_speed * _cst.elementary_charge**4
+        rate /= 4 * _np.pi**2 * _cst.vacuum_permitticity**2
+        # Parameter dependent part
+        rate *= atomic_number**2 * (f_x + f_y)
+        rate /= beta * energy_joule**2
+        rate /= temperature * _cst.boltzmann_constant
+
+        avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
+        return dict(rate=rate, avg_rate=avg_rate, pos=spos)
+
+    @property
+    def lossrate_elastic(self):
+        """."""
+        data = self.elastic_data
+        return data['avg_rate']
+
+    @property
+    def inelastic_data(self):
+        """
+        Calculate loss rate due to inelastic scattering beam lifetime.
+
+        Pressure can be supplied as a number or numpy array.
+        In case an array is supplied, the loss rate returned will be an array
+        of same length.
+
+        Positional arguments:
+        en_accep -- Relative energy acceptance
+        pressure -- Residual gas pressure [mbar]
+
+        Keyword arguments:
+        atomic_number -- Residual gas atomic number (default: 7)
+        temperature -- [K] (default: 300)
+
+        Returns loss rate [1/s].
+        """
+        en_accep = self.accepen
+        pressure = self.avg_pressure
+        atomic_number = self.atomic_number
+        temperature = self.temperature
+
+        spos = en_accep['spos']
+        accp = en_accep['accp']
+        accn = -en_accep['accn']
+
+        rate = 32 * _cst.light_speed * _cst.electron_radius**2  # Constant
+        rate /= 411 * _cst.boltzmann_constant * temperature  # Temperature
+        rate *= atomic_number**2 * _np.log(183/atomic_number**(1/3))  # Z
+        rate *= pressure * self._MBAR_2_PASCAL  # Pressure
+
+        ratep = accp - _np.log(accp) - 5/8  # Eaccep
+        raten = accn - _np.log(accn) - 5/8  # Eaccep
+        rate *= (ratep + raten) / 2
+
+        avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
+        return dict(rate=rate, avg_rate=avg_rate, pos=spos)
+
+    @property
+    def lossrate_inelastic(self):
+        """."""
+        data = self.inelastic_data
+        return data['avg_rate']
+
+    @property
+    def quantumx_data(self):
+        """Beam loss rates due to quantum excitation and radiation damping.
+
+        Acceptances can be supplied as numbers or numpy arrays.
+        In case arrays are supplied, the corresponding loss rates returned
+        will also be arrays.
+
+        Positional arguments:
+        accep_x -- horizontal acceptance [m·rad]
+        en_accep -- Relative energy acceptance
+        coupling -- coupling between vertical and horizontal planes
+
+        Keyword arguments:
+        emit0 -- natural emittance [m·rad]
+        espread -- relative energy spread
+        taux -- horizontal damping time [s]
+        tauy -- vertical damping time [s]
+        taue -- longitudinal damping time [s]
+
+        Returns loss rates (horizontal, vertical, longitudinal) [1/s].
+        """
+        accep_x = self.accepx
+        coupling = self.coupling
+        emit0 = self.emit0
+        taux = self.taux
+
+        spos = accep_x['spos']
+        accep_x = accep_x['acc']
+
+        ksi_x = accep_x / (2*emit0) * (1+coupling)
+        rate = self._calc_quantum_loss_rate(ksi_x, taux)
+
+        avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
+        return dict(rate=rate, avg_rate=avg_rate, pos=spos)
+
+    @property
+    def lossrate_quantumx(self):
+        """."""
+        data = self.quantumx_data
+        return data['avg_rate']
+
+    @property
+    def quantumy_data(self):
+        """Beam loss rates due to quantum excitation and radiation damping.
+
+        Acceptances can be supplied as numbers or numpy arrays.
+        In case arrays are supplied, the corresponding loss rates returned
+        will also be arrays.
+
+        Positional arguments:
+        accep_y -- vertical acceptance [m·rad]
+        en_accep -- Relative energy acceptance
+        coupling -- coupling between vertical and horizontal planes
+
+        Keyword arguments:
+        emit0 -- natural emittance [m·rad]
+        espread -- relative energy spread
+        taux -- horizontal damping time [s]
+        tauy -- vertical damping time [s]
+        taue -- longitudinal damping time [s]
+
+        Returns loss rates (horizontal, vertical, longitudinal) [1/s].
+        """
+        accep_y = self.accepy
+        coupling = self.coupling
+        emit0 = self.emit0
+        tauy = self.tauy
+
+        spos = accep_y['spos']
+        accep_y = accep_y['acc']
+
+        ksi_y = accep_y / (2*emit0) * (1+coupling)/coupling
+        rate = self._calc_quantum_loss_rate(ksi_y, tauy)
+
+        avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
+        return dict(rate=rate, avg_rate=avg_rate, pos=spos)
+
+    @property
+    def lossrate_quantumy(self):
+        """."""
+        data = self.quantumy_data
+        return data['avg_rate']
+
+    @property
+    def quantume_data(self):
+        """Beam loss rates due to quantum excitation and radiation damping.
+
+        Acceptances can be supplied as numbers or numpy arrays.
+        In case arrays are supplied, the corresponding loss rates returned
+        will also be arrays.
+
+        Positional arguments:
+        accep_x, accep_y -- [horizontal, vertical] [m·rad]
+        en_accep -- Relative energy acceptance
+        coupling -- coupling between vertical and horizontal planes
+
+        Keyword arguments:
+        emit0 -- natural emittance [m·rad]
+        espread -- relative energy spread
+        taux -- horizontal damping time [s]
+        tauy -- vertical damping time [s]
+        taue -- longitudinal damping time [s]
+
+        Returns loss rates (horizontal, vertical, longitudinal) [1/s].
+        """
+        en_accep = self.accepen
+        espread = self.espread0
+        taue = self.taue
+
+        spos = en_accep['spos']
+        accp = en_accep['accp']
+        accn = en_accep['accn']
+
+        ratep = self._calc_quantum_loss_rate((accp/espread)**2 / 2, taue)
+        raten = self._calc_quantum_loss_rate((accn/espread)**2 / 2, taue)
+        rate = (ratep + raten) / 2
+
+        avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
+        return dict(rate=rate, avg_rate=avg_rate, pos=spos)
+
+    @property
+    def lossrate_quantume(self):
+        """."""
+        data = self.quantume_data
+        return data['avg_rate']
+
+    @property
+    def lossrate_quantum(self):
+        """."""
+        rate = self.lossrate_quantume
+        rate += self.lossrate_quantumx
+        rate += self.lossrate_quantumy
+        return rate
+
+    @property
+    def lossrate_total(self):
+        """."""
+        rate = self.lossrate_elastic
+        rate += self.lossrate_inelastic
+        rate += self.lossrate_quantum
+        rate += self.lossrate_touschek
+        return rate
+
+    @property
+    def lifetime_touschek(self):
+        """."""
+        return 1 / self.lossrate_touschek
+
+    @property
+    def lifetime_elastic(self):
+        """."""
+        return 1 / self.lossrate_elastic
+
+    @property
+    def lifetime_inelastic(self):
+        """."""
+        return 1 / self.lossrate_inelastic
+
+    @property
+    def lifetime_quantum(self):
+        """."""
+        return 1 / self.lossrate_quantum
+
+    @property
+    def lifetime_total(self):
+        """."""
+        return 1 / self.lossrate_total
+
+    @classmethod
+    def get_touschek_integration_table(cls):
+        """Return Touschek data."""
+        cls._load_touschek_integration_table()
+        return cls._KSI_TABLE, cls._D_TABLE
+
+    # ----- private methods -----
+
+    @staticmethod
+    def _calc_quantum_loss_rate(ksi, tau):
+        return 2*ksi*_np.exp(-ksi)/tau
+
+    @classmethod
+    def _load_touschek_integration_table(cls):
+        if cls._KSI_TABLE is None or cls._D_TABLE is None:
+            data = _np.load(cls._D_TOUSCHEK_FILE)
+            cls._KSI_TABLE = data['ksi']
+            cls._D_TABLE = data['d']
+
+    @classmethod
+    def _calc_d_touschek_table(cls, ksi_ini, ksi_end, npoints):
+        if not _implib.util.find_spec('scipy'):
+            raise NotImplementedError(
+                'Scipy is needed for this calculation!')
+        ksi_tab = _np.logspace(ksi_ini, ksi_end, npoints)
+        d_tab = _np.zeros(ksi_tab.size)
+        for i, ksi in enumerate(ksi_tab):
+            d_tab[i] = cls._calc_d_touschek_scipy(ksi)
+        cls._D_TABLE = d_tab
+        cls._KSI_TABLE = ksi_tab
+
+    @staticmethod
+    def _calc_d_touschek_scipy(ksi):
+        lim = 1000
+        int1, _ = _integrate.quad(
+            lambda x: _np.exp(-x)/x, ksi, _np.inf, limit=lim)
+        int2, _ = _integrate.quad(
+            lambda x: _np.exp(-x)*_np.log(x)/x, ksi, _np.inf, limit=lim)
+        d_val = _np.sqrt(ksi)*(
+            -1.5 * _np.exp(-ksi) +
+            0.5 * (3*ksi - ksi*_np.log(ksi) + 2) * int1 +
+            0.5 * ksi * int2
+            )
+        return d_val
