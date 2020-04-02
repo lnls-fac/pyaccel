@@ -13,10 +13,12 @@ return particle positions structure missing one or more indices but the
 PCEN ordering is preserved.
 """
 
-import numpy as _numpy
+import numpy as _np
 import trackcpp as _trackcpp
-import pyaccel.accelerator as _accelerator
-import pyaccel.utils as _utils
+
+
+from . import accelerator as _accelerator
+from . import utils as _utils
 
 
 _interactive = _utils.interactive
@@ -63,7 +65,6 @@ def element_pass(element, particles, **kwargs):
 
     Raises TrackingException
     """
-
     # checks if all necessary arguments have been passed
     keys_needed = [
         'energy', 'harmonic_number', 'cavity_on', 'radiation_on',
@@ -79,13 +80,13 @@ def element_pass(element, particles, **kwargs):
     particles, return_ndarray, _ = _process_args(accelerator, particles)
 
     # tracks through the list of pos
-    particles_out = _numpy.zeros(particles.shape)
+    particles_out = _np.zeros(particles.shape)
     particles_out.fill(float('nan'))
 
     for i in range(particles.shape[0]):
         p_in = _Numpy2CppDoublePos(particles[i, :])
         if _trackcpp.track_elementpass_wrapper(
-                    element._e, p_in, accelerator._accelerator):
+                element._e, p_in, accelerator._accelerator):
             raise TrackingException
         particles_out[i, :] = _CppDoublePos2Numpy(p_in)
 
@@ -183,7 +184,6 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
                     then 'lost_plane' returns a single string
 
     """
-
     # store only final position?
     args = _trackcpp.LinePassArgs()
     args.trajectory = indices is not None
@@ -194,9 +194,9 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
 
     # initialize particles_out tensor according to input options
     if indices is None:
-        particles_out = _numpy.ones((particles.shape[0], 6))
+        particles_out = _np.ones((particles.shape[0], 6))
     else:
-        particles_out = _numpy.zeros((particles.shape[0], 6, len(indices)))
+        particles_out = _np.zeros((particles.shape[0], 6, len(indices)))
     particles_out.fill(float('nan'))
 
     lost_flag = False
@@ -346,9 +346,9 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
 
     # initialize particles_out tensor according to input options
     if turn_by_turn:
-        particles_out = _numpy.zeros((particles.shape[0], 6, nr_turns))
+        particles_out = _np.zeros((particles.shape[0], 6, nr_turns+1))
     else:
-        particles_out = _numpy.zeros((particles.shape[0], 6))
+        particles_out = _np.zeros((particles.shape[0], 6))
     particles_out.fill(float('nan'))
     lost_flag = False
     lost_turn, lost_element, lost_plane = [], [], []
@@ -450,7 +450,6 @@ def find_orbit4(accelerator, energy_offset=0, indices=None,
 
     Raises TrackingException
     """
-
     indices = _process_indices(accelerator, indices, closed=False)
 
     if fixed_point_guess is None:
@@ -466,7 +465,7 @@ def find_orbit4(accelerator, energy_offset=0, indices=None,
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    closed_orbit = _numpy.zeros((len(indices), 4))
+    closed_orbit = _np.zeros((len(indices), 4))
     for i, ind in enumerate(indices):
         closed_orbit[i] = _CppDoublePos24Numpy(_closed_orbit[int(ind)])
 
@@ -517,7 +516,7 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     if r > 0:
         raise TrackingException(_trackcpp.string_error_messages[r])
 
-    closed_orbit = _numpy.zeros((len(indices), 6))
+    closed_orbit = _np.zeros((len(indices), 6))
     for i, ind in enumerate(indices):
         closed_orbit[i] = _CppDoublePos2Numpy(_closed_orbit[int(ind)])
 
@@ -573,7 +572,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
     m66 = _CppMatrix2Numpy(_m66)
     if indices is None:
         return m66
-    cumul_trans_matrices = _numpy.zeros((indices.size, 6, 6), dtype=float)
+    cumul_trans_matrices = _np.zeros((indices.size, 6, 6), dtype=float)
     for i, ind in enumerate(indices):
         cumul_trans_matrices[i] = _cumul_trans_matrices[int(ind)]
     return m66, cumul_trans_matrices
@@ -632,7 +631,7 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
     m44 = _CppMatrix24Numpy(_m44)
     if indices is None:
         return m44
-    cumul_trans_matrices = _numpy.zeros((indices.size, 4, 4), dtype=float)
+    cumul_trans_matrices = _np.zeros((indices.size, 4, 4), dtype=float)
     for i, ind in enumerate(indices):
         cumul_trans_matrices[i] = _CppMatrix24Numpy(
             _cumul_trans_matrices[int(ind)])
@@ -640,11 +639,11 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
 
 
 def _CppMatrix2Numpy(_m):
-    return _numpy.array(_m)
+    return _np.array(_m)
 
 
 def _CppMatrix24Numpy(_m):
-    return _numpy.array(_m)[:4, :4]
+    return _np.array(_m)[:4, :4]
 
 
 def _Numpy2CppDoublePos(p_in):
@@ -664,17 +663,17 @@ def _4Numpy2CppDoublePos(p_in):
 
 
 def _CppDoublePos2Numpy(p_in):
-    return _numpy.array((p_in.rx, p_in.px, p_in.ry, p_in.py, p_in.de, p_in.dl))
+    return _np.array((p_in.rx, p_in.px, p_in.ry, p_in.py, p_in.de, p_in.dl))
 
 
 def _CppDoublePos24Numpy(p_in):
-    return _numpy.array((p_in.rx, p_in.px, p_in.ry, p_in.py))
+    return _np.array((p_in.rx, p_in.px, p_in.ry, p_in.py))
 
 
 def _Numpy2CppDoublePosVector(orbit):
     if isinstance(orbit, _trackcpp.CppDoublePosVector):
         return orbit
-    if isinstance(orbit, _numpy.ndarray):
+    if isinstance(orbit, _np.ndarray):
         orbit_out = _trackcpp.CppDoublePosVector()
         for i in range(orbit.shape[1]):
             orbit_out.push_back(_trackcpp.CppDoublePos(
@@ -695,7 +694,7 @@ def _Numpy2CppDoublePosVector(orbit):
 def _4Numpy2CppDoublePosVector(orbit, de=0.0):
     if isinstance(orbit, _trackcpp.CppDoublePosVector):
         return orbit
-    if isinstance(orbit, _numpy.ndarray):
+    if isinstance(orbit, _np.ndarray):
         orbit_out = _trackcpp.CppDoublePosVector()
         for i in range(orbit.shape[1]):
             orbit_out.push_back(_trackcpp.CppDoublePos(
@@ -719,13 +718,13 @@ def _process_args(accelerator, pos, indices=None):
     return_ndarray = True
     if isinstance(pos, (list, tuple)):
         if isinstance(pos[0], (list, tuple)):
-            pos = _numpy.array(pos)
+            pos = _np.array(pos)
         else:
-            pos = _numpy.array(pos, ndmin=2)
+            pos = _np.array(pos, ndmin=2)
             return_ndarray = False
-    elif isinstance(pos, _numpy.ndarray):
+    elif isinstance(pos, _np.ndarray):
         if len(pos.shape) == 1:
-            pos = _numpy.array(pos, ndmin=2)
+            pos = _np.array(pos, ndmin=2)
     indices = _process_indices(accelerator, indices, proc_none=False)
     return pos, return_ndarray, indices
 
@@ -735,14 +734,14 @@ def _process_indices(accelerator, indices, closed=True, proc_none=True):
         indices = [0, ] if proc_none else indices
     elif isinstance(indices, str):
         if indices.startswith('open'):
-            indices = _numpy.arange(len(accelerator))
+            indices = _np.arange(len(accelerator))
         elif closed and indices.startswith('closed'):
-            indices = _numpy.arange(len(accelerator)+1)
+            indices = _np.arange(len(accelerator)+1)
         else:
             raise TrackingException("invalid value for 'indices'")
-    elif isinstance(indices, (list, tuple, _numpy.ndarray)):
+    elif isinstance(indices, (list, tuple, _np.ndarray)):
         try:
-            indices = _numpy.array(indices, dtype=int)
+            indices = _np.array(indices, dtype=int)
         except ValueError:
             raise TrackingException("invalid value for 'indices'")
         if len(indices.shape) > 1:
