@@ -425,7 +425,7 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
             for n in range(nr_turns):
                 particles_out[i, :, n+1] = _CppDoublePos2Numpy(p_out[n])
         else:
-            particles_out[i, :] = _CppDoublePos2Numpy(p_out[0])
+            particles_out[i, :] = _CppDoublePos2Numpy(p_out[-1])
 
         # fills vectors with info about particle loss
         if args.lost_plane:
