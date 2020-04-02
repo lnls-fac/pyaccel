@@ -16,6 +16,7 @@ PCEN ordering is preserved.
 import numpy as _np
 import trackcpp as _trackcpp
 
+import mathphys as _mp
 
 from . import accelerator as _accelerator
 from . import utils as _utils
@@ -95,6 +96,55 @@ def element_pass(element, particles, **kwargs):
         particles_out = particles_out[0, :]
 
     return particles_out
+
+
+@_interactive
+def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
+    """
+    Create centered bunch with the desired equilibrium and twiss params.
+
+    Inputs:
+        emitx = horizontal emittance;
+        emity = vertical emittance;
+        sigmae = energy dispersion;
+        sigmas = bunch length;
+        twi = TwissObject at the desired location
+        n_part = number of particles
+        cutoff = number of sigmas to cut the distribution (in bunch size)
+
+    Output:
+        particles = numpy.array.size == (n_part, 6)
+    """
+    # generate longitudinal phase space
+    parts = _mp.functions.generate_random_numbers(
+        2*n_part, dist_type='norm', cutoff=cutoff)
+    p_en = sigmae * parts[:n_part]
+    p_s = sigmas * parts[n_part:]
+
+    # generate transverse phase space
+    parts = _mp.functions.generate_random_numbers(
+        2*n_part, dist_type='exp', cutoff=cutoff*cutoff/2)
+    ampx = _np.sqrt(2*emitx * parts[:n_part])
+    ampy = _np.sqrt(2*emity * parts[n_part:])
+
+    parts = _mp.functions.generate_random_numbers(
+        2*n_part, dist_type='unif', cutoff=cutoff)
+    phx = 2 * _np.pi * parts[:n_part]
+    phy = 2 * _np.pi * parts[n_part:]
+
+    p_x = ampx*_np.sqrt(twi.betax)
+    p_y = ampy*_np.sqrt(twi.betay)
+    p_x *= _np.cos(phx)
+    p_y *= _np.cos(phy)
+    p_x += twi.etax * p_en
+    p_y += twi.etay * p_en
+    p_xp = -ampx/_np.sqrt(twi.betax)
+    p_yp = -ampy/_np.sqrt(twi.betay)
+    p_xp *= twi.alphax*_np.cos(phx) + _np.sin(phx)
+    p_yp *= twi.alphay*_np.cos(phy) + _np.sin(phy)
+    p_xp += twi.etapx * p_en
+    p_yp += twi.etapy * p_en
+    return _np.array((p_x, p_xp, p_y, p_yp, p_en, p_s)).T
 
 
 @_interactive
