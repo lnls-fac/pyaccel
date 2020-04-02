@@ -4,10 +4,10 @@ import math as _math
 import numpy as _np
 import mathphys as _mp
 import trackcpp as _trackcpp
-import pyaccel.lattice as _lattice
-import pyaccel.tracking as _tracking
-import pyaccel.accelerator as _accelerator
-from pyaccel.utils import interactive as _interactive
+from . import lattice as _lattice
+from . import tracking as _tracking
+from . import accelerator as _accelerator
+from .utils import interactive as _interactive
 
 
 class OpticsException(Exception):
@@ -377,7 +377,7 @@ def calc_emittance_coupling(accelerator,
 
     orb = _tracking.find_orbit4(acc)
     rin = _np.array(
-            [x0+orb[0], 0+orb[1], y0+orb[2], 0+orb[3], 0, 0], dtype=float)
+        [x0+orb[0], 0+orb[1], y0+orb[2], 0+orb[3], 0, 0], dtype=float)
     rout, *_ = _tracking.ring_pass(
         acc, rin, nr_turns=nr_turns, turn_by_turn='closed', element_offset=0)
 
@@ -394,6 +394,7 @@ def calc_emittance_coupling(accelerator,
     else:
         raise Exception('Invalid mode, set fitting or twiss')
     return emity / emitx
+
 
 @_interactive
 def get_rf_frequency(accelerator):
@@ -554,69 +555,46 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None,
                               fixed_point=None, energy_offset=0.0):
     """Return linear transverse horizontal and vertical physical acceptances"""
 
-    m66 = None
     if twiss is None:
-        twiss, m66 = calc_twiss(accelerator, init_twiss=init_twiss, fixed_point=fixed_point, indices='open')
-        n = len(accelerator)
-    else:
-        if len(twiss) == len(accelerator):
-            n = len(accelerator)
-        elif len(twiss) == len(accelerator)+1:
-            n = len(accelerator)+1
-        else:
-            raise OpticsException('Mismatch between size of accelerator and size of twiss object')
-
-    # # Old get twiss
-    # closed_orbit = _np.zeros((6,n))
-    # closed_orbit[0,:], closed_orbit[2,:] = get_twiss(twiss, ('rx','ry'))
-    # betax, betay, etax, etay = get_twiss(twiss, ('betax', 'betay', 'etax', 'etay'))
+        twiss, _ = calc_twiss(
+            accelerator, init_twiss=init_twiss, fixed_point=fixed_point,
+            indices='closed')
+    n_twi = len(twiss)
+    n_acc = len(accelerator)
+    if n_twi not in {n_acc, n_acc+1}:
+        raise OpticsException(
+            'Mismatch between size of accelerator and size of twiss object')
 
     closed_orbit = twiss.co
     betax, betay, etax, etay = twiss.betax, twiss.betay, twiss.etax, twiss.etay
 
     # physical apertures
     lattice = accelerator._accelerator.lattice
-    hmax, vmax = _np.array([(lattice[i].hmax,lattice[i].vmax) for i in range(len(accelerator))]).transpose()
-    if len(hmax) != n:
+    hmax = _lattice.get_attribute(accelerator, 'hmax')
+    vmax = _lattice.get_attribute(accelerator, 'vmax')
+    if len(hmax) != n_twi:
         hmax = _np.append(hmax, hmax[-1])
         vmax = _np.append(vmax, vmax[-1])
 
     # calcs local linear acceptances
-    co_x, co_y = closed_orbit[(0,2),:]
+    co_x, co_y = closed_orbit[(0, 2), :]
 
     # calcs acceptance with beta at entrance of elements
     betax_sqrt, betay_sqrt = _np.sqrt(betax), _np.sqrt(betay)
-    local_accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
-    local_accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
-    local_accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
-    local_accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
-    local_accepx_pos[local_accepx_pos < 0] = 0
-    local_accepx_neg[local_accepx_neg < 0] = 0
-    local_accepx_pos[local_accepy_pos < 0] = 0
-    local_accepx_neg[local_accepy_neg < 0] = 0
-    accepx_in = [min(local_accepx_pos[i],local_accepx_neg[i])**2 for i in range(n)]
-    accepy_in = [min(local_accepy_pos[i],local_accepy_neg[i])**2 for i in range(n)]
+    accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
+    accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
+    accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
+    accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
+    accepx_pos[accepx_pos < 0] = 0
+    accepx_neg[accepx_neg < 0] = 0
+    accepx_pos[accepy_pos < 0] = 0
+    accepx_neg[accepy_neg < 0] = 0
+    accepx = _np.min([accepx_pos, accepx_neg], axis=0)
+    accepx *= accepx
+    accepy = _np.min([accepy_pos, accepy_neg], axis=0)
+    accepy *= accepy
 
-    # calcs acceptance with beta at exit of elements
-    betax_sqrt, betay_sqrt = _np.roll(betax_sqrt,-1), _np.roll(betay_sqrt,-1)
-    local_accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
-    local_accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
-    local_accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
-    local_accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
-    local_accepx_pos[local_accepx_pos < 0] = 0
-    local_accepx_neg[local_accepx_neg < 0] = 0
-    local_accepx_pos[local_accepy_pos < 0] = 0
-    local_accepx_neg[local_accepy_neg < 0] = 0
-    accepx_out = [min(local_accepx_pos[i],local_accepx_neg[i])**2 for i in range(n)]
-    accepy_out = [min(local_accepy_pos[i],local_accepy_neg[i])**2 for i in range(n)]
-
-    accepx = [min(accepx_in[i],accepx_out[i]) for i in range(n)]
-    accepy = [min(accepy_in[i],accepy_out[i]) for i in range(n)]
-
-    if m66 is None:
-        return accepx, accepy, twiss
-    else:
-        return accepx, accepy, twiss, m66
+    return accepx, accepy, twiss
 
 
 class EquilibriumParameters:
@@ -769,7 +747,7 @@ class EquilibriumParameters:
     def U0(self):
         E0 = self._acc.energy / 1e9  # in GeV
         rad_cgamma = _mp.constants.rad_cgamma
-        return rad_cgamma/(2*_math.pi) * E0**4 * self.I2 * 1e9  # in GeV
+        return rad_cgamma/(2*_math.pi) * E0**4 * self.I2 * 1e9  # in eV
 
     @property
     def overvoltage(self):
@@ -824,6 +802,21 @@ class EquilibriumParameters:
     def calcH(beta, alpha, x, xl):
         gamma = (1 + alpha**2) / beta
         return beta*xl**2 + 2*alpha*x*xl + gamma*x**2
+
+    def as_dict(self):
+        pars = {
+            'twiss',
+            'I1', 'I2', 'I3', 'I3a', 'I4', 'I5', 'I6',
+            'Jx', 'Jy', 'Je',
+            'alphax', 'alphay', 'alphae',
+            'taux', 'tauy', 'taue',
+            'espread0', 'emit0', 'bunch_length',
+            'U0', 'overvoltage', 'syncphase', 'synctune',
+            'alpha', 'etac', 'rf_acceptance',
+            }
+        dic = {par: getattr(self, par) for par in pars}
+        dic['energy'] = self.accelerator.energy
+        return dic
 
     def _calc_radiation_integrals(self):
         """Calculate radiation integrals for periodic systems"""
@@ -903,15 +896,16 @@ class TwissList(object):
         return len(self._tl)
 
     def __getitem__(self, index):
-        if isinstance(index,(int, _np.int_)):
+        if isinstance(index, (int, _np.int_)):
             return Twiss(twiss=self._tl[index])
-        elif isinstance(index, (list,tuple,_np.ndarray)) and all(isinstance(x, (int, _np.int_)) for x in index):
+        elif isinstance(index, (list, tuple, _np.ndarray)) and \
+                all(isinstance(x, (int, _np.int_)) for x in index):
             tl = _trackcpp.CppTwissVector()
             for i in index:
                 tl.append(self._tl[i])
-            return TwissList(twiss_list = tl)
+            return TwissList(twiss_list=tl)
         elif isinstance(index, slice):
-            return TwissList(twiss_list = self._tl[index])
+            return TwissList(twiss_list=self._tl[index])
         else:
             raise TypeError('invalid index')
 
@@ -942,57 +936,68 @@ class TwissList(object):
 
     @property
     def spos(self):
-        spos = _np.array([float(self._ptl[i].spos) for i in range(len(self._ptl))])
+        spos = _np.array([
+            float(self._ptl[i].spos) for i in range(len(self._ptl))])
         return spos if len(spos) > 1 else spos[0]
 
     @property
     def betax(self):
-        betax = _np.array([float(self._ptl[i].betax) for i in range(len(self._ptl))])
+        betax = _np.array([
+            float(self._ptl[i].betax) for i in range(len(self._ptl))])
         return betax if len(betax) > 1 else betax[0]
 
     @property
     def betay(self):
-        betay = _np.array([float(self._ptl[i].betay) for i in range(len(self._ptl))])
+        betay = _np.array([
+            float(self._ptl[i].betay) for i in range(len(self._ptl))])
         return betay if len(betay) > 1 else betay[0]
 
     @property
     def alphax(self):
-        alphax = _np.array([float(self._ptl[i].alphax) for i in range(len(self._ptl))])
+        alphax = _np.array([
+            float(self._ptl[i].alphax) for i in range(len(self._ptl))])
         return alphax if len(alphax) > 1 else alphax[0]
 
     @property
     def alphay(self):
-        alphay = _np.array([float(self._ptl[i].alphay) for i in range(len(self._ptl))])
+        alphay = _np.array([
+            float(self._ptl[i].alphay) for i in range(len(self._ptl))])
         return alphay if len(alphay) > 1 else alphay[0]
 
     @property
     def mux(self):
-        mux = _np.array([float(self._ptl[i].mux) for i in range(len(self._ptl))])
+        mux = _np.array([
+            float(self._ptl[i].mux) for i in range(len(self._ptl))])
         return mux if len(mux) > 1 else mux[0]
 
     @property
     def muy(self):
-        muy = _np.array([float(self._ptl[i].muy) for i in range(len(self._ptl))])
+        muy = _np.array([
+            float(self._ptl[i].muy) for i in range(len(self._ptl))])
         return muy if len(muy) > 1 else muy[0]
 
     @property
     def etax(self):
-        etax = _np.array([float(self._ptl[i].etax[0]) for i in range(len(self._ptl))])
+        etax = _np.array([
+            float(self._ptl[i].etax[0]) for i in range(len(self._ptl))])
         return etax if len(etax) > 1 else etax[0]
 
     @property
     def etay(self):
-        etay = _np.array([float(self._ptl[i].etay[0]) for i in range(len(self._ptl))])
+        etay = _np.array([
+            float(self._ptl[i].etay[0]) for i in range(len(self._ptl))])
         return etay if len(etay) > 1 else etay[0]
 
     @property
     def etapx(self):
-        etapx = _np.array([float(self._ptl[i].etax[1]) for i in range(len(self._ptl))])
+        etapx = _np.array([
+            float(self._ptl[i].etax[1]) for i in range(len(self._ptl))])
         return etapx if len(etapx) > 1 else etapx[0]
 
     @property
     def etapy(self):
-        etapy = _np.array([float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
+        etapy = _np.array([
+            float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
         return etapy if len(etapy) > 1 else etapy[0]
 
     @property
@@ -1028,22 +1033,24 @@ class TwissList(object):
     @property
     def co(self):
         co = [self._ptl[i].co for i in range(len(self._ptl))]
-        co = [[co[i].rx, co[i].px, co[i].ry, co[i].py, co[i].de, co[i].dl] for i in range(len(co))]
+        co = [[co[i].rx, co[i].px, co[i].ry, co[i].py, co[i].de, co[i].dl]
+              for i in range(len(co))]
         co = _np.transpose(_np.array(co))
-        return co if len(co[0,:]) > 1 else co[:,0]
+        return co if len(co[0, :]) > 1 else co[:, 0]
 
 
-''' deprecated: graphics module needs to be updated before get_twiss is deleted '''
+# deprecated: graphics module needs to be updated before get_twiss is deleted
 @_interactive
 def get_twiss(twiss_list, attribute_list):
     """Build a matrix with Twiss data from a list of Twiss objects.
 
-    Accepts a list of Twiss objects and returns a matrix with Twiss data, one line for
-    each Twiss parameter defined in 'attributes_list'.
+    Accepts a list of Twiss objects and returns a matrix with Twiss data,
+    one line for each Twiss parameter defined in 'attributes_list'.
 
     Keyword arguments:
     twiss_list -- List with Twiss objects
-    attributes_list -- List of strings with Twiss attributes to be stored in twiss matrix
+    attributes_list -- List of strings with Twiss attributes to be stored in
+            twiss matrix
 
     Returns:
     m -- Matrix with Twiss data. Can also be thought of a single column of
@@ -1052,11 +1059,11 @@ def get_twiss(twiss_list, attribute_list):
     """
     if isinstance(attribute_list, str):
         attribute_list = (attribute_list,)
-    values = _np.zeros((len(attribute_list),len(twiss_list)))
+    values = _np.zeros((len(attribute_list), len(twiss_list)))
     for i in range(len(twiss_list)):
         for j in range(len(attribute_list)):
-            values[j,i] = getattr(twiss_list[i], attribute_list[j])
+            values[j, i] = getattr(twiss_list[i], attribute_list[j])
     if values.shape[0] == 1:
-        return values[0,:]
+        return values[0, :]
     else:
         return values
