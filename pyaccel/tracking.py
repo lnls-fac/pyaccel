@@ -315,10 +315,9 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
     turn_by_turn   -- parameter indicating what turn by turn positions are to
                       be returned. If None ringpass returns particles
                       positions only at the end of the ring, at the last turn.
-                      If turn_by_turn is 'closed' ringpass returns positions
-                      at the end of the ring for every turn. If it is 'open'
-                      than positions are returned at the beginning of every
-                      turn.
+                      If bool(turn_by_turn) is True, ringpass returns positions
+                      at the beginning of every turn (including the first) and
+                      at the end of the ring in the last turn.
 
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
@@ -422,14 +421,9 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
 
         # trackcpp particle pos -> python particle pos
         if turn_by_turn:
-            if turn_by_turn == 'closed':
-                for n in range(nr_turns):
-                    particles_out[i, :, n] = _CppDoublePos2Numpy(p_out[n])
-            elif turn_by_turn == 'open':
-                particles_out[i, :, 0] = particles[i, :]
-                for n in range(1, nr_turns):
-                    particles_out[i, :, n] = _CppDoublePos2Numpy(p_out[n-1])
-
+            particles_out[i, :, 0] = particles[i, :]
+            for n in range(nr_turns):
+                particles_out[i, :, n+1] = _CppDoublePos2Numpy(p_out[n])
         else:
             particles_out[i, :] = _CppDoublePos2Numpy(p_out[0])
 
