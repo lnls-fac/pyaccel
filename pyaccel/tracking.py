@@ -124,8 +124,8 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
     # generate transverse phase space
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='exp', cutoff=cutoff*cutoff/2)
-    ampx = _np.sqrt(2*emitx * parts[:n_part])
-    ampy = _np.sqrt(2*emity * parts[n_part:])
+    ampx = _np.sqrt(emitx * 2*parts[:n_part])
+    ampy = _np.sqrt(emity * 2*parts[n_part:])
 
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='unif', cutoff=cutoff)
