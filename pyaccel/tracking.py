@@ -282,10 +282,6 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
     particles_out = _np.squeeze(particles_out)
     # simplifies output structure in case of single particle and python list
     if len(lost_element) == 1 and not return_ndarray:
-        if len(particles_out.shape) == 3:
-            particles_out = particles_out[0, :, :]
-        else:
-            particles_out = particles_out[0, :]
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
 
@@ -441,10 +437,6 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
     particles_out = _np.squeeze(particles_out)
     # simplifies output structure in case of single particle and python list
     if len(lost_element) == 1 and not return_ndarray:
-        if len(particles_out.shape) == 3:
-            particles_out = particles_out[0, :, :]
-        else:
-            particles_out = particles_out[0, :]
         lost_turn = lost_turn[0]
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
