@@ -418,9 +418,8 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
 
         # trackcpp particle pos -> python particle pos
         if turn_by_turn:
-            particles_out[i, :, 0] = particles[i, :]
-            for n in range(nr_turns):
-                particles_out[i, :, n+1] = _CppDoublePos2Numpy(p_out[n])
+            for n in range(nr_turns+1):
+                particles_out[i, :, n] = _CppDoublePos2Numpy(p_out[n])
         else:
             particles_out[i, :] = _CppDoublePos2Numpy(p_out[-1])
 
