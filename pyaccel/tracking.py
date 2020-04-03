@@ -266,7 +266,7 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
 
         # trackcpp particle pos -> python particle pos
         if indices is None:
-            particles_out[i, :] = _CppDoublePos2Numpy(p_out[0])
+            particles_out[i, :] = _CppDoublePos2Numpy(p_out[-1])
         else:
             for j, ind in enumerate(indices):
                 particles_out[i, :, j] = _CppDoublePos2Numpy(p_out[int(ind)])
