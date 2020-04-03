@@ -24,7 +24,7 @@ from . import utils as _utils
 
 _interactive = _utils.interactive
 
-lost_planes = (None, 'x', 'y', 'z')
+LOST_PLANES = (None, 'x', 'y', 'z')
 
 
 class TrackingException(Exception):
@@ -56,9 +56,9 @@ def element_pass(element, particles, **kwargs):
     vchamber_on     -- vacuum chamber on state (True/False)
 
     Returns:
-    particles_out   -- a numpy array with tracked 6D position(s) of the
+    part_out   -- a numpy array with tracked 6D position(s) of the
                        particle(s). If elementpass is invoked for a single
-                       particle then 'particles_out' is a simple vector with
+                       particle then 'part_out' is a simple vector with
                        one index that refers to the particle coordinates. If
                        'position' represents many particles, the first index of
                        'position_out' selects the particle and the second index
@@ -81,21 +81,21 @@ def element_pass(element, particles, **kwargs):
     particles, return_ndarray, _ = _process_args(accelerator, particles)
 
     # tracks through the list of pos
-    particles_out = _np.zeros(particles.shape)
-    particles_out.fill(float('nan'))
+    part_out = _np.zeros(particles.shape)
+    part_out.fill(float('nan'))
 
     for i in range(particles.shape[0]):
         p_in = _Numpy2CppDoublePos(particles[i, :])
         if _trackcpp.track_elementpass_wrapper(
                 element._e, p_in, accelerator._accelerator):
             raise TrackingException
-        particles_out[i, :] = _CppDoublePos2Numpy(p_in)
+        part_out[i, :] = _CppDoublePos2Numpy(p_in)
 
     # returns tracking data
-    if particles_out.shape[0] == 1 and not return_ndarray:
-        particles_out = particles_out[0, :]
+    if part_out.shape[0] == 1 and not return_ndarray:
+        part_out = part_out[0, :]
 
-    return particles_out
+    return part_out
 
 
 @_interactive
@@ -174,41 +174,41 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
 
-    Returns: (particles_out, lost_flag, lost_element, lost_plane)
+    Returns: (part_out, lost_flag, lost_element, lost_plane)
 
-    particles_out -- 6D position for each particle at entrance of each element.
-                     The structure of 'particles_out' depends on inputs
+    part_out    -- 6D position for each particle at entrance of each element.
+                     The structure of 'part_out' depends on inputs
                      'particles' and 'indices'. If 'indices' is None then only
                      tracked positions at the end of the line are returned.
                      There are still two possibilities for the structure of
-                     particles_out, depending on 'particles':
+                     part_out, depending on 'particles':
 
                     (1) if 'particles' is a single particle defined as a python
-                        list of coordinates, 'particles_out' will also be a
+                        list of coordinates, 'part_out' will also be a
                         simple list:
                         ex.:particles = [rx1,px1,ry1,py1,de1,dl1]
                             indices = None
-                            particles_out=numpy.array([rx2,px2,ry2,py2,de2,dl2])
+                            part_out=numpy.array([rx2,px2,ry2,py2,de2,dl2])
 
                     (2) if 'particles' is either a python list of particles or
-                        a numpy matrix then 'particles_out' will be a matrix
+                        a numpy matrix then 'part_out' will be a matrix
                         (numpy array of arrays) whose first index selects a
                         particular particle and second index picks a coordinate
                         rx, px, ry, py, de or dl, in this order.
                         ex.:particles = [[rx1,px1,ry1,py1,de1,dl1],
                                          [rx2,px2,ry2,py2,de2,dl2]]
                             indices = None
-                            particles_out = numpy.array(
+                            part_out = numpy.array(
                                 [ [rx3,px3,ry3,py3,de3,dl3],
                                   [rx4,px4,ry4,py4,de4,dl4]
                                 ])
 
-                    Now, if 'indices' is not None then 'particles_out' can be
+                    Now, if 'indices' is not None then 'part_out' can be
                     either
 
                     (3) a numpy matrix, when 'particles' is a single particle
                         defined as a python list. The first index of
-                        'particles_out' runs through the particle coordinate
+                        'part_out' runs through the particle coordinate
                         and the second through the element index
 
                     (4) a numpy rank-3 tensor, when 'particles' is the initial
@@ -234,58 +234,36 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
                     then 'lost_plane' returns a single string
 
     """
+    # checks whether single or multiple particles, reformats particles
+    particles, _, indices = _process_args(accelerator, particles, indices)
+    indices = indices if indices is not None else [len(accelerator), ]
+
     # store only final position?
     args = _trackcpp.LinePassArgs()
-    args.trajectory = indices is not None
+    args.indices = _trackcpp.CppUnsigIntVector(indices)
+    args.element_offset = element_offset
 
-    # checks whether single or multiple particles, reformats particles
-    particles, return_ndarray, indices = _process_args(
-        accelerator, particles, indices)
+    p_in = _Numpy2CppDoublePosVector(particles)
+    p_out = _trackcpp.CppDoublePosVector()
 
-    # initialize particles_out tensor according to input options
-    if indices is None:
-        particles_out = _np.ones((particles.shape[0], 6))
-    else:
-        particles_out = _np.zeros((particles.shape[0], 6, len(indices)))
-    particles_out.fill(float('nan'))
+    # tracking
+    lost_flag = bool(_trackcpp.track_linepass_wrapper(
+        accelerator._accelerator, p_in, p_out, args))
 
-    lost_flag = False
-    lost_element, lost_plane = [], []
+    part_out = _CppDoublePosVector2Numpy(p_out)
+    part_out = part_out.reshape(len(p_in), -1, 6)
+    part_out = _np.squeeze(part_out)
 
-    # loop over particles
-    for i in range(particles.shape[0]):
+    # fills vectors with info about particle loss
+    lost_element = list(args.lost_element)
+    lost_plane = [LOST_PLANES[lp] for lp in args.lost_plane]
 
-        # python particle pos -> trackcpp particle pos
-        args.element_offset = element_offset
-        p_in = _Numpy2CppDoublePos(particles[i, :])
-        p_out = _trackcpp.CppDoublePosVector()
-
-        # tracking
-        lost_flag = bool(_trackcpp.track_linepass_wrapper(
-            accelerator._accelerator, p_in, p_out, args))
-
-        # trackcpp particle pos -> python particle pos
-        if indices is None:
-            particles_out[i, :] = _CppDoublePos2Numpy(p_out[-1])
-        else:
-            for j, ind in enumerate(indices):
-                particles_out[i, :, j] = _CppDoublePos2Numpy(p_out[int(ind)])
-
-        # fills vectors with info about particle loss
-        if args.lost_plane:
-            lost_element.append(args.element_offset)
-            lost_plane.append(lost_planes[args.lost_plane])
-        else:
-            lost_element.append(None)
-            lost_plane.append(None)
-
-    particles_out = _np.squeeze(particles_out)
-    # simplifies output structure in case of single particle and python list
-    if len(lost_element) == 1 and not return_ndarray:
+    # simplifies output structure in case of single particle
+    if len(lost_element) == 1:
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
 
-    return particles_out, lost_flag, lost_element, lost_plane
+    return part_out, lost_flag, lost_element, lost_plane
 
 
 @_interactive
@@ -319,46 +297,46 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
 
-    Returns: (particles_out, lost_flag, lost_turn, lost_element, lost_plane)
+    Returns: (part_out, lost_flag, lost_turn, lost_element, lost_plane)
 
-    particles_out -- 6D position for each particle at end of ring. The
-                     structure of 'particles_out' depends on inputs
+    part_out -- 6D position for each particle at end of ring. The
+                     structure of 'part_out' depends on inputs
                      'particles' and 'turn_by_turn'. If 'turn_by_turn' is None
                      then only tracked positions at the end 'nr_turns' are
                      returned. There are still two possibilities for the
-                     structure of particles_out, depending on 'particles':
+                     structure of part_out, depending on 'particles':
 
                     (1) if 'particles' is a single particle defined as a python
-                        list of coordinates, 'particles_out' will also be a
+                        list of coordinates, 'part_out' will also be a
                         simple list:
                         ex.:particles = [rx1,px1,ry1,py1,de1,dl1]
                             turn_by_turn = False
-                            particles_out=numpy.array([rx2,px2,ry2,py2,de2,dl2])
+                            part_out=numpy.array([rx2,px2,ry2,py2,de2,dl2])
 
                     (2) if 'particles' is either a python list of particles or
-                        a numpy matrix then 'particles_out' will be a matrix
+                        a numpy matrix then 'part_out' will be a matrix
                         (numpy array of arrays) whose first index selects the
                         coordinate rx, px, ry, py, de or dl, in this order, and
                         the second index selects a particular particle.
                         ex.: particles = [[rx1,px1,ry1,py1,de1,dl1],
                                           [rx2,px2,ry2,py2,de2,dl2]]
                              turn_by_turn = False
-                             particles_out = numpy.array(
+                             part_out = numpy.array(
                                  [ [rx3,px3,ry3,py3,de3,dl3],
                                    [rx4,px4,ry4,py4,de4,dl4]
                                  ])
 
                      'turn_by_turn' can also be either 'close' or 'open'. In
-                     either case 'particles_out' will have tracked positions at
+                     either case 'part_out' will have tracked positions at
                      the entrances of the elements. The difference is that for
                      'closed' it will have an additional tracked position at
                      the exit of the last element, thus closing the data, in
-                     case the line is a ring. The format of 'particles_out' is
+                     case the line is a ring. The format of 'part_out' is
                      ...
 
                     (3) a numpy matrix, when 'particles' is a single particle
                         defined as a python list. The first index of
-                        'particles_out' runs through coordinates
+                        'part_out' runs through coordinates
                          rx, px, ry, py, de or dl
                         and the second index runs through the turn number
 
@@ -387,60 +365,39 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
     """
 
     # checks whether single or multiple particles, reformats particles
-    particles, return_ndarray, _ = _process_args(
-        accelerator, particles, indices=None)
-
-    # initialize particles_out tensor according to input options
-    if turn_by_turn:
-        particles_out = _np.zeros((particles.shape[0], 6, nr_turns+1))
-    else:
-        particles_out = _np.zeros((particles.shape[0], 6))
-    particles_out.fill(float('nan'))
-    lost_flag = False
-    lost_turn, lost_element, lost_plane = [], [], []
+    particles, *_ = _process_args(accelerator, particles, indices=None)
 
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
     args.nr_turns = nr_turns
     args.trajectory = bool(turn_by_turn)
+    args.element_offset = element_offset
 
-    # loop over particles
-    for i in range(particles.shape[0]):
+    p_in = _Numpy2CppDoublePosVector(particles)
+    p_out = _trackcpp.CppDoublePosVector()
 
-        # python particle pos -> trackcpp particle pos
-        args.element_offset = element_offset
-        p_in = _Numpy2CppDoublePos(particles[i, :])
-        p_out = _trackcpp.CppDoublePosVector()
+    # tracking
+    lost_flag = bool(_trackcpp.track_ringpass_wrapper(
+        accelerator._accelerator, p_in, p_out, args))
 
-        # tracking
-        lost_flag = bool(_trackcpp.track_ringpass_wrapper(
-            accelerator._accelerator, p_in, p_out, args))
+    part_out = _CppDoublePosVector2Numpy(p_out)
+    part_out = part_out.reshape(len(p_in), -1, 6)
+    if not turn_by_turn:
+        part_out = part_out[:, -1, :]
+    part_out = _np.squeeze(part_out)
 
-        # trackcpp particle pos -> python particle pos
-        if turn_by_turn:
-            for n in range(nr_turns+1):
-                particles_out[i, :, n] = _CppDoublePos2Numpy(p_out[n])
-        else:
-            particles_out[i, :] = _CppDoublePos2Numpy(p_out[-1])
+    # fills vectors with info about particle loss
+    lost_turn = list(args.lost_turn)
+    lost_element = list(args.lost_element)
+    lost_plane = [LOST_PLANES[lp] for lp in args.lost_plane]
 
-        # fills vectors with info about particle loss
-        if args.lost_plane:
-            lost_turn.append(args.lost_turn)
-            lost_element.append(args.lost_element)
-            lost_plane.append(lost_planes[args.lost_plane])
-        else:
-            lost_turn.append(None)
-            lost_element.append(None)
-            lost_plane.append(None)
-
-    particles_out = _np.squeeze(particles_out)
-    # simplifies output structure in case of single particle and python list
-    if len(lost_element) == 1 and not return_ndarray:
+    # simplifies output structure in case of single particle
+    if len(lost_element) == 1:
         lost_turn = lost_turn[0]
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
 
-    return particles_out, lost_flag, lost_turn, lost_element, lost_plane
+    return part_out, lost_flag, lost_turn, lost_element, lost_plane
 
 
 @_interactive
@@ -684,18 +641,18 @@ def _CppMatrix24Numpy(_m):
 
 
 def _Numpy2CppDoublePos(p_in):
-    p_out = _trackcpp.CppDoublePos()
-    p_out.rx, p_out.px = float(p_in[0]), float(p_in[1])
-    p_out.ry, p_out.py = float(p_in[2]), float(p_in[3])
-    p_out.de, p_out.dl = float(p_in[4]), float(p_in[5])
+    p_out = _trackcpp.CppDoublePos(
+        float(p_in[0]), float(p_in[1]),
+        float(p_in[2]), float(p_in[3]),
+        float(p_in[4]), float(p_in[5]))
     return p_out
 
 
-def _4Numpy2CppDoublePos(p_in):
-    p_out = _trackcpp.CppDoublePos()
-    p_out.rx, p_out.px = float(p_in[0]), float(p_in[1])
-    p_out.ry, p_out.py = float(p_in[2]), float(p_in[3])
-    p_out.de, p_out.dl = 0, 0
+def _4Numpy2CppDoublePos(p_in, de=0.0):
+    p_out = _trackcpp.CppDoublePos(
+        float(p_in[0]), float(p_in[1]),
+        float(p_in[2]), float(p_in[3]),
+        de, 0)
     return p_out
 
 
@@ -707,46 +664,58 @@ def _CppDoublePos24Numpy(p_in):
     return _np.array((p_in.rx, p_in.px, p_in.ry, p_in.py))
 
 
-def _Numpy2CppDoublePosVector(orbit):
-    if isinstance(orbit, _trackcpp.CppDoublePosVector):
-        return orbit
-    if isinstance(orbit, _np.ndarray):
-        orbit_out = _trackcpp.CppDoublePosVector()
-        for i in range(orbit.shape[1]):
-            orbit_out.push_back(_trackcpp.CppDoublePos(
-                orbit[0, i], orbit[1, i],
-                orbit[2, i], orbit[3, i],
-                orbit[4, i], orbit[5, i]))
-    elif isinstance(orbit, (list, tuple)):
-        orbit_out = _trackcpp.CppDoublePosVector()
-        orbit_out.push_back(_trackcpp.CppDoublePos(
-            orbit[0], orbit[1],
-            orbit[2], orbit[3],
-            orbit[4], orbit[5]))
-    else:
-        raise TrackingException('invalid orbit argument')
-    return orbit_out
+def _Numpy2CppDoublePosVector(poss):
+    if isinstance(poss, _trackcpp.CppDoublePosVector):
+        return poss
+
+    conds = isinstance(poss, _np.ndarray) and len(poss.shape) == 2 and \
+        poss.shape[1] == 6
+    conds |= isinstance(poss, (list, tuple)) and \
+        isinstance(poss, (list, tuple)) and len(poss[0]) == 6
+    if not conds:
+        raise TrackingException('invalid positions argument')
+
+    poss_out = _trackcpp.CppDoublePosVector()
+    for pos in poss:
+        poss_out.push_back(_Numpy2CppDoublePos(pos))
+    return poss_out
 
 
-def _4Numpy2CppDoublePosVector(orbit, de=0.0):
-    if isinstance(orbit, _trackcpp.CppDoublePosVector):
-        return orbit
-    if isinstance(orbit, _np.ndarray):
-        orbit_out = _trackcpp.CppDoublePosVector()
-        for i in range(orbit.shape[1]):
-            orbit_out.push_back(_trackcpp.CppDoublePos(
-                orbit[0, i], orbit[1, i],
-                orbit[2, i], orbit[3, i],
-                de, 0.0))
-    elif isinstance(orbit, (list, tuple)):
-        orbit_out = _trackcpp.CppDoublePosVector()
-        orbit_out.push_back(_trackcpp.CppDoublePos(
-            orbit[0], orbit[1],
-            orbit[2], orbit[3],
-            de, 0.0))
-    else:
-        raise TrackingException('invalid orbit argument')
-    return orbit_out
+def _4Numpy2CppDoublePosVector(poss, de=0.0):
+    if isinstance(poss, _trackcpp.CppDoublePosVector):
+        return poss
+
+    conds = isinstance(poss, _np.ndarray) and len(poss.shape) == 2 and \
+        poss.shape[1] == 4
+    conds |= isinstance(poss, (list, tuple)) and \
+        isinstance(poss, (list, tuple)) and len(poss[0]) == 4
+    if not conds:
+        raise TrackingException('invalid positions argument')
+
+    poss_out = _trackcpp.CppDoublePosVector()
+    for pos in poss:
+        poss_out.push_back(_4Numpy2CppDoublePos(pos, de=de))
+    return poss_out
+
+
+def _CppDoublePosVector2Numpy(poss):
+    if not isinstance(poss, _trackcpp.CppDoublePosVector):
+        raise TrackingException('invalid positions argument')
+
+    poss_out = _np.zeros((poss.size(), 6))
+    for i, pos in enumerate(poss):
+        poss_out[i] = _CppDoublePos2Numpy(pos)
+    return poss_out
+
+
+def _CppDoublePosVector24Numpy(poss):
+    if not isinstance(poss, _trackcpp.CppDoublePosVector):
+        raise TrackingException('invalid positions argument')
+
+    poss_out = _np.zeros((poss.size(), 4))
+    for i, pos in enumerate(poss):
+        poss_out[i] = _CppDoublePos24Numpy(pos)
+    return poss_out
 
 
 def _process_args(accelerator, pos, indices=None):
