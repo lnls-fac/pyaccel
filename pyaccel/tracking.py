@@ -279,6 +279,7 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
             lost_element.append(None)
             lost_plane.append(None)
 
+    particles_out = _np.squeeze(particles_out)
     # simplifies output structure in case of single particle and python list
     if len(lost_element) == 1 and not return_ndarray:
         if len(particles_out.shape) == 3:
