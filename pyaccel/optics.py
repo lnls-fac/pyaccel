@@ -382,14 +382,13 @@ def calc_emittance_coupling(accelerator,
         acc, rin, nr_turns=nr_turns, turn_by_turn='closed', element_offset=0)
 
     if mode == 'fitting':
-        r = _np.dstack([rin[None, :, None], rout])
-        ax, bx = fitEllipse(r[0][0], r[0][1])
-        ay, by = fitEllipse(r[0][2], r[0][3])
+        ax, bx = fitEllipse(rout[0], rout[1])
+        ay, by = fitEllipse(rout[2], rout[3])
         emitx = ax * bx
         emity = ay * by
     elif mode == 'twiss':
         twiss, *_ = calc_twiss(acc)
-        dr = rout[0, :, :] - _np.vstack((orb, _np.array([[0], [0]])))
+        dr = rout - _np.vstack((orb, _np.array([[0], [0]])))
         emitx, emity = calc_emittances(dr, twiss)
     else:
         raise Exception('Invalid mode, set fitting or twiss')
@@ -508,14 +507,13 @@ def get_mcf(accelerator, order=1, energy_offset=None):
         fp = _tracking.find_orbit4(accel, ene)
         X0 = _np.concatenate([fp.flatten(), [ene, 0]])
         T, *_ = _tracking.ring_pass(accel, X0)
-        dl[i] = T[0, 5]/leng
+        dl[i] = T[5]/leng
 
-    polynom = _np.polyfit(energy_offset, dl, order)
-    a = _np.fliplr([polynom])[0].tolist()
-    a = a[1:]
-    if len(a) == 1:
-        a = a[0]
-    return a
+    polynom = _np.polynomial.polynomial.polyfit(energy_offset, dl, order)
+    polynom = polynom[1:]
+    if len(polynom) == 1:
+        polynom = polynom[0]
+    return polynom
 
 
 @_interactive
