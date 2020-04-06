@@ -2,8 +2,10 @@
 import sys as _sys
 import math as _math
 import numpy as _np
+
 import mathphys as _mp
 import trackcpp as _trackcpp
+
 from . import lattice as _lattice
 from . import tracking as _tracking
 from . import accelerator as _accelerator
@@ -471,7 +473,8 @@ def get_frac_tunes(accelerator=None, m1turn=None, dim='6D', closed_orbit=None,
         tune_y = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_y)))]
         tune_z = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_z)))]
 
-    return tune_x, tune_y, tune_z, trace_x, trace_y, trace_z, m1turn, closed_orbit
+    return tune_x, tune_y, tune_z, trace_x, trace_y, trace_z, m1turn, \
+        closed_orbit
 
 
 @_interactive
