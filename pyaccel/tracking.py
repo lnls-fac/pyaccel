@@ -352,7 +352,10 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
     args.element_offset = element_offset
 
     n_part = p_in.shape[1]
-    p_out = _np.zeros((6, n_part*(nr_turns+1)), dtype=float)
+    if bool(turn_by_turn):
+        p_out = _np.zeros((6, n_part*(nr_turns+1)), dtype=float)
+    else:
+        p_out = _np.zeros((6, n_part), dtype=float)
 
     # tracking
     lost_flag = bool(_trackcpp.track_ringpass_wrapper(
