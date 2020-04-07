@@ -130,17 +130,15 @@ def element_pass(element, particles, energy, **kwargs):
     accelerator = _accelerator.Accelerator(**kwargs)
 
     # checks whether single or multiple particles
-    particles, _ = _process_args(accelerator, particles)
+    p_in, _ = _process_args(accelerator, particles)
 
     # tracks through the list of pos
-    p_in = _Numpy2CppDoublePosVector(particles)
     ret = _trackcpp.track_elementpass_wrapper(
         element._e, p_in, accelerator._accelerator)
     if ret > 0:
         raise TrackingException
 
-    part_out = _CppDoublePosVector2Numpy(p_in)
-    return part_out.squeeze()
+    return p_in.squeeze()
 
 
 @_interactive
@@ -223,7 +221,7 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
 
     """
     # checks whether single or multiple particles, reformats particles
-    particles, indices = _process_args(accelerator, particles, indices)
+    p_in, indices = _process_args(accelerator, particles, indices)
     indices = indices if indices is not None else [len(accelerator), ]
 
     # store only final position?
@@ -232,16 +230,15 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
         args.indices.push_back(int(idx))
     args.element_offset = element_offset
 
-    p_in = _Numpy2CppDoublePosVector(particles)
-    p_out = _trackcpp.CppDoublePosVector()
+    n_part = p_in.shape[1]
+    p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
 
     # tracking
     lost_flag = bool(_trackcpp.track_linepass_wrapper(
         accelerator._accelerator, p_in, p_out, args))
 
-    part_out = _CppDoublePosVector2Numpy(p_out)
-    part_out = part_out.reshape(6, len(p_in), -1)
-    part_out = _np.squeeze(part_out)
+    p_out = p_out.reshape(6, n_part, -1)
+    p_out = _np.squeeze(p_out)
 
     # fills vectors with info about particle loss
     lost_element = list(args.lost_element)
@@ -252,7 +249,7 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
 
-    return part_out, lost_flag, lost_element, lost_plane
+    return p_out, lost_flag, lost_element, lost_plane
 
 
 @_interactive
@@ -346,7 +343,7 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
                     then 'lost_plane' returns a single string.
     """
     # checks whether single or multiple particles, reformats particles
-    particles, *_ = _process_args(accelerator, particles, indices=None)
+    p_in, *_ = _process_args(accelerator, particles, indices=None)
 
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
@@ -354,16 +351,15 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
     args.trajectory = bool(turn_by_turn)
     args.element_offset = element_offset
 
-    p_in = _Numpy2CppDoublePosVector(particles)
-    p_out = _trackcpp.CppDoublePosVector()
+    n_part = p_in.shape[1]
+    p_out = _np.zeros((6, n_part*(nr_turns+1)), dtype=float)
 
     # tracking
     lost_flag = bool(_trackcpp.track_ringpass_wrapper(
         accelerator._accelerator, p_in, p_out, args))
 
-    part_out = _CppDoublePosVector2Numpy(p_out)
-    part_out = part_out.reshape(6, len(p_in), -1)
-    part_out = _np.squeeze(part_out)
+    p_out = p_out.reshape(6, n_part, -1)
+    p_out = _np.squeeze(p_out)
 
     # fills vectors with info about particle loss
     lost_turn = list(args.lost_turn)
@@ -376,7 +372,7 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
 
-    return part_out, lost_flag, lost_turn, lost_element, lost_plane
+    return p_out, lost_flag, lost_turn, lost_element, lost_plane
 
 
 @_interactive
