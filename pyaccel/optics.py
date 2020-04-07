@@ -213,15 +213,15 @@ class Twiss:
         return r
 
     def make_dict(self):
-        co = self.co
+        cod = self.co
         beta = [self.betax, self.betay]
         alpha = [self.alphax, self.alphay]
         etax = [self.etax, self.etapx]
         etay = [self.etay, self.etapy]
-        mu = [self.mux, self.muy]
+        mus = [self.mux, self.muy]
         return {
-            'co': co, 'beta': beta, 'alpha': alpha,
-            'etax': etax, 'etay': etay, 'mu': mu}
+            'co': cod, 'beta': beta, 'alpha': alpha,
+            'etax': etax, 'etay': etay, 'mu': mus}
 
     @staticmethod
     def make_new(*args, **kwrgs):
@@ -230,14 +230,14 @@ class Twiss:
         if args:
             if isinstance(args[0], dict):
                 kwrgs = args[0]
-        n = Twiss()
-        n.co = kwrgs['co'] if 'co' in kwrgs else (0.0,)*6
-        n.mux, n.muy = kwrgs['mu'] if 'mu' in kwrgs else (0.0, 0.0)
-        n.betax, n.betay = kwrgs['beta'] if 'beta' in kwrgs else (0.0, 0.0)
-        n.alphax, n.alphay = kwrgs['alpha'] if 'alpha' in kwrgs else (0.0, 0.0)
-        n.etax, n.etapx = kwrgs['etax'] if 'etax' in kwrgs else (0.0, 0.0)
-        n.etay, n.etapy = kwrgs['etay'] if 'etay' in kwrgs else (0.0, 0.0)
-        return n
+        twi = Twiss()
+        twi.co = kwrgs.get('co', (0.0,)*6)
+        twi.mux, twi.muy = kwrgs.get('mu', (0.0, 0.0))
+        twi.betax, twi.betay = kwrgs.get('beta', (0.0, 0.0))
+        twi.alphax, twi.alphay = kwrgs.get('alpha', (0.0, 0.0))
+        twi.etax, twi.etapx = kwrgs.get('etax', (0.0, 0.0))
+        twi.etay, twi.etapy = kwrgs.get('etay', (0.0, 0.0))
+        return twi
 
 
 @_interactive
@@ -337,18 +337,20 @@ def calc_emittance_coupling(accelerator,
     # http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
     # In order to check the nomenclature used, please go to:
     # https://mathworld.wolfram.com/Ellipse.html
-    def fitEllipse(x, y):
-        x = x[:, _np.newaxis]
-        y = y[:, _np.newaxis]
-        D = _np.hstack((x*x, x*y, y*y, x, y, _np.ones_like(x)))
-        S = _np.dot(D.T, D)
-        C = _np.zeros([6, 6])
-        C[0, 2] = C[2, 0] = 2
-        C[1, 1] = -1
-        E, V = _np.linalg.eig(_np.linalg.solve(S, C))
-        n = _np.argmax(_np.abs(E))
-        a = V[:, n]
-        b, c, d, f, g, a = a[1]/2, a[2], a[3]/2, a[4]/2, a[5], a[0]
+    def fitEllipse(x_dat, y_dat):
+        x_dat = x_dat[:, _np.newaxis]
+        y_dat = y_dat[:, _np.newaxis]
+        mat = _np.hstack((
+            x_dat*x_dat, x_dat*y_dat, y_dat*y_dat, x_dat, y_dat,
+            _np.ones_like(x_dat)))
+        sq_mat = _np.dot(mat.T, mat)
+        cof = _np.zeros([6, 6])
+        cof[0, 2] = cof[2, 0] = 2
+        cof[1, 1] = -1
+        eig, eiv = _np.linalg.eig(_np.linalg.solve(sq_mat, cof))
+        siz = _np.argmax(_np.abs(eig))
+        eiv = eiv[:, siz]
+        a, b, c, d, f, g = eiv[0], eiv[1]/2, eiv[2], eiv[3]/2, eiv[4]/2, eiv[5]
         numerator = 2*(a*f*f + c*d*d + g*b*b - 2*b*d*f - a*c*g)
         denominator1 = (b*b-a*c) * ((c-a) * _np.sqrt(
             1 + 4*b*b / ((a-c)*(a-c)))-(c+a))
@@ -367,10 +369,10 @@ def calc_emittance_coupling(accelerator,
         betay = twiss.betay[idx]
         gammay = (1 + alphay*alphay)/betay
 
-        x, xl, y, yl = orbit[0, :], orbit[1, :], orbit[2, :], orbit[3, :]
+        rxx, pxx, ryy, pyy = orbit[0, :], orbit[1, :], orbit[2, :], orbit[3, :]
 
-        emitx = gammax * x**2 + 2 * alphax * x * xl + betax * xl**2
-        emity = gammay * y**2 + 2 * alphay * y * yl + betay * yl**2
+        emitx = gammax * rxx**2 + 2 * alphax * rxx * pxx + betax * pxx**2
+        emity = gammay * ryy**2 + 2 * alphay * ryy * pyy + betay * pyy**2
         return _np.mean(emitx), _np.mean(emity)
 
     acc = accelerator[:]
@@ -384,14 +386,14 @@ def calc_emittance_coupling(accelerator,
         acc, rin, nr_turns=nr_turns, turn_by_turn='closed', element_offset=0)
 
     if mode == 'fitting':
-        ax, bx = fitEllipse(rout[0], rout[1])
-        ay, by = fitEllipse(rout[2], rout[3])
-        emitx = ax * bx
-        emity = ay * by
+        minx, majx = fitEllipse(rout[0], rout[1])
+        miny, majy = fitEllipse(rout[2], rout[3])
+        emitx = minx * majx
+        emity = miny * majy
     elif mode == 'twiss':
         twiss, *_ = calc_twiss(acc)
-        dr = rout - _np.vstack((orb, _np.array([[0], [0]])))
-        emitx, emity = calc_emittances(dr, twiss)
+        dtraj = rout - _np.vstack((orb, _np.array([[0], [0]])))
+        emitx, emity = calc_emittances(dtraj, twiss)
     else:
         raise Exception('Invalid mode, set fitting or twiss')
     return emity / emitx
@@ -403,8 +405,7 @@ def get_rf_frequency(accelerator):
     for e in accelerator:
         if e.frequency != 0.0:
             return e.frequency
-    else:
-        raise OpticsException('no cavity element in the lattice')
+    raise OpticsException('no cavity element in the lattice')
 
 
 @_interactive
@@ -507,9 +508,9 @@ def get_mcf(accelerator, order=1, energy_offset=None):
 
     dl = _np.zeros(_np.size(energy_offset))
     for i, ene in enumerate(energy_offset):
-        fp = _tracking.find_orbit4(accel, ene)
-        X0 = _np.concatenate([fp.flatten(), [ene, 0]])
-        T, *_ = _tracking.ring_pass(accel, X0)
+        cod = _tracking.find_orbit4(accel, ene)
+        cod = _np.concatenate([cod.flatten(), [ene, 0]])
+        T, *_ = _tracking.ring_pass(accel, cod)
         dl[i] = T[5]/leng
 
     polynom = _np.polynomial.polynomial.polyfit(energy_offset, dl, order)
@@ -538,17 +539,17 @@ def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, twiss=None,
 
     # emittances and energy spread
     equi = EquilibriumParameters(accelerator)
-    e0 = equi.emit0
+    emit0 = equi.emit0
     sigmae = equi.espread0
-    ey = e0 * coupling / (1.0 + coupling)
-    ex = e0 * 1 / (1.0 + coupling)
+    emitx = emit0 / (1.0 + coupling)
+    emity = emitx * coupling
 
     # beamsizes per se
-    sigmax = _np.sqrt(ex * betax + (sigmae * etax)**2)
-    sigmay = _np.sqrt(ey * betay + (sigmae * etay)**2)
-    sigmaxl = _np.sqrt(ex * gammax + (sigmae * etapx)**2)
-    sigmayl = _np.sqrt(ey * gammay + (sigmae * etapy)**2)
-    return sigmax, sigmay, sigmaxl, sigmayl, ex, ey, summary, twiss
+    sigmax = _np.sqrt(emitx * betax + (sigmae * etax)**2)
+    sigmay = _np.sqrt(emity * betay + (sigmae * etay)**2)
+    sigmaxl = _np.sqrt(emitx * gammax + (sigmae * etapx)**2)
+    sigmayl = _np.sqrt(emity * gammay + (sigmae * etapy)**2)
+    return sigmax, sigmay, sigmaxl, sigmayl, emitx, emity, twi
 
 
 @_interactive
