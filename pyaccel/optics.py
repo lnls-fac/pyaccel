@@ -247,7 +247,7 @@ class TwissList(object):
         if isinstance(twiss_list, _trackcpp.CppTwissVector):
             self._tl = twiss_list
         else:
-            raise TrackingException('invalid Twiss vector')
+            raise OpticsException('invalid Twiss vector')
         self._ptl = [self._tl[i] for i in range(len(self._tl))]
 
     def __len__(self):
@@ -281,7 +281,7 @@ class TwissList(object):
             self._tl.append(t)
             self._ptl.append(t)
         else:
-            raise TrackingException('can only append twiss-like objects')
+            raise OpticsException('can only append twiss-like objects')
 
     def _is_list_of_lists(self, value):
         valid_types = (list, tuple)
