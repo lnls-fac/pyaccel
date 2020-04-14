@@ -18,25 +18,18 @@ class OpticsException(Exception):
 
 class Twiss:
 
-    def __init__(self, **kwargs):
-        if 'twiss' in kwargs:
-            if isinstance(kwargs['twiss'], _trackcpp.Twiss):
-                copy = kwargs.get('copy', False)
-                if copy:
-                    self._t = _trackcpp.Twiss(kwargs['twiss'])
-                else:
-                    self._t = kwargs['twiss']
-            elif isinstance(kwargs['twiss'], Twiss):
-                copy = kwargs.get('copy', True)
-                if copy:
-                    self._t = _trackcpp.Twiss(kwargs['twiss']._t)
-                else:
-                    self._t = kwargs['twiss']._t
-            else:
-                raise TypeError(
-                    'twiss must be a trackcpp.Twiss or a Twiss object.')
-        else:
+    def __init__(self, twiss=None, copy=True):
+        if twiss is None:
             self._t = _trackcpp.Twiss()
+        elif isinstance(twiss, Twiss):
+            self._t = twiss._t
+        elif isinstance(twiss, _trackcpp.Twiss):
+            self._t = twiss
+        else:
+            raise TypeError(
+                'twiss must be a trackcpp.Twiss or a Twiss object.')
+        if twiss is not None and copy:
+            self._t = _trackcpp.Twiss(self._t)
 
     def __eq__(self, other):
         if not isinstance(other, Twiss):
@@ -885,13 +878,12 @@ class TwissList(object):
         twiss_list -- trackcpp Twiss vector (default: None)
         """
         # TEST!
-        if twiss_list is not None:
-            if isinstance(twiss_list, _trackcpp.CppTwissVector):
-                self._tl = twiss_list
-            else:
-                raise TrackingException('invalid Twiss vector')
-        else:
+        if twiss_list is None:
             self._tl = _trackcpp.CppTwissVector()
+        if isinstance(twiss_list, _trackcpp.CppTwissVector):
+            self._tl = twiss_list
+        else:
+            raise TrackingException('invalid Twiss vector')
         self._ptl = [self._tl[i] for i in range(len(self._tl))]
 
     def __len__(self):
@@ -899,7 +891,7 @@ class TwissList(object):
 
     def __getitem__(self, index):
         if isinstance(index, (int, _np.int_)):
-            return Twiss(twiss=self._tl[index])
+            return Twiss(twiss=self._tl[index], copy=False)
         elif isinstance(index, (list, tuple, _np.ndarray)) and \
                 all(isinstance(x, (int, _np.int_)) for x in index):
             tl = _trackcpp.CppTwissVector()
