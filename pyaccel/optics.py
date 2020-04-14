@@ -233,6 +233,447 @@ class Twiss:
         return twi
 
 
+class TwissList(object):
+
+    def __init__(self, twiss_list=None):
+        """Read-only list of matrices.
+
+        Keyword argument:
+        twiss_list -- trackcpp Twiss vector (default: None)
+        """
+        # TEST!
+        if twiss_list is None:
+            self._tl = _trackcpp.CppTwissVector()
+        if isinstance(twiss_list, _trackcpp.CppTwissVector):
+            self._tl = twiss_list
+        else:
+            raise TrackingException('invalid Twiss vector')
+        self._ptl = [self._tl[i] for i in range(len(self._tl))]
+
+    def __len__(self):
+        return len(self._tl)
+
+    def __getitem__(self, index):
+        if isinstance(index, (int, _np.int_)):
+            return Twiss(twiss=self._tl[index], copy=False)
+        elif isinstance(index, (list, tuple, _np.ndarray)) and \
+                all(isinstance(x, (int, _np.int_)) for x in index):
+            tl = _trackcpp.CppTwissVector()
+            for i in index:
+                tl.append(self._tl[i])
+            return TwissList(twiss_list=tl)
+        elif isinstance(index, slice):
+            return TwissList(twiss_list=self._tl[index])
+        else:
+            raise TypeError('invalid index')
+
+    def append(self, value):
+        if isinstance(value, _trackcpp.Twiss):
+            self._tl.append(value)
+            self._ptl.append(value)
+        elif isinstance(value, Twiss):
+            self._tl.append(value._t)
+            self._ptl.append(value._t)
+        elif self._is_list_of_lists(value):
+            t = _trackcpp.Twiss()
+            for line in value:
+                t.append(line)
+            self._tl.append(t)
+            self._ptl.append(t)
+        else:
+            raise TrackingException('can only append twiss-like objects')
+
+    def _is_list_of_lists(self, value):
+        valid_types = (list, tuple)
+        if not isinstance(value, valid_types):
+            return False
+        for line in value:
+            if not isinstance(line, valid_types):
+                return False
+        return True
+
+    @property
+    def spos(self):
+        spos = _np.array([
+            float(self._ptl[i].spos) for i in range(len(self._ptl))])
+        return spos if len(spos) > 1 else spos[0]
+
+    @property
+    def betax(self):
+        betax = _np.array([
+            float(self._ptl[i].betax) for i in range(len(self._ptl))])
+        return betax if len(betax) > 1 else betax[0]
+
+    @property
+    def betay(self):
+        betay = _np.array([
+            float(self._ptl[i].betay) for i in range(len(self._ptl))])
+        return betay if len(betay) > 1 else betay[0]
+
+    @property
+    def alphax(self):
+        alphax = _np.array([
+            float(self._ptl[i].alphax) for i in range(len(self._ptl))])
+        return alphax if len(alphax) > 1 else alphax[0]
+
+    @property
+    def alphay(self):
+        alphay = _np.array([
+            float(self._ptl[i].alphay) for i in range(len(self._ptl))])
+        return alphay if len(alphay) > 1 else alphay[0]
+
+    @property
+    def mux(self):
+        mux = _np.array([
+            float(self._ptl[i].mux) for i in range(len(self._ptl))])
+        return mux if len(mux) > 1 else mux[0]
+
+    @property
+    def muy(self):
+        muy = _np.array([
+            float(self._ptl[i].muy) for i in range(len(self._ptl))])
+        return muy if len(muy) > 1 else muy[0]
+
+    @property
+    def etax(self):
+        etax = _np.array([
+            float(self._ptl[i].etax[0]) for i in range(len(self._ptl))])
+        return etax if len(etax) > 1 else etax[0]
+
+    @property
+    def etay(self):
+        etay = _np.array([
+            float(self._ptl[i].etay[0]) for i in range(len(self._ptl))])
+        return etay if len(etay) > 1 else etay[0]
+
+    @property
+    def etapx(self):
+        etapx = _np.array([
+            float(self._ptl[i].etax[1]) for i in range(len(self._ptl))])
+        return etapx if len(etapx) > 1 else etapx[0]
+
+    @property
+    def etapy(self):
+        etapy = _np.array([
+            float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
+        return etapy if len(etapy) > 1 else etapy[0]
+
+    @property
+    def rx(self):
+        res = _np.array([float(ptl.co.rx) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def ry(self):
+        res = _np.array([float(ptl.co.ry) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def px(self):
+        res = _np.array([float(ptl.co.px) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def py(self):
+        res = _np.array([float(ptl.co.py) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def de(self):
+        res = _np.array([float(ptl.co.de) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def dl(self):
+        res = _np.array([float(ptl.co.dl) for ptl in self._ptl])
+        return res if len(res) > 1 else res[0]
+
+    @property
+    def co(self):
+        co = [self._ptl[i].co for i in range(len(self._ptl))]
+        co = [[co[i].rx, co[i].px, co[i].ry, co[i].py, co[i].de, co[i].dl]
+              for i in range(len(co))]
+        co = _np.transpose(_np.array(co))
+        return co if len(co[0, :]) > 1 else co[:, 0]
+
+
+class EquilibriumParameters:
+
+    def __init__(self, accelerator):
+        self._acc = _accelerator.Accelerator()
+        self._m66 = None
+        self._twi = None
+        self._alpha = 0.0
+        self._integrals = _np.zeros(6)
+        self._damping = _np.zeros(3)
+        self._radiation_damping = _np.zeros(3)
+        self.accelerator = accelerator
+
+    def __str__(self):
+        r = ''
+        fmt = '{:<30s}: '
+        fmtn = '{:.4g}'
+
+        fmte = fmt + fmtn
+        r += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
+
+        ints = 'I1,I2,I3,I3a,I4,I5,I6'.split(',')
+        r += '\n' + fmt.format(', '.join(ints))
+        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        ints = 'Jx,Jy,Je'.split(',')
+        r += '\n' + fmt.format(', '.join(ints))
+        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        ints = 'taux,tauy,taue'.split(',')
+        r += '\n' + fmt.format(', '.join(ints) + ' [ms]')
+        r += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
+
+        r += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
+        r += fmte.format('\nenergy loss [keV]', self.U0/1000)
+        r += fmte.format('\novervoltage', self.overvoltage)
+        r += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
+        r += fmte.format('\nsync tune', self.synctune)
+        r += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
+        r += fmte.format('\nnatural espread [%]', self.espread0*100)
+        r += fmte.format('\nbunch length [mm]', self.bunch_length*1000)
+        r += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
+        return r
+
+    @property
+    def accelerator(self):
+        return self._acc
+
+    @accelerator.setter
+    def accelerator(self, acc):
+        if isinstance(acc, _accelerator.Accelerator):
+            self._acc = acc
+            self._calc_radiation_integrals()
+
+    @property
+    def twiss(self):
+        return self._twi
+
+    @property
+    def m66(self):
+        return self._m66
+
+    @property
+    def I1(self):
+        return self._integrals[0]
+
+    @property
+    def I2(self):
+        return self._integrals[1]
+
+    @property
+    def I3(self):
+        return self._integrals[2]
+
+    @property
+    def I3a(self):
+        return self._integrals[3]
+
+    @property
+    def I4(self):
+        return self._integrals[4]
+
+    @property
+    def I5(self):
+        return self._integrals[5]
+
+    @property
+    def I6(self):
+        return self._integrals[6]
+
+    @property
+    def Jx(self):
+        return 1.0 - self.I4/self.I2
+
+    @property
+    def Jy(self):
+        return 1.0
+
+    @property
+    def Je(self):
+        return 2.0 + self.I4/self.I2
+
+    @property
+    def alphax(self):
+        Ca = _mp.constants.Ca
+        E0 = self._acc.energy / 1e9  # in GeV
+        leng = self._acc.length
+        return Ca * E0**3 * self.I2 * self.Jx / leng
+
+    @property
+    def alphay(self):
+        Ca = _mp.constants.Ca
+        E0 = self._acc.energy / 1e9  # in GeV
+        leng = self._acc.length
+        return Ca * E0**3 * self.I2 * self.Jy / leng
+
+    @property
+    def alphae(self):
+        Ca = _mp.constants.Ca
+        E0 = self._acc.energy / 1e9  # in GeV
+        leng = self._acc.length
+        return Ca * E0**3 * self.I2 * self.Je / leng
+
+    @property
+    def taux(self):
+        return 1/self.alphax
+
+    @property
+    def tauy(self):
+        return 1/self.alphay
+
+    @property
+    def taue(self):
+        return 1/self.alphae
+
+    @property
+    def espread0(self):
+        Cq = _mp.constants.Cq
+        gamma = self._acc.gamma_factor
+        return _math.sqrt(Cq * gamma**2 * self.I3 / (2*self.I2 + self.I4))
+
+    @property
+    def emit0(self):
+        Cq = _mp.constants.Cq
+        gamma = self._acc.gamma_factor
+        return Cq * gamma**2 * self.I5 / (self.Jx*self.I2)
+
+    @property
+    def U0(self):
+        E0 = self._acc.energy / 1e9  # in GeV
+        rad_cgamma = _mp.constants.rad_cgamma
+        return rad_cgamma/(2*_math.pi) * E0**4 * self.I2 * 1e9  # in eV
+
+    @property
+    def overvoltage(self):
+        v_cav = get_rf_voltage(self._acc)
+        return v_cav/self.U0
+
+    @property
+    def syncphase(self):
+        return _math.pi - _math.asin(1/self.overvoltage)
+
+    @property
+    def alpha(self):
+        return self._alpha
+
+    @property
+    def etac(self):
+        gamma = self._acc.gamma_factor
+        return 1/(gamma*gamma) - self.alpha
+
+    @property
+    def synctune(self):
+        E0 = self._acc.energy
+        v_cav = get_rf_voltage(self._acc)
+        harmon = self._acc.harmonic_number
+        return _math.sqrt(
+            self.etac*harmon*v_cav*_math.cos(self.syncphase)/(2*_math.pi*E0))
+
+    @property
+    def bunch_length(self):
+        c = _mp.constants.light_speed
+        beta = self._acc.beta_factor
+        rev_freq = get_revolution_frequency(self._acc)
+
+        bunlen = beta * c * abs(self.etac) * self.espread0
+        bunlen /= 2*_math.pi * self.synctune * rev_freq
+        return bunlen
+
+    @property
+    def rf_acceptance(self):
+        E0 = self._acc.energy
+        sph = self.syncphase
+        V = get_rf_voltage(self._acc)
+        ov = self.overvoltage
+        h = self._acc.harmonic_number
+        etac = self.etac
+
+        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
+        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
+        return _math.sqrt(eaccep2)
+
+    @staticmethod
+    def calcH(beta, alpha, x, xl):
+        gamma = (1 + alpha**2) / beta
+        return beta*xl**2 + 2*alpha*x*xl + gamma*x**2
+
+    def as_dict(self):
+        pars = {
+            'twiss',
+            'I1', 'I2', 'I3', 'I3a', 'I4', 'I5', 'I6',
+            'Jx', 'Jy', 'Je',
+            'alphax', 'alphay', 'alphae',
+            'taux', 'tauy', 'taue',
+            'espread0', 'emit0', 'bunch_length',
+            'U0', 'overvoltage', 'syncphase', 'synctune',
+            'alpha', 'etac', 'rf_acceptance',
+            }
+        dic = {par: getattr(self, par) for par in pars}
+        dic['energy'] = self.accelerator.energy
+        return dic
+
+    def _calc_radiation_integrals(self):
+        """Calculate radiation integrals for periodic systems"""
+
+        acc = self._acc
+        twi, m66 = calc_twiss(acc, indices='closed')
+        self._twi = twi
+        self._m66 = m66
+        self._alpha = get_mcf(acc)
+
+        spos = _lattice.find_spos(acc, indices='closed')
+        etax, etapx, betax, alphax = twi.etax, twi.etapx, twi.betax, twi.alphax
+
+        n = len(acc)
+        angle, angle_in, angle_out, K = _np.zeros((4, n))
+        for i in range(n):
+            angle[i] = acc[i].angle
+            angle_in[i] = acc[i].angle_in
+            angle_out[i] = acc[i].angle_out
+            K[i] = acc[i].K
+
+        idx, *_ = _np.nonzero(angle)
+        leng = spos[idx+1]-spos[idx]
+        rho = leng/angle[idx]
+        angle_in = angle_in[idx]
+        angle_out = angle_out[idx]
+        K = K[idx]
+        etax_in, etax_out = etax[idx], etax[idx+1]
+        etapx_in, etapx_out = etapx[idx], etapx[idx+1]
+        betax_in, betax_out = betax[idx], betax[idx+1]
+        alphax_in, alphax_out = alphax[idx], alphax[idx+1]
+
+        H_in = self.calcH(betax_in, alphax_in, etax_in, etapx_in)
+        H_out = self.calcH(betax_out, alphax_out, etax_in, etapx_out)
+
+        etax_avg = (etax_in + etax_out) / 2
+        H_avg = (H_in + H_out) / 2
+        rho2, rho3 = rho**2, rho**3
+        rho3abs = _np.abs(rho3)
+
+        integrals = _np.zeros(7)
+        integrals[0] = _np.dot(etax_avg/rho, leng)
+        integrals[1] = _np.dot(1/rho2, leng)
+        integrals[2] = _np.dot(1/rho3abs, leng)
+        integrals[3] = _np.dot(1/rho3, leng)
+
+        integrals[4] = _np.dot(etax_avg/rho3 * (1+2*rho2*K), leng)
+        # for general wedge magnets:
+        integrals[4] += sum((etax_in/rho2) * _np.tan(angle_in))
+        integrals[4] += sum((etax_out/rho2) * _np.tan(angle_out))
+
+        integrals[5] = _np.dot(H_avg / rho3abs, leng)
+        integrals[6] = _np.dot((K*etax_avg)**2, leng)
+
+        self._integrals = integrals
+
+
 @_interactive
 def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
                indices='open', energy_offset=None):
@@ -592,448 +1033,7 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None,
     return accepx, accepy, twiss
 
 
-class EquilibriumParameters:
-
-    def __init__(self, accelerator):
-        self._acc = _accelerator.Accelerator()
-        self._m66 = None
-        self._twi = None
-        self._alpha = 0.0
-        self._integrals = _np.zeros(6)
-        self._damping = _np.zeros(3)
-        self._radiation_damping = _np.zeros(3)
-        self.accelerator = accelerator
-
-    def __str__(self):
-        r = ''
-        fmt = '{:<30s}: '
-        fmtn = '{:.4g}'
-
-        fmte = fmt + fmtn
-        r += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
-
-        ints = 'I1,I2,I3,I3a,I4,I5,I6'.split(',')
-        r += '\n' + fmt.format(', '.join(ints))
-        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        ints = 'Jx,Jy,Je'.split(',')
-        r += '\n' + fmt.format(', '.join(ints))
-        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        ints = 'taux,tauy,taue'.split(',')
-        r += '\n' + fmt.format(', '.join(ints) + ' [ms]')
-        r += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
-
-        r += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
-        r += fmte.format('\nenergy loss [keV]', self.U0/1000)
-        r += fmte.format('\novervoltage', self.overvoltage)
-        r += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
-        r += fmte.format('\nsync tune', self.synctune)
-        r += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
-        r += fmte.format('\nnatural espread [%]', self.espread0*100)
-        r += fmte.format('\nbunch length [mm]', self.bunch_length*1000)
-        r += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
-        return r
-
-    @property
-    def accelerator(self):
-        return self._acc
-
-    @accelerator.setter
-    def accelerator(self, acc):
-        if isinstance(acc, _accelerator.Accelerator):
-            self._acc = acc
-            self._calc_radiation_integrals()
-
-    @property
-    def twiss(self):
-        return self._twi
-
-    @property
-    def m66(self):
-        return self._m66
-
-    @property
-    def I1(self):
-        return self._integrals[0]
-
-    @property
-    def I2(self):
-        return self._integrals[1]
-
-    @property
-    def I3(self):
-        return self._integrals[2]
-
-    @property
-    def I3a(self):
-        return self._integrals[3]
-
-    @property
-    def I4(self):
-        return self._integrals[4]
-
-    @property
-    def I5(self):
-        return self._integrals[5]
-
-    @property
-    def I6(self):
-        return self._integrals[6]
-
-    @property
-    def Jx(self):
-        return 1.0 - self.I4/self.I2
-
-    @property
-    def Jy(self):
-        return 1.0
-
-    @property
-    def Je(self):
-        return 2.0 + self.I4/self.I2
-
-    @property
-    def alphax(self):
-        Ca = _mp.constants.Ca
-        E0 = self._acc.energy / 1e9  # in GeV
-        leng = self._acc.length
-        return Ca * E0**3 * self.I2 * self.Jx / leng
-
-    @property
-    def alphay(self):
-        Ca = _mp.constants.Ca
-        E0 = self._acc.energy / 1e9  # in GeV
-        leng = self._acc.length
-        return Ca * E0**3 * self.I2 * self.Jy / leng
-
-    @property
-    def alphae(self):
-        Ca = _mp.constants.Ca
-        E0 = self._acc.energy / 1e9  # in GeV
-        leng = self._acc.length
-        return Ca * E0**3 * self.I2 * self.Je / leng
-
-    @property
-    def taux(self):
-        return 1/self.alphax
-
-    @property
-    def tauy(self):
-        return 1/self.alphay
-
-    @property
-    def taue(self):
-        return 1/self.alphae
-
-    @property
-    def espread0(self):
-        Cq = _mp.constants.Cq
-        gamma = self._acc.gamma_factor
-        return _math.sqrt(Cq * gamma**2 * self.I3 / (2*self.I2 + self.I4))
-
-    @property
-    def emit0(self):
-        Cq = _mp.constants.Cq
-        gamma = self._acc.gamma_factor
-        return Cq * gamma**2 * self.I5 / (self.Jx*self.I2)
-
-    @property
-    def U0(self):
-        E0 = self._acc.energy / 1e9  # in GeV
-        rad_cgamma = _mp.constants.rad_cgamma
-        return rad_cgamma/(2*_math.pi) * E0**4 * self.I2 * 1e9  # in eV
-
-    @property
-    def overvoltage(self):
-        v_cav = get_rf_voltage(self._acc)
-        return v_cav/self.U0
-
-    @property
-    def syncphase(self):
-        return _math.pi - _math.asin(1/self.overvoltage)
-
-    @property
-    def alpha(self):
-        return self._alpha
-
-    @property
-    def etac(self):
-        gamma = self._acc.gamma_factor
-        return 1/(gamma*gamma) - self.alpha
-
-    @property
-    def synctune(self):
-        E0 = self._acc.energy
-        v_cav = get_rf_voltage(self._acc)
-        harmon = self._acc.harmonic_number
-        return _math.sqrt(
-            self.etac*harmon*v_cav*_math.cos(self.syncphase)/(2*_math.pi*E0))
-
-    @property
-    def bunch_length(self):
-        c = _mp.constants.light_speed
-        beta = self._acc.beta_factor
-        rev_freq = get_revolution_frequency(self._acc)
-
-        bunlen = beta * c * abs(self.etac) * self.espread0
-        bunlen /= 2*_math.pi * self.synctune * rev_freq
-        return bunlen
-
-    @property
-    def rf_acceptance(self):
-        E0 = self._acc.energy
-        sph = self.syncphase
-        V = get_rf_voltage(self._acc)
-        ov = self.overvoltage
-        h = self._acc.harmonic_number
-        etac = self.etac
-
-        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
-        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
-        return _math.sqrt(eaccep2)
-
-    @staticmethod
-    def calcH(beta, alpha, x, xl):
-        gamma = (1 + alpha**2) / beta
-        return beta*xl**2 + 2*alpha*x*xl + gamma*x**2
-
-    def as_dict(self):
-        pars = {
-            'twiss',
-            'I1', 'I2', 'I3', 'I3a', 'I4', 'I5', 'I6',
-            'Jx', 'Jy', 'Je',
-            'alphax', 'alphay', 'alphae',
-            'taux', 'tauy', 'taue',
-            'espread0', 'emit0', 'bunch_length',
-            'U0', 'overvoltage', 'syncphase', 'synctune',
-            'alpha', 'etac', 'rf_acceptance',
-            }
-        dic = {par: getattr(self, par) for par in pars}
-        dic['energy'] = self.accelerator.energy
-        return dic
-
-    def _calc_radiation_integrals(self):
-        """Calculate radiation integrals for periodic systems"""
-
-        acc = self._acc
-        twi, m66 = calc_twiss(acc, indices='closed')
-        self._twi = twi
-        self._m66 = m66
-        self._alpha = get_mcf(acc)
-
-        spos = _lattice.find_spos(acc, indices='closed')
-        etax, etapx, betax, alphax = twi.etax, twi.etapx, twi.betax, twi.alphax
-
-        n = len(acc)
-        angle, angle_in, angle_out, K = _np.zeros((4, n))
-        for i in range(n):
-            angle[i] = acc[i].angle
-            angle_in[i] = acc[i].angle_in
-            angle_out[i] = acc[i].angle_out
-            K[i] = acc[i].K
-
-        idx, *_ = _np.nonzero(angle)
-        leng = spos[idx+1]-spos[idx]
-        rho = leng/angle[idx]
-        angle_in = angle_in[idx]
-        angle_out = angle_out[idx]
-        K = K[idx]
-        etax_in, etax_out = etax[idx], etax[idx+1]
-        etapx_in, etapx_out = etapx[idx], etapx[idx+1]
-        betax_in, betax_out = betax[idx], betax[idx+1]
-        alphax_in, alphax_out = alphax[idx], alphax[idx+1]
-
-        H_in = self.calcH(betax_in, alphax_in, etax_in, etapx_in)
-        H_out = self.calcH(betax_out, alphax_out, etax_in, etapx_out)
-
-        etax_avg = (etax_in + etax_out) / 2
-        H_avg = (H_in + H_out) / 2
-        rho2, rho3 = rho**2, rho**3
-        rho3abs = _np.abs(rho3)
-
-        integrals = _np.zeros(7)
-        integrals[0] = _np.dot(etax_avg/rho, leng)
-        integrals[1] = _np.dot(1/rho2, leng)
-        integrals[2] = _np.dot(1/rho3abs, leng)
-        integrals[3] = _np.dot(1/rho3, leng)
-
-        integrals[4] = _np.dot(etax_avg/rho3 * (1+2*rho2*K), leng)
-        # for general wedge magnets:
-        integrals[4] += sum((etax_in/rho2) * _np.tan(angle_in))
-        integrals[4] += sum((etax_out/rho2) * _np.tan(angle_out))
-
-        integrals[5] = _np.dot(H_avg / rho3abs, leng)
-        integrals[6] = _np.dot((K*etax_avg)**2, leng)
-
-        self._integrals = integrals
-
-
-class TwissList(object):
-
-    def __init__(self, twiss_list=None):
-        """Read-only list of matrices.
-
-        Keyword argument:
-        twiss_list -- trackcpp Twiss vector (default: None)
-        """
-        # TEST!
-        if twiss_list is None:
-            self._tl = _trackcpp.CppTwissVector()
-        if isinstance(twiss_list, _trackcpp.CppTwissVector):
-            self._tl = twiss_list
-        else:
-            raise TrackingException('invalid Twiss vector')
-        self._ptl = [self._tl[i] for i in range(len(self._tl))]
-
-    def __len__(self):
-        return len(self._tl)
-
-    def __getitem__(self, index):
-        if isinstance(index, (int, _np.int_)):
-            return Twiss(twiss=self._tl[index], copy=False)
-        elif isinstance(index, (list, tuple, _np.ndarray)) and \
-                all(isinstance(x, (int, _np.int_)) for x in index):
-            tl = _trackcpp.CppTwissVector()
-            for i in index:
-                tl.append(self._tl[i])
-            return TwissList(twiss_list=tl)
-        elif isinstance(index, slice):
-            return TwissList(twiss_list=self._tl[index])
-        else:
-            raise TypeError('invalid index')
-
-    def append(self, value):
-        if isinstance(value, _trackcpp.Twiss):
-            self._tl.append(value)
-            self._ptl.append(value)
-        elif isinstance(value, Twiss):
-            self._tl.append(value._t)
-            self._ptl.append(value._t)
-        elif self._is_list_of_lists(value):
-            t = _trackcpp.Twiss()
-            for line in value:
-                t.append(line)
-            self._tl.append(t)
-            self._ptl.append(t)
-        else:
-            raise TrackingException('can only append twiss-like objects')
-
-    def _is_list_of_lists(self, value):
-        valid_types = (list, tuple)
-        if not isinstance(value, valid_types):
-            return False
-        for line in value:
-            if not isinstance(line, valid_types):
-                return False
-        return True
-
-    @property
-    def spos(self):
-        spos = _np.array([
-            float(self._ptl[i].spos) for i in range(len(self._ptl))])
-        return spos if len(spos) > 1 else spos[0]
-
-    @property
-    def betax(self):
-        betax = _np.array([
-            float(self._ptl[i].betax) for i in range(len(self._ptl))])
-        return betax if len(betax) > 1 else betax[0]
-
-    @property
-    def betay(self):
-        betay = _np.array([
-            float(self._ptl[i].betay) for i in range(len(self._ptl))])
-        return betay if len(betay) > 1 else betay[0]
-
-    @property
-    def alphax(self):
-        alphax = _np.array([
-            float(self._ptl[i].alphax) for i in range(len(self._ptl))])
-        return alphax if len(alphax) > 1 else alphax[0]
-
-    @property
-    def alphay(self):
-        alphay = _np.array([
-            float(self._ptl[i].alphay) for i in range(len(self._ptl))])
-        return alphay if len(alphay) > 1 else alphay[0]
-
-    @property
-    def mux(self):
-        mux = _np.array([
-            float(self._ptl[i].mux) for i in range(len(self._ptl))])
-        return mux if len(mux) > 1 else mux[0]
-
-    @property
-    def muy(self):
-        muy = _np.array([
-            float(self._ptl[i].muy) for i in range(len(self._ptl))])
-        return muy if len(muy) > 1 else muy[0]
-
-    @property
-    def etax(self):
-        etax = _np.array([
-            float(self._ptl[i].etax[0]) for i in range(len(self._ptl))])
-        return etax if len(etax) > 1 else etax[0]
-
-    @property
-    def etay(self):
-        etay = _np.array([
-            float(self._ptl[i].etay[0]) for i in range(len(self._ptl))])
-        return etay if len(etay) > 1 else etay[0]
-
-    @property
-    def etapx(self):
-        etapx = _np.array([
-            float(self._ptl[i].etax[1]) for i in range(len(self._ptl))])
-        return etapx if len(etapx) > 1 else etapx[0]
-
-    @property
-    def etapy(self):
-        etapy = _np.array([
-            float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
-        return etapy if len(etapy) > 1 else etapy[0]
-
-    @property
-    def rx(self):
-        res = _np.array([float(ptl.co.rx) for ptl in self._ptl])
-        return res if len(res) > 1 else res[0]
-
-    @property
-    def ry(self):
-        res = _np.array([float(ptl.co.ry) for ptl in self._ptl])
-        return res if len(res) > 1 else res[0]
-
-    @property
-    def px(self):
-        res = _np.array([float(ptl.co.px) for ptl in self._ptl])
-        return res if len(res) > 1 else res[0]
-
-    @property
-    def py(self):
-        res = _np.array([float(ptl.co.py) for ptl in self._ptl])
-        return res if len(res) > 1 else res[0]
-
-    @property
-    def de(self):
-        res = _np.array([float(ptl.co.de) for ptl in self._ptl])
-        return res if len(res) > 1 else res[0]
-
-    @property
-    def dl(self):
-        res = _np.array([float(ptl.co.dl) for ptl in self._ptl])
-        return res if len(res) > 1 else res[0]
-
-    @property
-    def co(self):
-        co = [self._ptl[i].co for i in range(len(self._ptl))]
-        co = [[co[i].rx, co[i].px, co[i].ry, co[i].py, co[i].de, co[i].dl]
-              for i in range(len(co))]
-        co = _np.transpose(_np.array(co))
-        return co if len(co[0, :]) > 1 else co[:, 0]
-
-
-# deprecated: graphics module needs to be updated before get_twiss is deleted
+# TODO: deprecated graphics module needs to be updated before get_twiss is deleted
 @_interactive
 def get_twiss(twiss_list, attribute_list):
     """Build a matrix with Twiss data from a list of Twiss objects.
