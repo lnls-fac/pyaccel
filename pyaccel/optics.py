@@ -1031,33 +1031,3 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None,
     accepy *= accepy
 
     return accepx, accepy, twiss
-
-
-# TODO: deprecated graphics module needs to be updated before get_twiss is deleted
-@_interactive
-def get_twiss(twiss_list, attribute_list):
-    """Build a matrix with Twiss data from a list of Twiss objects.
-
-    Accepts a list of Twiss objects and returns a matrix with Twiss data,
-    one line for each Twiss parameter defined in 'attributes_list'.
-
-    Keyword arguments:
-    twiss_list -- List with Twiss objects
-    attributes_list -- List of strings with Twiss attributes to be stored in
-            twiss matrix
-
-    Returns:
-    m -- Matrix with Twiss data. Can also be thought of a single column of
-         Twiss parameter vectors:
-            betax, betay = get_twiss(twiss, ('betax','betay'))
-    """
-    if isinstance(attribute_list, str):
-        attribute_list = (attribute_list,)
-    values = _np.zeros((len(attribute_list), len(twiss_list)))
-    for i in range(len(twiss_list)):
-        for j in range(len(attribute_list)):
-            values[j, i] = getattr(twiss_list[i], attribute_list[j])
-    if values.shape[0] == 1:
-        return values[0, :]
-    else:
-        return values

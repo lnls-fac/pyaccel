@@ -39,23 +39,22 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     if twiss is None:
         twiss, *_ = _pyaccel.optics.calc_twiss(accelerator)
 
-    spos = _pyaccel.lattice.find_spos(accelerator)
-    betax, betay, etax = _pyaccel.optics.get_twiss(
-        twiss, ('betax', 'betay', 'etax'))
+    spos = twiss.spos
+    betax = twiss.betax
+    betay = twiss.betay
+    etax = twiss.etax
 
     if symmetry is not None:
         max_length = accelerator.length/symmetry
         pos = 0
-        for idx, ele in enumerate(accelerator):
-            pos += ele.length
-            if pos >= max_length:
+        for idx, _ in enumerate(accelerator):
+            if spos[idx] >= max_length:
+                accelerator = accelerator[:idx]
+                spos = spos[:idx+1]
+                betax = betax[:idx+1]
+                betay = betay[:idx+1]
+                etax = etax[:idx+1]
                 break
-
-        accelerator = accelerator[:idx]
-        spos = spos[:idx+1]
-        betax = betax[:idx+1]
-        betay = betay[:idx+1]
-        etax = etax[:idx+1]
 
     is_interactive = _pyplot.isinteractive()
     _pyplot.interactive = False
@@ -215,13 +214,12 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
 
     if symmetry is not None:
         max_length = lattice.length/symmetry
-        s = 0
-        for i in range(len(lattice)):
-            s += lattice[i].length
-            if s >= max_length:
+        spos = 0
+        for i, ele in enumerate(lattice):
+            spos += ele.length
+            if spos >= max_length:
+                lattice = lattice[:i]
                 break
-
-        lattice = lattice[:i]
 
     line = _lines.Line2D(
         [0, lattice.length], [offset, offset],
