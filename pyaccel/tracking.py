@@ -62,8 +62,8 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
 
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='unif', cutoff=cutoff)
-    phx = 2 * _np.pi * parts[:n_part]
-    phy = 2 * _np.pi * parts[n_part:]
+    phx = _np.pi * parts[:n_part]
+    phy = _np.pi * parts[n_part:]
 
     p_x = ampx*_np.sqrt(twi.betax)
     p_y = ampy*_np.sqrt(twi.betay)
