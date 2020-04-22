@@ -134,7 +134,7 @@ def element_pass(element, particles, energy, **kwargs):
 
     # tracks through the list of pos
     ret = _trackcpp.track_elementpass_wrapper(
-        element.trackcpp_e, p_in, accelerator._accelerator)
+        element.trackcpp_e, p_in, accelerator.trackcpp_acc)
     if ret > 0:
         raise TrackingException
 
@@ -235,7 +235,7 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
 
     # tracking
     lost_flag = bool(_trackcpp.track_linepass_wrapper(
-        accelerator._accelerator, p_in, p_out, args))
+        accelerator.trackcpp_acc, p_in, p_out, args))
 
     p_out = p_out.reshape(6, n_part, -1)
     p_out = _np.squeeze(p_out)
@@ -359,7 +359,7 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
 
     # tracking
     lost_flag = bool(_trackcpp.track_ringpass_wrapper(
-        accelerator._accelerator, p_in, p_out, args))
+        accelerator.trackcpp_acc, p_in, p_out, args))
 
     p_out = p_out.reshape(6, n_part, -1)
     p_out = _np.squeeze(p_out)
@@ -419,7 +419,7 @@ def find_orbit4(accelerator, energy_offset=0, indices=None,
 
     _closed_orbit = _trackcpp.CppDoublePosVector()
     ret = _trackcpp.track_findorbit4(
-        accelerator._accelerator, _closed_orbit, fixed_point_guess)
+        accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 
@@ -467,7 +467,7 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     _closed_orbit = _trackcpp.CppDoublePosVector()
 
     ret = _trackcpp.track_findorbit6(
-        accelerator._accelerator, _closed_orbit, fixed_point_guess)
+        accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 
@@ -504,7 +504,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
         fixed_point_guess = _trackcpp.CppDoublePos()
         _closed_orbit = _trackcpp.CppDoublePosVector()
         ret = _trackcpp.track_findorbit6(
-            accelerator._accelerator, _closed_orbit, fixed_point_guess)
+            accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
         if ret > 0:
             raise TrackingException(_trackcpp.string_error_messages[ret])
     else:
@@ -514,7 +514,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
     _m66 = _trackcpp.Matrix()
     _v0 = _trackcpp.CppDoublePos()
     ret = _trackcpp.track_findm66(
-        accelerator._accelerator, _closed_orbit[0], _cumul_trans_matrices,
+        accelerator.trackcpp_acc, _closed_orbit[0], _cumul_trans_matrices,
         _m66, _v0)
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
@@ -560,7 +560,7 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
         fixed_point_guess.de = energy_offset
         _closed_orbit = _trackcpp.CppDoublePosVector()
         ret = _trackcpp.track_findorbit4(
-            accelerator._accelerator, _closed_orbit, fixed_point_guess)
+            accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
 
         if ret > 0:
             raise TrackingException(_trackcpp.string_error_messages[ret])
@@ -572,7 +572,7 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
     _m44 = _trackcpp.Matrix()
     _v0 = _trackcpp.CppDoublePos()
     ret = _trackcpp.track_findm66(
-        accelerator._accelerator, _closed_orbit[0], _cumul_trans_matrices,
+        accelerator.trackcpp_acc, _closed_orbit[0], _cumul_trans_matrices,
         _m44, _v0)
 
     if ret > 0:
