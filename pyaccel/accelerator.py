@@ -139,7 +139,7 @@ class Accelerator(object):
             raise TypeError('invalid value')
 
     def __len__(self):
-        return len(self._accelerator.lattice)
+        return self._accelerator.lattice.size()
 
     def __str__(self):
         r = ''
@@ -230,7 +230,7 @@ class Accelerator(object):
     @property
     def length(self):
         """Lattice length in m"""
-        return _lattice.length(self._accelerator.lattice)
+        return self._accelerator.get_length()
 
     @property
     def energy(self):
