@@ -919,25 +919,23 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
     """
 
-    def add_polynom(elem, polynom, Pol_norm, n, KP):
-        if Pol_norm is not None:
-            if isinstance(Pol_norm, _numpy.ndarray):
-                Pol = Pol_norm
-            else:
-                Pol = _numpy.array(Pol_norm)
-            monoms = abs(n-1) - _numpy.arange(Pol.shape[0])
-            r0_i = r0**monoms
-            newPol = KP*r0_i*Pol
-            oldPol = getattr(elem, polynom)
-            lenNewPol = len(newPol)
-            lenOldPol = len(oldPol)
-            if lenNewPol > lenOldPol:
-                pol = newPol
-                pol[:lenOldPol] += oldPol
-            else:
-                pol = oldPol
-                pol[:lenNewPol] += newPol
-            setattr(elem, polynom, pol)
+    def add_polynom(elem, polynom, pol_norm, main_mon, main_stren):
+        if pol_norm is None:
+            return
+        pol_norm = _np.asarray(pol_norm)
+        monoms = abs(main_mon-1) - _np.arange(pol_norm.shape[0])
+        r0_i = r0**monoms
+        new_pol = main_stren * r0_i * pol_norm
+        old_pol = getattr(elem, polynom)
+        len_new_pol = len(new_pol)
+        len_old_pol = len(old_pol)
+        if len_new_pol > len_old_pol:
+            pol = new_pol
+            pol[:len_old_pol] += old_pol
+        else:
+            pol = old_pol
+            pol[:len_new_pol] += new_pol
+        setattr(elem, polynom, pol)
 
     indices, *_ = _process_args_errors(indices, 0.0)
 
