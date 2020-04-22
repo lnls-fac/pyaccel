@@ -133,7 +133,7 @@ class TestTrackCppElement(unittest.TestCase):
 
     def setUp(self):
         self.element = pyaccel.elements.Element()
-        self.trackcpp_element = self.element._e
+        self.trackcpp_element = self.element.trackcpp_e
 
     def test_pass_method(self):
         index = 2

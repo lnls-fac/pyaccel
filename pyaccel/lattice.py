@@ -30,7 +30,7 @@ def build(elist):
     lattice = _trackcpp.CppElementVector()
     elist = flatten(elist)
     for e in elist:
-        lattice.append(e._e)
+        lattice.append(e.trackcpp_e)
     return lattice
 
 

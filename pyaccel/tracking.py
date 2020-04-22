@@ -134,7 +134,7 @@ def element_pass(element, particles, energy, **kwargs):
 
     # tracks through the list of pos
     ret = _trackcpp.track_elementpass_wrapper(
-        element._e, p_in, accelerator._accelerator)
+        element.trackcpp_e, p_in, accelerator._accelerator)
     if ret > 0:
         raise TrackingException
 

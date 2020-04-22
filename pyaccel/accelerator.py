@@ -44,7 +44,7 @@ class Accelerator(object):
             elif isinstance(lattice, list):
                 for i in range(len(lattice)):
                     e = lattice[i]
-                    self._accelerator.lattice.append(e._e)
+                    self._accelerator.lattice.append(e.trackcpp_e)
             else:
                 raise TypeError('values must be list of Element')
 
@@ -93,7 +93,7 @@ class Accelerator(object):
     def __getitem__(self, index):
         if isinstance(index, (int, _np.int_)):
             ele = _elements.Element()
-            ele._e = self._accelerator.lattice[int(index)]
+            ele.trackcpp_e = self._accelerator.lattice[int(index)]
             return ele
         elif isinstance(index, (list, tuple, _np.ndarray)):
             try:
@@ -131,10 +131,10 @@ class Accelerator(object):
             if not all([isinstance(v, _elements.Element) for v in value]):
                 raise TypeError('invalid value')
             for i, val in zip(index, value):
-                self._accelerator.lattice[int(i)] = val._e
+                self._accelerator.lattice[int(i)] = val.trackcpp_e
         elif isinstance(value, _elements.Element):
             for i in index:
-                self._accelerator.lattice[int(i)] = value._e
+                self._accelerator.lattice[int(i)] = value.trackcpp_e
         else:
             raise TypeError('invalid value')
 
@@ -217,7 +217,7 @@ class Accelerator(object):
     def append(self, value):
         if not isinstance(value, _elements.Element):
             raise TypeError('value must be Element')
-        self._accelerator.lattice.append(value._e)
+        self._accelerator.lattice.append(value.trackcpp_e)
 
     def extend(self, value):
         if not isinstance(value, Accelerator):
