@@ -495,9 +495,17 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
     m66
     cumul_trans_matrices -- values at the start of each lattice element
     """
-    if indices == 'm66':
+    if isinstance(indices, str) and indices == 'm66':
         indices = None
     indices = _process_indices(accelerator, indices, proc_none=False)
+
+    trackcpp_idx = _trackcpp.CppUnsigIntVector()
+    if isinstance(indices, _np.ndarray):
+        trackcpp_idx.reserve(indices.size)
+        for i in indices:
+            trackcpp_idx.push_back(int(i))
+    else:
+        trackcpp_idx.push_back(len(accelerator))
 
     if closed_orbit is None:
         # Closed orbit is calculated by trackcpp
@@ -510,21 +518,17 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
     else:
         _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
 
-    _cumul_trans_matrices = _trackcpp.CppMatrixVector()
-    _m66 = _trackcpp.Matrix()
+    cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 6, 6), dtype=float)
+    m66 = _np.zeros((6, 6), dtype=float)
     _v0 = _trackcpp.CppDoublePos()
-    ret = _trackcpp.track_findm66(
-        accelerator.trackcpp_acc, _closed_orbit[0], _cumul_trans_matrices,
-        _m66, _v0)
+    ret = _trackcpp.track_findm66_wrapper(
+        accelerator.trackcpp_acc, _closed_orbit[0], cumul_trans_matrices,
+        m66, _v0, trackcpp_idx)
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 
-    m66 = _CppMatrix2Numpy(_m66)
     if indices is None:
         return m66
-    cumul_trans_matrices = _np.zeros((indices.size, 6, 6), dtype=float)
-    for i, ind in enumerate(indices):
-        cumul_trans_matrices[i] = _cumul_trans_matrices[int(ind)]
     return m66, cumul_trans_matrices
 
 
@@ -549,10 +553,17 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
     m44
     cumul_trans_matrices -- values at the start of each lattice element
     """
-    if indices == 'm44':
+    if isinstance(indices, str) and indices == 'm44':
         indices = None
-    indices = _process_indices(
-        accelerator, indices, proc_none=False)
+    indices = _process_indices(accelerator, indices, proc_none=False)
+
+    trackcpp_idx = _trackcpp.CppUnsigIntVector()
+    if isinstance(indices, _np.ndarray):
+        trackcpp_idx.reserve(indices.size)
+        for i in indices:
+            trackcpp_idx.push_back(int(i))
+    else:
+        trackcpp_idx.push_back(len(accelerator))
 
     if closed_orbit is None:
         # calcs closed orbit if it was not passed.
@@ -568,23 +579,17 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
         _closed_orbit = _4Numpy2CppDoublePosVector(
             closed_orbit, de=energy_offset)
 
-    _cumul_trans_matrices = _trackcpp.CppMatrixVector()
-    _m44 = _trackcpp.Matrix()
+    cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 4, 4), dtype=float)
+    m44 = _np.zeros((4, 4), dtype=float)
     _v0 = _trackcpp.CppDoublePos()
-    ret = _trackcpp.track_findm66(
-        accelerator.trackcpp_acc, _closed_orbit[0], _cumul_trans_matrices,
-        _m44, _v0)
-
+    ret = _trackcpp.track_findm66_wrapper(
+        accelerator.trackcpp_acc, _closed_orbit[0], cumul_trans_matrices,
+        m44, _v0, trackcpp_idx)
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 
-    m44 = _CppMatrix24Numpy(_m44)
     if indices is None:
         return m44
-    cumul_trans_matrices = _np.zeros((indices.size, 4, 4), dtype=float)
-    for i, ind in enumerate(indices):
-        cumul_trans_matrices[i] = _CppMatrix24Numpy(
-            _cumul_trans_matrices[int(ind)])
     return m44, cumul_trans_matrices
 
 
