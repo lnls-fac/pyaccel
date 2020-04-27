@@ -1,8 +1,7 @@
 
 import math as _math
 from collections.abc import Iterable
-from copy import deepcopy as _dcopy
-import numpy as _numpy
+import numpy as _np
 import mathphys as _mp
 import trackcpp as _trackcpp
 import pyaccel as _pyaccel
@@ -10,13 +9,12 @@ from pyaccel.utils import interactive as _interactive
 
 
 class LatticeError(Exception):
-    pass
+    """."""
 
 
 @_interactive
 def flatten(elist):
-    """Take a list-of-list-of-... elements and flattens it:
-            a simple list of elements"""
+    """Take a list-of-list-of-... elements and flattens it."""
     flat_elist = []
     for element in elist:
         if isinstance(element, Iterable) and not isinstance(element, str):
@@ -28,22 +26,21 @@ def flatten(elist):
 
 @_interactive
 def build(elist):
-    """Build lattice from a list of elements and lines"""
+    """Build lattice from a list of elements and lines."""
     lattice = _trackcpp.CppElementVector()
     elist = flatten(elist)
     for e in elist:
-        lattice.append(e._e)
+        lattice.append(e.trackcpp_e)
     return lattice
 
 
 @_interactive
 def shift(lattice, start):
-    """Shift periodically the lattice so that it starts at element whose index
-    is 'start'.
+    """Shift lattice periodically so that it starts at index 'start'.
 
-    Keyword arguments:
-    lattice -- a list of objects
-    start -- index of first element in new list
+    Inputs:
+        lattice -- a list of objects
+        start -- index of first element in new list
 
     Returns an Accelerator.
     """
@@ -55,7 +52,13 @@ def shift(lattice, start):
 
 @_interactive
 def length(lattice):
-    return sum(map(lambda x: x.length, lattice))
+    """Return the length, in meters, of the given lattice."""
+    if isinstance(lattice, _pyaccel.accelerator.Accelerator):
+        return lattice.length
+    elif isinstance(lattice, _trackcpp.Accelerator):
+        return lattice.get_length()
+    else:
+        return sum(map(lambda x: x.length, lattice))
 
 
 @_interactive
@@ -69,7 +72,7 @@ def find_spos(lattice, indices='open'):
         indices or even an integer (default: 'open')
     """
     leng = [0] + [e.length for e in lattice]
-    pos = _numpy.cumsum(leng)
+    pos = _np.cumsum(leng)
 
     if isinstance(indices, str):
         if indices.lower() == 'open':
@@ -78,7 +81,7 @@ def find_spos(lattice, indices='open'):
             return pos
         else:
             raise TypeError('indices string not supported')
-    elif isinstance(indices, (int, _numpy.ndarray, list)):
+    elif isinstance(indices, (int, _np.ndarray, list)):
         return pos[indices]
     elif isinstance(indices, tuple):
         return pos[list(indices)]
@@ -217,7 +220,7 @@ def read_flat_file(filename):
     e = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
     a = _pyaccel.accelerator.Accelerator(energy=e)  # energy cannot be zero
     fname = _trackcpp.String(filename)
-    r = _trackcpp.read_flat_file_wrapper(fname, a._accelerator, True)
+    r = _trackcpp.read_flat_file_wrapper(fname, a.trackcpp_acc, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
@@ -228,7 +231,7 @@ def read_flat_file(filename):
 def write_flat_file(accelerator, filename):
     fname = _trackcpp.String(filename)
     r = _trackcpp.write_flat_file_wrapper(
-        fname, accelerator._accelerator, True)
+        fname, accelerator.trackcpp_acc, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
@@ -236,7 +239,7 @@ def write_flat_file(accelerator, filename):
 @_interactive
 def write_flat_file_to_string(accelerator):
     s = _trackcpp.String()
-    r = _trackcpp.write_flat_file_wrapper(s, accelerator._accelerator, False)
+    r = _trackcpp.write_flat_file_wrapper(s, accelerator.trackcpp_acc, False)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
@@ -351,7 +354,7 @@ def get_error_misalignment_x(lattice, indices):
 
 @_interactive
 def set_error_misalignment_x(lattice, indices, values):
-    """Set (discard previous) horizontal misalignments errors to lattice elements.
+    """Set (discard previous) horizontal misalignments errors to lattice.
 
     INPUTS:
       lattice : accelerator model
@@ -437,7 +440,7 @@ def get_error_misalignment_y(lattice, indices):
 
 @_interactive
 def set_error_misalignment_y(lattice, indices, values):
-    """Set (discard previous) vertical misalignments errors to lattice elements.
+    """Set (discard previous) vertical misalignments errors to lattice.
 
     INPUTS:
       lattice : accelerator model
@@ -451,7 +454,6 @@ def set_error_misalignment_y(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [meters].
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -543,7 +545,7 @@ def set_error_rotation_roll(lattice, indices, values):
     # loops over elements and sets its R1 and R2 fields
     for segs, val in zip(indices, values):
         cos, sin = _math.cos(val[0]), _math.sin(val[0])
-        rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
+        rot = _np.diag([cos, cos, cos, cos, 1.0, 1.0])
         rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
         for idx in segs:
             ele = lattice[idx]
@@ -584,7 +586,7 @@ def add_error_rotation_roll(lattice, indices, values):
     # loops over elements and sets its R1 and R2 fields
     for segs, val in zip(indices, values):
         cos, sin = _math.cos(val[0]), _math.sin(val[0])
-        rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
+        rot = _np.diag([cos, cos, cos, cos, 1.0, 1.0])
         rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
 
         for idx in segs:
@@ -599,8 +601,8 @@ def add_error_rotation_roll(lattice, indices, values):
                 # (cos(teta)-1)/rho:
                 ele.polynom_b[0] = (orig_c*cos - orig_s*sin - 1.0) / rho
             else:
-                ele.r_in = _numpy.dot(rot, ele.r_in)
-                ele.r_out = _numpy.dot(ele.r_out, rot.T)
+                ele.r_in = _np.dot(rot, ele.r_in)
+                ele.r_out = _np.dot(ele.r_out, rot.T)
 
 
 @_interactive
@@ -704,8 +706,8 @@ def add_error_rotation_pitch(lattice, indices, values):
 
         # Apply the errors only to the entrance of the first and exit of the
         # last segment:
-        lattice[segs[0]].t_in += _numpy.array([0, 0, -(L/2)*angy, angy, 0, 0])
-        lattice[segs[-1]].t_out += _numpy.array(
+        lattice[segs[0]].t_in += _np.array([0, 0, -(L/2)*angy, angy, 0, 0])
+        lattice[segs[-1]].t_out += _np.array(
             [0, 0, -(L/2)*angy, -angy, 0, path])
 
 
@@ -808,8 +810,8 @@ def add_error_rotation_yaw(lattice, indices, values):
 
         # Apply the errors only to the entrance of the first and exit of the
         # last segment:
-        lattice[segs[0]].t_in += _numpy.array([-(L/2)*angx, angx, 0, 0, 0, 0])
-        lattice[segs[-1]].t_out += _numpy.array(
+        lattice[segs[0]].t_in += _np.array([-(L/2)*angx, angx, 0, 0, 0, 0])
+        lattice[segs[-1]].t_out += _np.array(
             [-(L/2)*angx, -angx, 0, 0, 0, path])
 
 
@@ -917,36 +919,34 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
     """
 
-    def add_polynom(elem, polynom, Pol_norm, n, KP):
-        if Pol_norm is not None:
-            if isinstance(Pol_norm, _numpy.ndarray):
-                Pol = Pol_norm
-            else:
-                Pol = _numpy.array(Pol_norm)
-            monoms = abs(n-1) - _numpy.arange(Pol.shape[0])
-            r0_i = r0**monoms
-            newPol = KP*r0_i*Pol
-            oldPol = getattr(elem, polynom)
-            lenNewPol = len(newPol)
-            lenOldPol = len(oldPol)
-            if lenNewPol > lenOldPol:
-                pol = newPol
-                pol[:lenOldPol] += oldPol
-            else:
-                pol = oldPol
-                pol[:lenNewPol] += newPol
-            setattr(elem, polynom, pol)
+    def add_polynom(elem, polynom, pol_norm, main_mon, main_stren):
+        if pol_norm is None:
+            return
+        pol_norm = _np.asarray(pol_norm)
+        monoms = abs(main_mon-1) - _np.arange(pol_norm.shape[0])
+        r0_i = r0**monoms
+        new_pol = main_stren * r0_i * pol_norm
+        old_pol = getattr(elem, polynom)
+        len_new_pol = len(new_pol)
+        len_old_pol = len(old_pol)
+        if len_new_pol > len_old_pol:
+            pol = new_pol
+            pol[:len_old_pol] += old_pol
+        else:
+            pol = old_pol
+            pol[:len_new_pol] += new_pol
+        setattr(elem, polynom, pol)
 
     indices, *_ = _process_args_errors(indices, 0.0)
 
     if len(main_monom) == 1:
-        main_monom *= _numpy.ones(len(indices))
+        main_monom *= _np.ones(len(indices))
     if len(main_monom) != len(indices):
         raise IndexError(
             'Length of main_monoms differs from length of indices.')
 
     # Extend the fields, if necessary to the number of elements in indices
-    types = (int, float, _numpy.int_, _numpy.float_)
+    types = (int, float, _np.int_, _np.float_)
     if Bn_norm is None or isinstance(Bn_norm[0], types):
         Bn_norm = len(indices) * [Bn_norm]
     if An_norm is None or isinstance(An_norm[0], types):
@@ -968,7 +968,7 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
 
 def _process_args_errors(indices, values):
-    types = (int, _numpy.int_)
+    types = (int, _np.int_)
     isflat = False
     if isinstance(indices, types):
         indices = [[indices]]
@@ -976,7 +976,7 @@ def _process_args_errors(indices, values):
         indices = [[ind] for ind in indices]
         isflat = True
 
-    types = (int, float, _numpy.int_, _numpy.float_)
+    types = (int, float, _np.int_, _np.float_)
     if isinstance(values, types):
         values = [len(ind) * [values] for ind in indices]
     if len(values) != len(indices):

@@ -13,7 +13,7 @@ return particle positions structure missing one or more indices but the
 PCEN ordering is preserved.
 """
 
-import numpy as _numpy
+import numpy as _np
 import trackcpp as _trackcpp
 import pyaccel.utils as _utils
 
@@ -26,27 +26,43 @@ class NaffException(Exception):
 
 
 @_interactive
-def naff_traj(particles):
-    """ Calculate tunes from tracking results."""
-    return NotImplemented
+def naff_general(signal, is_real=True, nr_ff=2, window=1):
+    """Calculate the first `nr_ff` fundamental frequencies of `signal`.
 
+    Inputs:
+        signal -- 1D or 2D Numpy array. In case of 2D Numpy array NAFF will
+            be applied to each row of `signal`;
+        is_real -- Whether to consider `signal` as real;
+        nr_ff -- Number of fundamental frequencies to return (default = 2);
+        window -- Which window to use:  (default = 1)
+            0 -- no window;
+            1, 2, 3, ... -- Powers of hanning window;
+            -1 -- Exponential window;
 
-@_interactive
-def naff_general(Z,is_real=False, nr_ff=2, use_win=1):
-    """ CAlculate the first nr_ff fundamental frequencies from real (R) and (I)
-        imaginary parts of signal"""
+    Outputs:
+        freqs -- fundamental frequencies.
+            Numpy array with shape `(signal.shape[0], nr_ff)`.
+            In case is_real is true, only positive frequencies in the interval
+            [0, 0.5] are returned;
+        fourier -- Fourier component of the given frequencies.
+            Numpy array of complex numbers with same shape as freqs.
+    """
+    if signal.ndim == 1:
+        signal = signal[None, :]
 
-    if (len(Z)-1) % 6:
+    if signal.ndim > 2:
+        NaffException('Wrong number of dimensions for input array.')
+
+    if (signal.shape[1]-1) % 6:
         raise NaffException('Number of points minus 1 must be divisible by 6.')
 
-    ff = _trackcpp.CppDoubleVector(nr_ff, 0.0)
-    Re = _trackcpp.CppDoubleVector(nr_ff, 0.0)
-    Im = _trackcpp.CppDoubleVector(nr_ff, 0.0)
-    _trackcpp.naff_general(Z.real, Z.imag, is_real, nr_ff, use_win, ff, Re, Im)
-    freq = _numpy.zeros(ff.size(), dtype=float)
-    Four = _numpy.zeros(ff.size(), dtype=complex)
-    for i in range(ff.size()):
-        freq[i] = ff[i]
-        Four[i] = Re[i] + 1j*Im[i]
+    freqs = _np.zeros((signal.shape[0], nr_ff))
+    real = _np.zeros((signal.shape[0], nr_ff))
+    imag = _np.zeros((signal.shape[0], nr_ff))
+    _trackcpp.naff_general_wrapper(
+        signal.real, signal.imag, is_real, nr_ff, window, freqs, real, imag)
 
-    return freq, Four
+    fourier = real + 1j*imag
+    fourier = _np.squeeze(fourier)
+    freqs = _np.squeeze(freqs)
+    return freqs, fourier
