@@ -1,25 +1,28 @@
+"""Lattice module."""
 
 import math as _math
-from collections.abc import Iterable
-from copy import deepcopy as _dcopy
-import numpy as _numpy
+from collections.abc import Iterable as _Iterable
+import numpy as _np
+
 import mathphys as _mp
 import trackcpp as _trackcpp
-import pyaccel as _pyaccel
-from pyaccel.utils import interactive as _interactive
+
+from pyaccel import accelerator as _accelerator
+
+from .elements import Element as _Element
+from .utils import interactive as _interactive
 
 
 class LatticeError(Exception):
-    pass
+    """."""
 
 
 @_interactive
 def flatten(elist):
-    """Take a list-of-list-of-... elements and flattens it:
-            a simple list of elements"""
+    """Take a list-of-list-of-... elements and flattens it."""
     flat_elist = []
     for element in elist:
-        if isinstance(element, Iterable) and not isinstance(element, str):
+        if isinstance(element, _Iterable) and not isinstance(element, str):
             flat_elist.extend(flatten(element))
         else:
             flat_elist.append(element)
@@ -38,14 +41,15 @@ def build(elist):
 
 @_interactive
 def shift(lattice, start):
-    """Shift periodically the lattice so that it starts at element whose index
-    is 'start'.
+    """Shift periodically the lattice.
 
     Keyword arguments:
     lattice -- a list of objects
     start -- index of first element in new list
 
-    Returns an Accelerator.
+    Returns:
+    new_lattice -- shifted lattice.
+
     """
     new_lattice = lattice[start:]
     for i in range(start):
@@ -55,6 +59,7 @@ def shift(lattice, start):
 
 @_interactive
 def length(lattice):
+    """."""
     return sum(map(lambda x: x.length, lattice))
 
 
@@ -67,9 +72,10 @@ def find_spos(lattice, indices='open'):
     indices -- may be a string 'closed' or 'open' to return or not the position
         at the end of the last element, or a list or tuple to select some
         indices or even an integer (default: 'open')
+
     """
     leng = [0] + [e.length for e in lattice]
-    pos = _numpy.cumsum(leng)
+    pos = _np.cumsum(leng)
 
     if isinstance(indices, str):
         if indices.lower() == 'open':
@@ -78,7 +84,7 @@ def find_spos(lattice, indices='open'):
             return pos
         else:
             raise TypeError('indices string not supported')
-    elif isinstance(indices, (int, _numpy.ndarray, list)):
+    elif isinstance(indices, (int, _np.ndarray, list)):
         return pos[indices]
     elif isinstance(indices, tuple):
         return pos[list(indices)]
@@ -107,8 +113,8 @@ def find_indices(lattice, attribute_name, value, comparison=None):
       >> sext_idx = find_indices(lattice,'polynom_b',value=0.0,comparison=fun)
       >> fun2=lambda x,y: x.startswith(y)
       >> mi_idx = find_indices(lattice,'fam_name',value='mi',comparison=fun2)
-    """
 
+    """
     if comparison is None:
         comparison = _is_equal
     indices = []
@@ -121,7 +127,7 @@ def find_indices(lattice, attribute_name, value, comparison=None):
 
 @_interactive
 def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
-    """Return a list with requested lattice data"""
+    """Return a list with requested lattice data."""
     if indices is None:
         indices = range(len(lattice))
 
@@ -149,7 +155,6 @@ def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
 @_interactive
 def set_attribute(lattice, attribute_name, indices, values, m=None, n=None):
     """Set elements data."""
-
     indices, values, _ = _process_args_errors(indices, values)
 
     if (m is not None) and (n is not None):
@@ -186,7 +191,7 @@ def find_dict(lattice, attribute_name):
 
 @_interactive
 def set_knob(lattice, fam_name, attribute_name, value):
-
+    """."""
     if isinstance(fam_name, str):
         idx = find_indices(lattice, 'fam_name', fam_name)
     else:
@@ -199,7 +204,7 @@ def set_knob(lattice, fam_name, attribute_name, value):
 
 @_interactive
 def add_knob(lattice, fam_name, attribute_name, value):
-
+    """."""
     if isinstance(fam_name, str):
         idx = find_indices(lattice, 'fam_name', fam_name)
     else:
@@ -214,8 +219,9 @@ def add_knob(lattice, fam_name, attribute_name, value):
 
 @_interactive
 def read_flat_file(filename):
+    """."""
     e = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
-    a = _pyaccel.accelerator.Accelerator(energy=e)  # energy cannot be zero
+    a = _accelerator.Accelerator(energy=e)  # energy cannot be zero
     fname = _trackcpp.String(filename)
     r = _trackcpp.read_flat_file_wrapper(fname, a._accelerator, True)
     if r > 0:
@@ -226,6 +232,7 @@ def read_flat_file(filename):
 
 @_interactive
 def write_flat_file(accelerator, filename):
+    """."""
     fname = _trackcpp.String(filename)
     r = _trackcpp.write_flat_file_wrapper(
         fname, accelerator._accelerator, True)
@@ -235,6 +242,7 @@ def write_flat_file(accelerator, filename):
 
 @_interactive
 def write_flat_file_to_string(accelerator):
+    """."""
     s = _trackcpp.String()
     r = _trackcpp.write_flat_file_wrapper(s, accelerator._accelerator, False)
     if r > 0:
@@ -246,7 +254,7 @@ def write_flat_file_to_string(accelerator):
 @_interactive
 def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
                    pass_methods=None):
-
+    """."""
     if max_length is None:
         max_length = 0.05
 
@@ -266,7 +274,7 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
         if fam_names is None and pass_methods is None:
             indices = list(range(len(acc)))
 
-    new_acc = _pyaccel.accelerator.Accelerator(
+    new_acc = _accelerator.Accelerator(
         energy=acc.energy,
         harmonic_number=acc.harmonic_number,
         cavity_on=acc.cavity_on,
@@ -276,7 +284,7 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
     indices = set(indices)
     for i, ele in enumerate(acc):
         if i not in indices or ele.length <= max_length:
-            e = _pyaccel.elements.Element(ele)
+            e = _Element(ele)
             new_acc.append(e)
             continue
 
@@ -285,17 +293,17 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
             # for dipoles (special case due to fringe fields)
             nr_segs = max(3, nr_segs)
 
-            e = _pyaccel.elements.Element(ele)
+            e = _Element(ele)
             e.angle_in = 0.0
             e.angle_out = 0.0
             e.fint_in = 0.0
             e.fint_out = 0.0
 
-            e_in = _pyaccel.elements.Element(ele)
+            e_in = _Element(ele)
             e_in.angle_out = 0.0
             e_in.fint_out = 0.0
 
-            e_out = _pyaccel.elements.Element(ele)
+            e_out = _Element(ele)
             e_out.angle_in = 0.0
             e_out.fint_in = 0.0
 
@@ -305,13 +313,13 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
             new_acc.append(e_in)
             for _ in range(nr_segs-2):
                 new_acc.append(
-                    _pyaccel.elements.Element(e))
+                    _Element(e))
             new_acc.append(e_out)
         elif ele.kicktable is not None:
             raise Exception('no refinement implemented for IDs yet')
         else:
             for _ in range(nr_segs):
-                e = _pyaccel.elements.Element(ele)
+                e = _Element(ele)
                 e.length = ele.length / nr_segs
                 e.angle = ele.angle / nr_segs
                 new_acc.append(e)
@@ -335,7 +343,6 @@ def get_error_misalignment_x(lattice, indices):
     Outputs:
        list of floats, in case len(indices)>1, or float of errors. Unit: [m]
     """
-
     # processes arguments
     indices, _, isflat = _process_args_errors(indices, 0.0)
 
@@ -351,22 +358,24 @@ def get_error_misalignment_x(lattice, indices):
 
 @_interactive
 def set_error_misalignment_x(lattice, indices, values):
-    """Set (discard previous) horizontal misalignments errors to lattice elements.
+    """Set horizontal misalignments errors to lattice elements.
 
-    INPUTS:
-      lattice : accelerator model
-      indices : (list, tuple, numpy.ndarray) of the indices of elements to
+    Discards previous errors...
+
+    Inputs:
+      lattice -- accelerator model
+      indices -- (list, tuple, numpy.ndarray) of the indices of elements to
         appy the errros. If the elements are segmented in the model
         and the same error is to be applied to each segment, then it must be
         a (nested list,nested tuple, 2D numpy.ndarray), where each of its
         (elements, elements, first dimension) is a (list/tuple, tuple/list, 1D
         numpy.ndarray) of indices of the segments. Elements may have different
         number of segments.
-      values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
+      values -- may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [meters]
-    """
 
-    ''' processes arguments '''
+    """
+    # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
     # loops over elements and sets its T1 and T2 fields
@@ -543,7 +552,7 @@ def set_error_rotation_roll(lattice, indices, values):
     # loops over elements and sets its R1 and R2 fields
     for segs, val in zip(indices, values):
         cos, sin = _math.cos(val[0]), _math.sin(val[0])
-        rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
+        rot = _np.diag([cos, cos, cos, cos, 1.0, 1.0])
         rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
         for idx in segs:
             ele = lattice[idx]
@@ -584,7 +593,7 @@ def add_error_rotation_roll(lattice, indices, values):
     # loops over elements and sets its R1 and R2 fields
     for segs, val in zip(indices, values):
         cos, sin = _math.cos(val[0]), _math.sin(val[0])
-        rot = _numpy.diag([cos, cos, cos, cos, 1.0, 1.0])
+        rot = _np.diag([cos, cos, cos, cos, 1.0, 1.0])
         rot[0, 2], rot[1, 3], rot[2, 0], rot[3, 1] = sin, sin, -sin, -sin
 
         for idx in segs:
@@ -599,8 +608,8 @@ def add_error_rotation_roll(lattice, indices, values):
                 # (cos(teta)-1)/rho:
                 ele.polynom_b[0] = (orig_c*cos - orig_s*sin - 1.0) / rho
             else:
-                ele.r_in = _numpy.dot(rot, ele.r_in)
-                ele.r_out = _numpy.dot(ele.r_out, rot.T)
+                ele.r_in = _np.dot(rot, ele.r_in)
+                ele.r_out = _np.dot(ele.r_out, rot.T)
 
 
 @_interactive
@@ -704,8 +713,8 @@ def add_error_rotation_pitch(lattice, indices, values):
 
         # Apply the errors only to the entrance of the first and exit of the
         # last segment:
-        lattice[segs[0]].t_in += _numpy.array([0, 0, -(L/2)*angy, angy, 0, 0])
-        lattice[segs[-1]].t_out += _numpy.array(
+        lattice[segs[0]].t_in += _np.array([0, 0, -(L/2)*angy, angy, 0, 0])
+        lattice[segs[-1]].t_out += _np.array(
             [0, 0, -(L/2)*angy, -angy, 0, path])
 
 
@@ -808,8 +817,8 @@ def add_error_rotation_yaw(lattice, indices, values):
 
         # Apply the errors only to the entrance of the first and exit of the
         # last segment:
-        lattice[segs[0]].t_in += _numpy.array([-(L/2)*angx, angx, 0, 0, 0, 0])
-        lattice[segs[-1]].t_out += _numpy.array(
+        lattice[segs[0]].t_in += _np.array([-(L/2)*angx, angx, 0, 0, 0, 0])
+        lattice[segs[-1]].t_out += _np.array(
             [-(L/2)*angx, -angx, 0, 0, 0, path])
 
 
@@ -919,11 +928,11 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
     def add_polynom(elem, polynom, Pol_norm, n, KP):
         if Pol_norm is not None:
-            if isinstance(Pol_norm, _numpy.ndarray):
+            if isinstance(Pol_norm, _np.ndarray):
                 Pol = Pol_norm
             else:
-                Pol = _numpy.array(Pol_norm)
-            monoms = abs(n-1) - _numpy.arange(Pol.shape[0])
+                Pol = _np.array(Pol_norm)
+            monoms = abs(n-1) - _np.arange(Pol.shape[0])
             r0_i = r0**monoms
             newPol = KP*r0_i*Pol
             oldPol = getattr(elem, polynom)
@@ -940,13 +949,13 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
     indices, *_ = _process_args_errors(indices, 0.0)
 
     if len(main_monom) == 1:
-        main_monom *= _numpy.ones(len(indices))
+        main_monom *= _np.ones(len(indices))
     if len(main_monom) != len(indices):
         raise IndexError(
             'Length of main_monoms differs from length of indices.')
 
     # Extend the fields, if necessary to the number of elements in indices
-    types = (int, float, _numpy.int_, _numpy.float_)
+    types = (int, float, _np.int_, _np.float_)
     if Bn_norm is None or isinstance(Bn_norm[0], types):
         Bn_norm = len(indices) * [Bn_norm]
     if An_norm is None or isinstance(An_norm[0], types):
@@ -967,8 +976,11 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
             add_polynom(ele, 'polynom_a', ann, n, KP)
 
 
+# --- private functions ---
+
+
 def _process_args_errors(indices, values):
-    types = (int, _numpy.int_)
+    types = (int, _np.int_)
     isflat = False
     if isinstance(indices, types):
         indices = [[indices]]
@@ -976,7 +988,7 @@ def _process_args_errors(indices, values):
         indices = [[ind] for ind in indices]
         isflat = True
 
-    types = (int, float, _numpy.int_, _numpy.float_)
+    types = (int, float, _np.int_, _np.float_)
     if isinstance(values, types):
         values = [len(ind) * [values] for ind in indices]
     if len(values) != len(indices):
@@ -990,7 +1002,7 @@ def _process_args_errors(indices, values):
             raise IndexError(
                 'length of values differs from length of indices.')
         newvalues.append(vals)
-    return indices, newvalues, isflat
+    return indices, _np.array(newvalues), isflat
 
 
 def _process_output(values, isflat):
@@ -998,44 +1010,49 @@ def _process_output(values, isflat):
         values = flatten(values)
     if len(values) == 1:
         values = values[0]
-    return values
+    return _np.array(values)
 
 
-def _is_equal(a, b):
+def _is_equal(val1, val2):
     # checks for strings
-    if isinstance(a, str):
-        if isinstance(b, str):
-            return a == b
+    if isinstance(val1, str):
+        if isinstance(val2, str):
+            return val1 == val2
         else:
             return False
     else:
-        if isinstance(b, str):
+        if isinstance(val2, str):
             return False
+
     try:
-        a[0]
-        # 'a' is an iterable
+        _ = val1[0]
+        # 'val1' is an iterable
+        return _is_equal_val1_iterable(val1, val2)
+    except TypeError:
+        # 'val1' is not iterable
         try:
-            b[0]
-            # 'b' is an iterable
-            if len(a) != len(b):
-                # 'a' and 'b' are iterbales but with different lengths
-                return False
-            else:
-                # 'a' and 'b' are iterables with the same length
-                for a_, b_ in zip(a, b):
-                    if not _is_equal(a_, b_):
-                        return False
-                # corresponding elements in a and b iterables are the same.
-                return True
-        except:
-            # 'a' is iterable but 'b' is not
+            _ = val2[0]
+            # 'val1' is not iterable but 'val2' is.
             return False
-    except:
-        # 'a' is not iterable
-        try:
-            b[0]
-            # 'a' is not iterable but 'b' is.
+        except TypeError:
+            # neither 'val1' nor 'val2' are iterables
+            return val1 == val2
+
+
+def _is_equal_val1_iterable(val1, val2):
+    try:
+        _ = val2[0]
+        # 'val2' is an iterable
+        if len(val1) != len(val2):
+            # 'val1' and 'val2' are iterbales but with different lengths
             return False
-        except:
-            # neither 'a' nor 'b' are iterables
-            return a == b
+        else:
+            # 'val1' and 'val2' are iterables with the same length
+            for val1_, val2_ in zip(val1, val2):
+                if not _is_equal(val1_, val2_):
+                    return False
+            # corresponding elements in iterables are the same.
+            return True
+    except TypeError:
+        # 'val1' is iterable but 'val2' is not
+        return False

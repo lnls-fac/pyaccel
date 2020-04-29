@@ -1,10 +1,14 @@
+"""."""
 
-import matplotlib.pyplot as _pyplot
+import matplotlib.pyplot as _plt
 import matplotlib.lines as _lines
 import matplotlib.collections as _collections
 import matplotlib.patches as _patches
-import pyaccel as _pyaccel
-from pyaccel.utils import interactive as _interactive
+
+from .utils import interactive as _interactive
+from .lattice import find_spos as _find_spos
+from .lattice import get_attribute as _get_attribute
+from .optics import calc_twiss as _calc_twiss
 
 
 _COLOURS = {
@@ -35,9 +39,10 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     add_lattice -- Add lattice drawing (default: True)
     For the other arguments, see draw_lattice documentation.
 
-    Raises RuntimeError"""
+    Raises RuntimeError
+    """
     if twiss is None:
-        twiss, *_ = _pyaccel.optics.calc_twiss(accelerator)
+        twiss, *_ = _calc_twiss(accelerator)
 
     spos = twiss.spos
     betax = twiss.betax
@@ -56,42 +61,42 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
                 etax = etax[:idx+1]
                 break
 
-    is_interactive = _pyplot.isinteractive()
-    _pyplot.interactive = False
+    is_interactive = _plt.isinteractive()
+    _plt.interactive = False
 
     if gca:
-        fig = _pyplot.gcf()
-        ax = _pyplot.gca()
+        fig = _plt.gcf()
+        axis = _plt.gca()
     else:
-        fig, ax = _pyplot.subplots()
+        fig, axis = _plt.subplots()
 
-    _pyplot.plot(spos, betax, label='$\\beta_x$', color='#085199')
-    _pyplot.plot(spos, betay, label='$\\beta_y$', color='#990851')
-    _pyplot.xlabel('s [m]')
-    _pyplot.ylabel('$\\beta$ [m]')
+    _plt.plot(spos, betax, label='$\\beta_x$', color='#085199')
+    _plt.plot(spos, betay, label='$\\beta_y$', color='#990851')
+    _plt.xlabel('s [m]')
+    _plt.ylabel('$\\beta$ [m]')
     if grid:
-        _pyplot.grid()
+        _plt.grid()
     if title:
-        _pyplot.title(title)
+        _plt.title(title)
     if add_lattice:
-        _, y_max = _pyplot.ylim()
+        _, y_max = _plt.ylim()
 
     if add_lattice:
-        fig, ax = draw_lattice(
+        fig, axis = draw_lattice(
             accelerator, offset, height, draw_edges, family_data,
             family_mapping, colours, selection, gca=True,
             is_interactive=False, show_label=show_label)
 
-    handles, labels = ax.get_legend_handles_labels()
+    handles, labels = axis.get_legend_handles_labels()
     if plot_eta:
-        eta_ax = ax.twinx()
+        eta_ax = axis.twinx()
         eta_colour = '#519908'
         eta_ax.plot(spos, 100*etax, label='$\\eta_x$', color=eta_colour)
         eta_ax.set_ylabel('$\\eta_x$ [cm]')
         # eta_ax.spines['right'].set_color(eta_colour)
         # eta_ax.tick_params(axis='y', colors=eta_colour)
         eta_y_min, eta_y_max = eta_ax.get_ylim()
-        y_min, _ = ax.get_ylim()
+        y_min, _ = axis.get_ylim()
         if show_label:
             eta_ax.set_ylim(
                 bottom=eta_y_min+(y_min/y_max)*(eta_y_max-eta_y_min),
@@ -103,24 +108,37 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
         eta_handles, eta_labels = eta_ax.get_legend_handles_labels()
         handles += eta_handles
         labels += eta_labels
-        ax.legend(handles, labels)
+        axis.legend(handles, labels)
 
-        _pyplot.sca(ax)
+        _plt.sca(axis)
     else:
-        ax.legend(handles, labels)
+        axis.legend(handles, labels)
 
     if not gca:
-        _pyplot.xlim((spos[0]-0.25, spos[-1]+0.25))
+        _plt.xlim((spos[0]-0.25, spos[-1]+0.25))
 
     if is_interactive:
         if add_lattice:
-            y_min, _ = _pyplot.ylim()
-            _pyplot.ylim(y_min, y_max)
-        _pyplot.interactive = True
-        _pyplot.draw()
-        _pyplot.show()
+            y_min, _ = _plt.ylim()
+            _plt.ylim(y_min, y_max)
+        _plt.interactive = True
+        _plt.draw()
+        _plt.show()
 
-    return fig, ax
+    return fig, axis
+
+
+@_interactive
+def plot_vchamber(lattice):
+    """."""
+    spos = _find_spos(lattice, )
+    hmax = 1e3 * _get_attribute(lattice, 'hmax')  # [mm]
+    hmin = 1e3 * _get_attribute(lattice, 'hmin')  # [mm]
+    print(min(hmax))
+    print(max(hmax))
+    print(hmax)
+    _plt.plot(spos, hmax)
+    _plt.show()
 
 
 @_interactive
@@ -128,7 +146,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
                  family_data=None, family_mapping=None, colours=None,
                  selection=None, symmetry=None, gca=False, is_interactive=None,
                  show_label=False):
-    """Draw lattice elements along longitudinal position
+    """Draw lattice elements along longitudinal position.
 
     Keyword arguments:
     lattice -- Accelerator or Element list
@@ -157,9 +175,11 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
 
     Returns:
     fig -- matplotlib Figure object
-    ax -- matplotlib AxesSubplot object
+    axis -- matplotlib AxesSubplot object
 
-    Raises RuntimeError
+    Raises:
+    RuntimeError
+
     """
     if selection is None:
         selection = [
@@ -198,17 +218,17 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
             selection.append('septum')
 
     if is_interactive is None:
-        is_interactive = _pyplot.isinteractive()
-    _pyplot.interactive = False
+        is_interactive = _plt.isinteractive()
+    _plt.interactive = False
 
     if gca:
-        fig = _pyplot.gcf()
-        ax = _pyplot.gca()
-        y_min, y_max = _pyplot.ylim()
+        fig = _plt.gcf()
+        axis = _plt.gca()
+        y_min, y_max = _plt.ylim()
         if offset is None:
             offset = y_min - height
     else:
-        fig, ax = _pyplot.subplots()
+        fig, axis = _plt.subplots()
         if offset is None:
             offset = 0.0
 
@@ -225,40 +245,40 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
         [0, lattice.length], [offset, offset],
         color=_COLOURS['vacuum_chamber'], linewidth=1)
     line.set_zorder(0)
-    ax.add_line(line)
+    axis.add_line(line)
 
-    ax.set_ylim(offset-2.1*height, y_max)
+    axis.set_ylim(offset-2.1*height, y_max)
 
     drawer = _LatticeDrawer(
         lattice, offset, height, draw_edges, family_data,
         family_mapping, colours, show_label)
 
     if not gca:
-        ax.set_xlim(0, lattice.length)
-        ax.set_ylim(offset-height, offset+19*height)
+        axis.set_xlim(0, lattice.length)
+        axis.set_ylim(offset-height, offset+19*height)
     else:
         if show_label:
-            _pyplot.ylim(offset-2.1*height, y_max)
+            _plt.ylim(offset-2.1*height, y_max)
         else:
-            _pyplot.ylim(offset-height, y_max)
+            _plt.ylim(offset-height, y_max)
 
     for s in selection:
-        ax.add_collection(drawer.patch_collections[s])
+        axis.add_collection(drawer.patch_collections[s])
 
     if show_label:
         for l in drawer.patch_labels:
-            ax.text(x=l[0], y=l[1], s=l[2], rotation='vertical', fontsize=8)
+            axis.text(x=l[0], y=l[1], s=l[2], rotation='vertical', fontsize=8)
 
     if is_interactive:
-        _pyplot.interactive = True
-        _pyplot.draw()
-        _pyplot.show()
+        _plt.interactive = True
+        _plt.draw()
+        _plt.show()
 
-    return fig, ax
+    return fig, axis
 
 
 class _LatticeDrawer(object):
-
+    """."""
     def __init__(self, lattice, offset, height, draw_edges, family_data,
                  family_mapping, colours, show_label):
 
@@ -291,7 +311,7 @@ class _LatticeDrawer(object):
         if show_label:
             self.patch_labels = []
 
-        pos = _pyaccel.lattice.find_spos(lattice)
+        pos = _find_spos(lattice)
 
         if family_data is None:
             # Guess element type
@@ -326,61 +346,61 @@ class _LatticeDrawer(object):
                         break
                     self._create_element_patch(lattice[i], pos[i], et)
 
-        ec = 'black'
+        edgec = 'black'
         self.patch_collections = {
             'dipole': _collections.PatchCollection(
                 self._dipole_patches,
-                edgecolor=(ec if draw_edges else colours['dipole']),
+                edgecolor=(edgec if draw_edges else colours['dipole']),
                 facecolor=colours['dipole'],
                 zorder=2),
             'quadrupole': _collections.PatchCollection(
                 self._quadrupole_patches,
-                edgecolor=(ec if draw_edges else colours['quadrupole']),
+                edgecolor=(edgec if draw_edges else colours['quadrupole']),
                 facecolor=colours['quadrupole'],
                 zorder=2),
             'sextupole': _collections.PatchCollection(
                 self._sextupole_patches,
-                edgecolor=(ec if draw_edges else colours['sextupole']),
+                edgecolor=(edgec if draw_edges else colours['sextupole']),
                 facecolor=colours['sextupole'],
                 zorder=2),
             'septum': _collections.PatchCollection(
                 self._septum_patches,
-                edgecolor=(ec if draw_edges else colours['septum']),
+                edgecolor=(edgec if draw_edges else colours['septum']),
                 facecolor=colours['septum'],
                 zorder=2),
             'fast_corrector_core': _collections.PatchCollection(
                 self._fast_corrector_core_patches,
-                edgecolor=(ec if draw_edges else colours['corrector']),
+                edgecolor=(edgec if draw_edges else colours['corrector']),
                 facecolor=colours['corrector'],
                 zorder=2),
             'fast_corrector_coil': _collections.PatchCollection(
                 self._fast_corrector_coil_patches,
-                edgecolor=(ec if draw_edges else colours['coil']),
+                edgecolor=(edgec if draw_edges else colours['coil']),
                 facecolor=colours['coil'],
                 zorder=3),
             'slow_corrector_core': _collections.PatchCollection(
                 self._slow_corrector_core_patches,
-                edgecolor=(ec if draw_edges else colours['corrector']),
+                edgecolor=(edgec if draw_edges else colours['corrector']),
                 facecolor=colours['corrector'],
                 zorder=2),
             'slow_corrector_coil': _collections.PatchCollection(
                 self._slow_corrector_coil_patches,
-                edgecolor=(ec if draw_edges else colours['coil']),
+                edgecolor=(edgec if draw_edges else colours['coil']),
                 facecolor=colours['coil'],
                 zorder=3),
             'skew_quadupole_core': _collections.PatchCollection(
                 self._skew_quadrupole_core_patches,
-                edgecolor=(ec if draw_edges else colours['skew_quadupole']),
+                edgecolor=(edgec if draw_edges else colours['skew_quadupole']),
                 facecolor=colours['skew_quadupole'],
                 zorder=2),
             'skew_quadupole_coil': _collections.PatchCollection(
                 self._skew_quadrupole_coil_patches,
-                edgecolor=(ec if draw_edges else colours['coil']),
+                edgecolor=(edgec if draw_edges else colours['coil']),
                 facecolor=colours['coil'],
                 zorder=3),
             'bpm': _collections.PatchCollection(
                 self._bpm_patches,
-                edgecolor=(ec if draw_edges else colours['bpm']),
+                edgecolor=(edgec if draw_edges else colours['bpm']),
                 facecolor=colours['bpm'],
                 zorder=2),
             }
@@ -498,10 +518,12 @@ class _LatticeDrawer(object):
         return self._get_coil(element, corner)
 
     def _get_coil(self, element, corner):
+        _ = element
         return _patches.Rectangle(
             xy=corner, width=self._coil_length, height=self._coil_height)
 
     def _get_bpm(self, element, pos):
+        _ = element
         corner = (pos-self._bpm_length/2, self._offset-self._height/20)
         return _patches.Rectangle(
             xy=corner, width=self._bpm_length, height=self._height/10)

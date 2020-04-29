@@ -13,11 +13,12 @@ class AcceleratorException(Exception):
 
 @_interactive
 class Accelerator(object):
+    """."""
 
     __isfrozen = False  # this is used to prevent creation of new attributes
 
     def __init__(self, **kwargs):
-
+        """."""
         if 'accelerator' in kwargs:
             a = kwargs['accelerator']
             if isinstance(a, _trackcpp.Accelerator):

@@ -1,3 +1,4 @@
+"""Optics module."""
 
 import sys as _sys
 import math as _math
@@ -13,10 +14,11 @@ from .utils import interactive as _interactive
 
 
 class OpticsException(Exception):
-    pass
+    """."""
 
 
 class Twiss:
+    """."""
 
     def __init__(self, twiss=None, copy=True):
         if twiss is None:
