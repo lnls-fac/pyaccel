@@ -31,21 +31,21 @@ def flatten(elist):
 
 @_interactive
 def build(elist):
-    """Build lattice from a list of elements and lines"""
+    """Build lattice from a list of elements and lines."""
     lattice = _trackcpp.CppElementVector()
     elist = flatten(elist)
     for e in elist:
-        lattice.append(e._e)
+        lattice.append(e.trackcpp_e)
     return lattice
 
 
 @_interactive
 def shift(lattice, start):
-    """Shift periodically the lattice.
+    """Shift lattice periodically so that it starts at index 'start'.
 
-    Keyword arguments:
-    lattice -- a list of objects
-    start -- index of first element in new list
+    Inputs:
+        lattice -- a list of objects
+        start -- index of first element in new list
 
     Returns:
     new_lattice -- shifted lattice.
@@ -59,8 +59,13 @@ def shift(lattice, start):
 
 @_interactive
 def length(lattice):
-    """."""
-    return sum(map(lambda x: x.length, lattice))
+    """Return the length, in meters, of the given lattice."""
+    if isinstance(lattice, _pyaccel.accelerator.Accelerator):
+        return lattice.length
+    elif isinstance(lattice, _trackcpp.Accelerator):
+        return lattice.get_length()
+    else:
+        return sum(map(lambda x: x.length, lattice))
 
 
 @_interactive
@@ -223,7 +228,7 @@ def read_flat_file(filename):
     e = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
     a = _accelerator.Accelerator(energy=e)  # energy cannot be zero
     fname = _trackcpp.String(filename)
-    r = _trackcpp.read_flat_file_wrapper(fname, a._accelerator, True)
+    r = _trackcpp.read_flat_file_wrapper(fname, a.trackcpp_acc, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
@@ -235,7 +240,7 @@ def write_flat_file(accelerator, filename):
     """."""
     fname = _trackcpp.String(filename)
     r = _trackcpp.write_flat_file_wrapper(
-        fname, accelerator._accelerator, True)
+        fname, accelerator.trackcpp_acc, True)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
@@ -244,7 +249,7 @@ def write_flat_file(accelerator, filename):
 def write_flat_file_to_string(accelerator):
     """."""
     s = _trackcpp.String()
-    r = _trackcpp.write_flat_file_wrapper(s, accelerator._accelerator, False)
+    r = _trackcpp.write_flat_file_wrapper(s, accelerator.trackcpp_acc, False)
     if r > 0:
         raise LatticeError(_trackcpp.string_error_messages[r])
 
@@ -358,7 +363,7 @@ def get_error_misalignment_x(lattice, indices):
 
 @_interactive
 def set_error_misalignment_x(lattice, indices, values):
-    """Set horizontal misalignments errors to lattice elements.
+    """Set (discard previous) horizontal misalignments errors to lattice.
 
     Discards previous errors...
 
@@ -446,7 +451,7 @@ def get_error_misalignment_y(lattice, indices):
 
 @_interactive
 def set_error_misalignment_y(lattice, indices, values):
-    """Set (discard previous) vertical misalignments errors to lattice elements.
+    """Set (discard previous) vertical misalignments errors to lattice.
 
     INPUTS:
       lattice : accelerator model
@@ -460,7 +465,6 @@ def set_error_misalignment_y(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [meters].
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -926,25 +930,23 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
     """
 
-    def add_polynom(elem, polynom, Pol_norm, n, KP):
-        if Pol_norm is not None:
-            if isinstance(Pol_norm, _np.ndarray):
-                Pol = Pol_norm
-            else:
-                Pol = _np.array(Pol_norm)
-            monoms = abs(n-1) - _np.arange(Pol.shape[0])
-            r0_i = r0**monoms
-            newPol = KP*r0_i*Pol
-            oldPol = getattr(elem, polynom)
-            lenNewPol = len(newPol)
-            lenOldPol = len(oldPol)
-            if lenNewPol > lenOldPol:
-                pol = newPol
-                pol[:lenOldPol] += oldPol
-            else:
-                pol = oldPol
-                pol[:lenNewPol] += newPol
-            setattr(elem, polynom, pol)
+    def add_polynom(elem, polynom, pol_norm, main_mon, main_stren):
+        if pol_norm is None:
+            return
+        pol_norm = _np.asarray(pol_norm)
+        monoms = abs(main_mon-1) - _np.arange(pol_norm.shape[0])
+        r0_i = r0**monoms
+        new_pol = main_stren * r0_i * pol_norm
+        old_pol = getattr(elem, polynom)
+        len_new_pol = len(new_pol)
+        len_old_pol = len(old_pol)
+        if len_new_pol > len_old_pol:
+            pol = new_pol
+            pol[:len_old_pol] += old_pol
+        else:
+            pol = old_pol
+            pol[:len_new_pol] += new_pol
+        setattr(elem, polynom, pol)
 
     indices, *_ = _process_args_errors(indices, 0.0)
 

@@ -251,16 +251,16 @@ class Element(object):
         elif isinstance(element, _trackcpp.Element):
             pass
         elif isinstance(element, Element):
-            element = element._e
+            element = element.trackcpp_e
         else:
             raise TypeError(
                 'element must be a trackcpp.Element or a Element object.')
-        self._e = _trackcpp.Element(element)
+        self.trackcpp_e = _trackcpp.Element(element)
 
     def __eq__(self, other):
         if not isinstance(other, Element):
             return NotImplemented
-        for attr in self._e.__swig_getmethods__:
+        for attr in self.trackcpp_e.__swig_getmethods__:
             self_attr = getattr(self, attr)
             if isinstance(self_attr, _numpy.ndarray):
                 if (self_attr != getattr(other, attr)).any():
@@ -272,15 +272,15 @@ class Element(object):
 
     @property
     def fam_name(self):
-        return self._e.fam_name
+        return self.trackcpp_e.fam_name
 
     @fam_name.setter
     def fam_name(self, value):
-        self._e.fam_name = value
+        self.trackcpp_e.fam_name = value
 
     @property
     def pass_method(self):
-        return pass_methods[self._e.pass_method]
+        return pass_methods[self.trackcpp_e.pass_method]
 
     @pass_method.setter
     def pass_method(self, value):
@@ -288,139 +288,139 @@ class Element(object):
             if value not in pass_methods:
                 raise ValueError("pass method '" + value + "' not found")
             else:
-                self._e.pass_method = pass_methods.index(value)
+                self.trackcpp_e.pass_method = pass_methods.index(value)
         elif isinstance(value, int):
             if not (0 <= value < len(pass_methods)):
                 raise IndexError("pass method index out of range")
             else:
-                self._e.pass_method = value
+                self.trackcpp_e.pass_method = value
         else:
             raise TypeError("pass method value must be string or index")
 
     @property
     def length(self):
-        return self._e.length
+        return self.trackcpp_e.length
 
     @length.setter
     def length(self, value):
-        self._e.length = value
+        self.trackcpp_e.length = value
 
     @property
     def nr_steps(self):
-        return self._e.nr_steps
+        return self.trackcpp_e.nr_steps
 
     @nr_steps.setter
     def nr_steps(self, value):
-        self._e.nr_steps = value
+        self.trackcpp_e.nr_steps = value
 
     @property
     def hkick(self):
-        return self._e.hkick
+        return self.trackcpp_e.hkick
 
     @hkick.setter
     def hkick(self, value):
-        self._e.hkick = value
+        self.trackcpp_e.hkick = value
 
     @property
     def vkick(self):
-        return self._e.vkick
+        return self.trackcpp_e.vkick
 
     @vkick.setter
     def vkick(self, value):
-        self._e.vkick = value
+        self.trackcpp_e.vkick = value
 
     @property
     def angle(self):
-        return self._e.angle
+        return self.trackcpp_e.angle
 
     @angle.setter
     def angle(self, value):
-        self._e.angle = value
+        self.trackcpp_e.angle = value
 
     @property
     def angle_in(self):
-        return self._e.angle_in
+        return self.trackcpp_e.angle_in
 
     @angle_in.setter
     def angle_in(self, value):
-        self._e.angle_in = value
+        self.trackcpp_e.angle_in = value
 
     @property
     def angle_out(self):
-        return self._e.angle_out
+        return self.trackcpp_e.angle_out
 
     @angle_out.setter
     def angle_out(self, value):
-        self._e.angle_out = value
+        self.trackcpp_e.angle_out = value
 
     @property
     def gap(self):
-        return self._e.gap
+        return self.trackcpp_e.gap
 
     @gap.setter
     def gap(self, value):
-        self._e.gap = value
+        self.trackcpp_e.gap = value
 
     @property
     def fint_in(self):
-        return self._e.fint_in
+        return self.trackcpp_e.fint_in
 
     @fint_in.setter
     def fint_in(self, value):
-        self._e.fint_in = value
+        self.trackcpp_e.fint_in = value
 
     @property
     def fint_out(self):
-        return self._e.fint_out
+        return self.trackcpp_e.fint_out
 
     @fint_out.setter
     def fint_out(self, value):
-        self._e.fint_out = value
+        self.trackcpp_e.fint_out = value
 
     @property
     def thin_KL(self):
-        return self._e.thin_KL
+        return self.trackcpp_e.thin_KL
 
     @thin_KL.setter
     def thin_KL(self, value):
-        self._e.thin_KL = value
+        self.trackcpp_e.thin_KL = value
 
     @property
     def thin_SL(self):
-        return self._e.thin_SL
+        return self.trackcpp_e.thin_SL
 
     @thin_SL.setter
     def thin_SL(self, value):
-        self._e.thin_SL = value
+        self.trackcpp_e.thin_SL = value
 
     @property
     def frequency(self):
-        return self._e.frequency
+        return self.trackcpp_e.frequency
 
     @frequency.setter
     def frequency(self, value):
-        self._e.frequency = value
+        self.trackcpp_e.frequency = value
 
     @property
     def voltage(self):
-        return self._e.voltage
+        return self.trackcpp_e.voltage
 
     @voltage.setter
     def voltage(self, value):
-        self._e.voltage = value
+        self.trackcpp_e.voltage = value
 
     @property
     def phase_lag(self):
-        return self._e.phase_lag
+        return self.trackcpp_e.phase_lag
 
     @phase_lag.setter
     def phase_lag(self, value):
-        self._e.phase_lag = value
+        self.trackcpp_e.phase_lag = value
 
     @property
     def kicktable(self):
-        if self._e.kicktable is not None:
-            return Kicktable(kicktable=self._e.kicktable)
+        if self.trackcpp_e.kicktable is not None:
+            return Kicktable(kicktable=self.trackcpp_e.kicktable)
         else:
             return None
 
@@ -428,163 +428,163 @@ class Element(object):
     def kicktable(self, value):
         if not isinstance(value, Kicktable):
             raise TypeError('value must be of Kicktable type')
-        self._e.kicktable = value._kicktable
+        self.trackcpp_e.kicktable = value._kicktable
 
     @property
     def hmax(self):
-        return self._e.hmax
+        return self.trackcpp_e.hmax
 
     @hmax.setter
     def hmax(self, value):
-        self._e.hmax = value
+        self.trackcpp_e.hmax = value
 
     @property
     def hmin(self):
-        return self._e.hmin
+        return self.trackcpp_e.hmin
 
     @hmin.setter
     def hmin(self, value):
-        self._e.hmin = value
+        self.trackcpp_e.hmin = value
 
     @property
     def vmax(self):
-        return self._e.vmax
+        return self.trackcpp_e.vmax
 
     @vmax.setter
     def vmax(self, value):
-        self._e.vmax = value
+        self.trackcpp_e.vmax = value
 
     @property
     def vmin(self):
-        return self._e.vmin
+        return self.trackcpp_e.vmin
 
     @vmin.setter
     def vmin(self, value):
-        self._e.vmin = value
+        self.trackcpp_e.vmin = value
 
     @property
     def K(self):
-        return self._e.polynom_b[1]
+        return self.trackcpp_e.polynom_b[1]
 
     @K.setter
     def K(self, value):
-        self._e.polynom_b[1] = value
+        self.trackcpp_e.polynom_b[1] = value
 
     @property
     def KL(self):
-        return self._e.polynom_b[1] * self._e.length
+        return self.trackcpp_e.polynom_b[1] * self.trackcpp_e.length
 
     @KL.setter
     def KL(self, value):
-        self._e.polynom_b[1] = value / self._e.length
+        self.trackcpp_e.polynom_b[1] = value / self.trackcpp_e.length
 
     @property
     def KxL(self):
-        return -self._e.matrix66[1][0]
+        return -self.trackcpp_e.matrix66[1][0]
 
     @KxL.setter
     def KxL(self, value):
-        lst = list(self._e.matrix66[1])
+        lst = list(self.trackcpp_e.matrix66[1])
         lst[0] = -value
-        self._e.matrix66[1] = tuple(lst)
+        self.trackcpp_e.matrix66[1] = tuple(lst)
 
     @property
     def KyL(self):
-        return -self._e.matrix66[3][2]
+        return -self.trackcpp_e.matrix66[3][2]
 
     @KyL.setter
     def KyL(self, value):
-        lst = list(self._e.matrix66[3])
+        lst = list(self.trackcpp_e.matrix66[3])
         lst[2] = -value
-        self._e.matrix66[3] = tuple(lst)
+        self.trackcpp_e.matrix66[3] = tuple(lst)
 
     @property
     def S(self):
-        return self._e.polynom_b[2]
+        return self.trackcpp_e.polynom_b[2]
 
     @S.setter
     def S(self, value):
-        self._e.polynom_b[2] = value
+        self.trackcpp_e.polynom_b[2] = value
 
     @property
     def SL(self):
-        return self._e.polynom_b[2] * self._e.length
+        return self.trackcpp_e.polynom_b[2] * self.trackcpp_e.length
 
     @SL.setter
     def SL(self, value):
-        self._e.polynom_b[2] = value / self._e.length
+        self.trackcpp_e.polynom_b[2] = value / self.trackcpp_e.length
 
     @property
     def Ks(self):
-        return -self._e.polynom_a[1]
+        return -self.trackcpp_e.polynom_a[1]
 
     @Ks.setter
     def Ks(self, value):
-        self._e.polynom_a[1] = -value
+        self.trackcpp_e.polynom_a[1] = -value
 
     @property
     def KsL(self):
-        return -self._e.polynom_a[1] * self._e.length
+        return -self.trackcpp_e.polynom_a[1] * self.trackcpp_e.length
 
     @KsL.setter
     def KsL(self, value):
-        self._e.polynom_a[1] = -value / self._e.length
+        self.trackcpp_e.polynom_a[1] = -value / self.trackcpp_e.length
 
     @property
     def KsxL(self):
-        return -self._e.matrix66[1][2]
+        return -self.trackcpp_e.matrix66[1][2]
 
     @KsxL.setter
     def KsxL(self, value):
-        lst = list(self._e.matrix66[1])
+        lst = list(self.trackcpp_e.matrix66[1])
         lst[2] = -value
-        self._e.matrix66[1] = tuple(lst)
+        self.trackcpp_e.matrix66[1] = tuple(lst)
 
     @property
     def KsyL(self):
-        return -self._e.matrix66[3][0]
+        return -self.trackcpp_e.matrix66[3][0]
 
     @KsyL.setter
     def KsyL(self, value):
-        lst = list(self._e.matrix66[3])
+        lst = list(self.trackcpp_e.matrix66[3])
         lst[0] = -value
-        self._e.matrix66[3] = tuple(lst)
+        self.trackcpp_e.matrix66[3] = tuple(lst)
 
     @property
     def hkick_polynom(self):
-        return self._e.polynom_b[0] * (-self._e.length)
+        return self.trackcpp_e.polynom_b[0] * (-self.trackcpp_e.length)
 
     @hkick_polynom.setter
     def hkick_polynom(self, value):
-        self._e.polynom_b[0] = - value / self._e.length
+        self.trackcpp_e.polynom_b[0] = - value / self.trackcpp_e.length
 
     @property
     def vkick_polynom(self):
-        return self._e.polynom_a[0] * self._e.length
+        return self.trackcpp_e.polynom_a[0] * self.trackcpp_e.length
 
     @vkick_polynom.setter
     def vkick_polynom(self, value):
-        self._e.polynom_a[0] = value / self._e.length
+        self.trackcpp_e.polynom_a[0] = value / self.trackcpp_e.length
 
     @property
     def polynom_a(self):
-        return _Polynom(self._e.polynom_a)
+        return _Polynom(self.trackcpp_e.polynom_a)
 
     @polynom_a.setter
     def polynom_a(self, value):
-        self._e.polynom_a[:] = value[:]
+        self.trackcpp_e.polynom_a[:] = value[:]
 
     @property
     def polynom_b(self):
-        return _Polynom(self._e.polynom_b)
+        return _Polynom(self.trackcpp_e.polynom_b)
 
     @polynom_b.setter
     def polynom_b(self, value):
-        self._e.polynom_b[:] = value[:]
+        self.trackcpp_e.polynom_b[:] = value[:]
 
     @property
     def matrix66(self):
-        return _numpy.array(self._e.matrix66)
+        return _numpy.array(self.trackcpp_e.matrix66)
 
     @matrix66.setter
     def matrix66(self, value):
@@ -592,47 +592,47 @@ class Element(object):
         for i in range(6):
             tups.append(tuple(float(value[i][j]) for j in range(6)))
         for i in range(6):
-            self._e.matrix66[i] = tups[i]
+            self.trackcpp_e.matrix66[i] = tups[i]
 
     @property
     def t_in(self):
-        return self._get_coord_vector(self._e.t_in)
+        return self._get_coord_vector(self.trackcpp_e.t_in)
 
     @t_in.setter
     def t_in(self, value):
         self._check_type(value, Element._t_valid_types)
         self._check_size(value, _NUM_COORDS)
-        self._set_c_array_from_vector(self._e.t_in, _NUM_COORDS, value)
+        self._set_c_array_from_vector(self.trackcpp_e.t_in, _NUM_COORDS, value)
 
     @property
     def t_out(self):
-        return self._get_coord_vector(self._e.t_out)
+        return self._get_coord_vector(self.trackcpp_e.t_out)
 
     @t_out.setter
     def t_out(self, value):
         self._check_type(value, Element._t_valid_types)
         self._check_size(value, _NUM_COORDS)
-        self._set_c_array_from_vector(self._e.t_out, _NUM_COORDS, value)
+        self._set_c_array_from_vector(self.trackcpp_e.t_out, _NUM_COORDS, value)
 
     @property
     def r_in(self):
-        return self._get_coord_matrix(self._e.r_in)
+        return self._get_coord_matrix(self.trackcpp_e.r_in)
 
     @r_in.setter
     def r_in(self, value):
         self._check_type(value, Element._r_valid_types)
         self._check_shape(value, _DIMS)
-        self._set_c_array_from_matrix(self._e.r_in, _DIMS, value)
+        self._set_c_array_from_matrix(self.trackcpp_e.r_in, _DIMS, value)
 
     @property
     def r_out(self):
-        return self._get_coord_matrix(self._e.r_out)
+        return self._get_coord_matrix(self.trackcpp_e.r_out)
 
     @r_out.setter
     def r_out(self, value):
         self._check_type(value, Element._r_valid_types)
         self._check_shape(value, _DIMS)
-        self._set_c_array_from_matrix(self._e.r_out, _DIMS, value)
+        self._set_c_array_from_matrix(self.trackcpp_e.r_out, _DIMS, value)
 
     def _set_c_array_from_vector(self, array, size, values):
         if not size == len(values):

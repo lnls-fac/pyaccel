@@ -727,14 +727,14 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
 
             if not accelerator.cavity_on and not accelerator.radiation_on:
                 r = _trackcpp.track_findorbit4(
-                    accelerator._accelerator, _closed_orbit,
+                    accelerator.trackcpp_acc, _closed_orbit,
                     _fixed_point_guess)
             elif not accelerator.cavity_on and accelerator.radiation_on:
                 raise OpticsException(
                     'The radiation is on but the cavity is off')
             else:
                 r = _trackcpp.track_findorbit6(
-                    accelerator._accelerator, _closed_orbit,
+                    accelerator.trackcpp_acc, _closed_orbit,
                     _fixed_point_guess)
 
             if r > 0:
@@ -750,7 +750,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
         _init_twiss = _trackcpp.Twiss()
 
     r = _trackcpp.calc_twiss(
-        accelerator._accelerator, _fixed_point, _m66, _twiss,
+        accelerator.trackcpp_acc, _fixed_point, _m66, _twiss,
         _init_twiss)
     if r > 0:
         raise OpticsException(_trackcpp.string_error_messages[r])
@@ -1007,7 +1007,7 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None,
     betax, betay, etax, etay = twiss.betax, twiss.betay, twiss.etax, twiss.etay
 
     # physical apertures
-    lattice = accelerator._accelerator.lattice
+    lattice = accelerator.trackcpp_acc.lattice
     hmax = _lattice.get_attribute(accelerator, 'hmax')
     vmax = _lattice.get_attribute(accelerator, 'vmax')
     if len(hmax) != n_twi:
