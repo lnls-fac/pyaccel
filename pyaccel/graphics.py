@@ -51,7 +51,6 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
 
     if symmetry is not None:
         max_length = accelerator.length/symmetry
-        pos = 0
         for idx, _ in enumerate(accelerator):
             if spos[idx] >= max_length:
                 accelerator = accelerator[:idx]
@@ -129,16 +128,73 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
 
 
 @_interactive
-def plot_vchamber(lattice):
+def plot_vchamber(accelerator, add_lattice=True,
+                  offset=None, height=5.0, draw_edges=False, family_data=None,
+                  family_mapping=None, colours=None, selection=None,
+                  grid=False, show_label=False):
     """."""
-    spos = _find_spos(lattice, )
-    hmax = 1e3 * _get_attribute(lattice, 'hmax')  # [mm]
-    hmin = 1e3 * _get_attribute(lattice, 'hmin')  # [mm]
-    print(min(hmax))
-    print(max(hmax))
-    print(hmax)
-    _plt.plot(spos, hmax)
-    _plt.show()
+    def plot(umax, umin, title, ylabel, color):
+        spos = _find_spos(accelerator)
+        xmin, xmax = min(spos), max(spos)
+        ymin, ymax = min(min(umax), min(umin)), max(max(umax), max(umin))
+        difx, dify = xmax - xmin, ymax - ymin
+        xmin, xmax = xmin - 0.05 * difx, xmax + 0.05 * difx
+        ymin, ymax = ymin - 0.05 * dify, ymax + 0.05 * dify
+
+        upper = []
+        for i in range(len(spos)-1):
+            x1_, y1_ = spos[i], umax[i]
+            x2_, y2_ = spos[i+1], umax[i]
+            upper.append([(x1_, y1_), (x2_, y2_)])
+            x1_, y1_ = spos[i+1], umax[i]
+            x2_, y2_ = spos[i+1], umax[i+1]
+            upper.append([(x1_, y1_), (x2_, y2_)])
+        center = [[(xmin, 0), (xmax, 0)], ]
+        lower = []
+        for i in range(len(spos)-1):
+            x1_, y1_ = spos[i], umin[i]
+            x2_, y2_ = spos[i+1], umin[i]
+            lower.append([(x1_, y1_), (x2_, y2_)])
+            x1_, y1_ = spos[i+1], umin[i]
+            x2_, y2_ = spos[i+1], umin[i+1]
+            lower.append([(x1_, y1_), (x2_, y2_)])
+
+        fig, axis = _plt.subplots()
+        _ = fig
+        lines_upper = _collections.LineCollection(
+            upper, color=color, linewidths=1)
+        lines_lower = _collections.LineCollection(
+            lower, color=color, linewidths=1)
+        lines_center = _collections.LineCollection(
+            center, color=color, linewidths=1, linestyles='dashed')
+        axis.add_collection(lines_upper)
+        axis.add_collection(lines_lower)
+        axis.add_collection(lines_center)
+        axis.set_xlim(xmin, xmax)
+        axis.set_ylim(ymin, ymax)
+        axis.set_xlabel('pos [m]')
+        axis.set_ylabel(ylabel)
+        axis.set_title(title)
+        if grid:
+            axis.grid()
+
+        if add_lattice:
+            fig, axis = draw_lattice(
+                accelerator, offset, height, draw_edges, family_data,
+                family_mapping, colours, selection, gca=True,
+                is_interactive=False, show_label=show_label)
+
+        _plt.show()
+
+    # horizontal
+    hmax = 1e3 * _get_attribute(accelerator, 'hmax')  # [mm]
+    hmin = 1e3 * _get_attribute(accelerator, 'hmin')  # [mm]
+    plot(hmax, hmin, 'Vacuum Chamber Horizontal Limits', 'X [mm]', 'blue')
+
+    # vertical
+    vmax = 1e3 * _get_attribute(accelerator, 'vmax')  # [mm]
+    vmin = 1e3 * _get_attribute(accelerator, 'vmin')  # [mm]
+    plot(vmax, vmin, 'Vacuum Chamber Vertical Limits', 'Y [mm]', 'red')
 
 
 @_interactive

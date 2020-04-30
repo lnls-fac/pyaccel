@@ -60,7 +60,7 @@ def shift(lattice, start):
 @_interactive
 def length(lattice):
     """Return the length, in meters, of the given lattice."""
-    if isinstance(lattice, _pyaccel.accelerator.Accelerator):
+    if isinstance(lattice, _accelerator.Accelerator):
         return lattice.length
     elif isinstance(lattice, _trackcpp.Accelerator):
         return lattice.get_length()
