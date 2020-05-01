@@ -1,3 +1,4 @@
+"""Pyaccel package."""
 
 from . import elements
 from . import accelerator

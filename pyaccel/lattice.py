@@ -34,8 +34,8 @@ def build(elist):
     """Build lattice from a list of elements and lines."""
     lattice = _trackcpp.CppElementVector()
     elist = flatten(elist)
-    for e in elist:
-        lattice.append(e.trackcpp_e)
+    for elem in elist:
+        lattice.append(elem.trackcpp_e)
     return lattice
 
 
@@ -79,7 +79,7 @@ def find_spos(lattice, indices='open'):
         indices or even an integer (default: 'open')
 
     """
-    leng = [0] + [e.length for e in lattice]
+    leng = [0] + [elem.length for elem in lattice]
     pos = _np.cumsum(leng)
 
     if isinstance(indices, str):
@@ -180,9 +180,7 @@ def set_attribute(lattice, attribute_name, indices, values, m=None, n=None):
 
 @_interactive
 def find_dict(lattice, attribute_name):
-    """Return a dict which correlates values of 'attribute_name' and a list of
-    indices corresponding to matching elements
-    """
+    """Return a dict 'attribute_name' and indices of matching elements."""
     latt_dict = {}
     for i, ele in enumerate(lattice):
         if hasattr(ele, attribute_name):
@@ -225,35 +223,34 @@ def add_knob(lattice, fam_name, attribute_name, value):
 @_interactive
 def read_flat_file(filename):
     """."""
-    e = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
-    a = _accelerator.Accelerator(energy=e)  # energy cannot be zero
+    energy = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
+    acc = _accelerator.Accelerator(energy=energy)  # energy cannot be zero
     fname = _trackcpp.String(filename)
-    r = _trackcpp.read_flat_file_wrapper(fname, a.trackcpp_acc, True)
-    if r > 0:
-        raise LatticeError(_trackcpp.string_error_messages[r])
-
-    return a
+    rd_ = _trackcpp.read_flat_file_wrapper(fname, acc.trackcpp_acc, True)
+    if rd_ > 0:
+        raise LatticeError(_trackcpp.string_error_messages[rd_])
+    return acc
 
 
 @_interactive
 def write_flat_file(accelerator, filename):
     """."""
     fname = _trackcpp.String(filename)
-    r = _trackcpp.write_flat_file_wrapper(
+    rd_ = _trackcpp.write_flat_file_wrapper(
         fname, accelerator.trackcpp_acc, True)
-    if r > 0:
-        raise LatticeError(_trackcpp.string_error_messages[r])
+    if rd_ > 0:
+        raise LatticeError(_trackcpp.string_error_messages[rd_])
 
 
 @_interactive
 def write_flat_file_to_string(accelerator):
     """."""
-    s = _trackcpp.String()
-    r = _trackcpp.write_flat_file_wrapper(s, accelerator.trackcpp_acc, False)
-    if r > 0:
-        raise LatticeError(_trackcpp.string_error_messages[r])
+    str_ = _trackcpp.String()
+    rd_ = _trackcpp.write_flat_file_wrapper(str_, accelerator.trackcpp_acc, False)
+    if rd_ > 0:
+        raise LatticeError(_trackcpp.string_error_messages[rd_])
 
-    return s.data
+    return str_.data
 
 
 @_interactive
@@ -289,8 +286,8 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
     indices = set(indices)
     for i, ele in enumerate(acc):
         if i not in indices or ele.length <= max_length:
-            e = _Element(ele)
-            new_acc.append(e)
+            elem = _Element(ele)
+            new_acc.append(elem)
             continue
 
         nr_segs = 1+int(ele.length/max_length)
@@ -298,11 +295,11 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
             # for dipoles (special case due to fringe fields)
             nr_segs = max(3, nr_segs)
 
-            e = _Element(ele)
-            e.angle_in = 0.0
-            e.angle_out = 0.0
-            e.fint_in = 0.0
-            e.fint_out = 0.0
+            elem = _Element(ele)
+            elem.angle_in = 0.0
+            elem.angle_out = 0.0
+            elem.fint_in = 0.0
+            elem.fint_out = 0.0
 
             e_in = _Element(ele)
             e_in.angle_out = 0.0
@@ -312,22 +309,22 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
             e_out.angle_in = 0.0
             e_out.fint_in = 0.0
 
-            e_in.length, e.length, e_out.length = 3*(ele.length/nr_segs,)
-            e_in.angle, e.angle, e_out.angle = 3*(ele.angle/nr_segs,)
+            e_in.length, elem.length, e_out.length = 3*(ele.length/nr_segs,)
+            e_in.angle, elem.angle, e_out.angle = 3*(ele.angle/nr_segs,)
 
             new_acc.append(e_in)
             for _ in range(nr_segs-2):
                 new_acc.append(
-                    _Element(e))
+                    _Element(elem))
             new_acc.append(e_out)
         elif ele.kicktable is not None:
             raise Exception('no refinement implemented for IDs yet')
         else:
             for _ in range(nr_segs):
-                e = _Element(ele)
-                e.length = ele.length / nr_segs
-                e.angle = ele.angle / nr_segs
-                new_acc.append(e)
+                elem = _Element(ele)
+                elem.length = ele.length / nr_segs
+                elem.angle = ele.angle / nr_segs
+                new_acc.append(elem)
     return new_acc
 
 
@@ -408,7 +405,6 @@ def add_error_misalignment_x(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: [meters]
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -436,7 +432,6 @@ def get_error_misalignment_y(lattice, indices):
     Outputs:
        list, in case len(indices)>1, or float of errors. Unit: [meters]
     """
-
     # processes arguments
     indices, _, isflat = _process_args_errors(indices, 0.0)
 
@@ -493,7 +488,6 @@ def add_error_misalignment_y(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: [meters]
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -521,7 +515,6 @@ def get_error_rotation_roll(lattice, indices):
     Outputs:
        list, in case len(indices)>1, or float of roll errors. Unit: [rad]
     """
-
     #  processes arguments
     indices, _, isflat = _process_args_errors(indices, 0.0)
 
@@ -549,7 +542,6 @@ def set_error_rotation_roll(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [rad].
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -590,7 +582,6 @@ def add_error_rotation_roll(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: [rad]
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -633,7 +624,6 @@ def get_error_rotation_pitch(lattice, indices):
     Outputs:
        list, in case len(indices)>1, or float of pitch errors. Unit: [rad]
     """
-
     # processes arguments
     indices, _, isflat = _process_args_errors(indices, 0.0)
 
@@ -662,7 +652,6 @@ def set_error_rotation_pitch(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [rad]
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -702,7 +691,6 @@ def add_error_rotation_pitch(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit [rad]
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -739,7 +727,6 @@ def get_error_rotation_yaw(lattice, indices):
     Outputs:
        list, in case len(indices)>1, or float of yaw errors. Unit: [rad]
     """
-
     # processes arguments
     indices, _, isflat = _process_args_errors(indices, 0.0)
 
@@ -806,7 +793,6 @@ def add_error_rotation_yaw(lattice, indices, values):
       values : may be a float or a (list, tuple, 1D numpy.ndarray) of floats
         with the same length as indices. Unit: [rad]
     """
-
     # processes arguments
     indices, values, _ = _process_args_errors(indices, values)
 
@@ -828,7 +814,7 @@ def add_error_rotation_yaw(lattice, indices, values):
 
 @_interactive
 def add_error_excitation_main(lattice, indices, values):
-    """ Add excitation errors to magnets.
+    """Add excitation errors to magnets.
 
     INPUTS:
       lattice : accelerator model
@@ -863,7 +849,7 @@ def add_error_excitation_main(lattice, indices, values):
 
 @_interactive
 def add_error_excitation_kdip(lattice, indices, values):
-    """ Add excitation errors to the quadrupole component of dipoles.
+    """Add excitation errors to the quadrupole component of dipoles.
 
     INPUTS:
       lattice : accelerator model
@@ -892,7 +878,7 @@ def add_error_excitation_kdip(lattice, indices, values):
 @_interactive
 def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
                          An_norm=None):
-    """ Add multipole errors to elements of lattice.
+    """Add multipole errors to elements of lattice.
 
     INPUTS:
       lattice : accelerator model
@@ -931,6 +917,7 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
     """
 
     def add_polynom(elem, polynom, pol_norm, main_mon, main_stren):
+        """."""
         if pol_norm is None:
             return
         pol_norm = _np.asarray(pol_norm)

@@ -21,6 +21,7 @@ class Twiss:
     """."""
 
     def __init__(self, twiss=None, copy=True):
+        """."""
         if twiss is None:
             self._t = _trackcpp.Twiss()
         elif isinstance(twiss, Twiss):
@@ -33,181 +34,191 @@ class Twiss:
         if twiss is not None and copy:
             self._t = _trackcpp.Twiss(self._t)
 
-    def __eq__(self, other):
-        if not isinstance(other, Twiss):
-            return NotImplemented
-        for attr in self._t.__swig_getmethods__:
-            self_attr = getattr(self, attr)
-            if isinstance(self_attr, _np.ndarray):
-                if (self_attr != getattr(other, attr)).any():
-                    return False
-            else:
-                if self_attr != getattr(other, attr):
-                    return False
-        return True
-
     @property
     def spos(self):
+        """Return spos."""
         return self._t.spos
 
     @spos.setter
     def spos(self, value):
+        """Set spos."""
         self._t.spos = value
 
     @property
     def rx(self):
+        """."""
         return self._t.co.rx
 
     @rx.setter
     def rx(self, value):
+        """."""
         self._t.co.rx = value
 
     @property
     def ry(self):
+        """."""
         return self._t.co.ry
 
     @ry.setter
     def ry(self, value):
+        """."""
         self._t.co.ry = value
 
     @property
     def px(self):
+        """."""
         return self._t.co.px
 
     @px.setter
     def px(self, value):
+        """."""
         self._t.co.px = value
 
     @property
     def py(self):
+        """."""
         return self._t.co.py
 
     @py.setter
     def py(self, value):
+        """."""
         self._t.co.py = value
 
     @property
     def de(self):
+        """."""
         return self._t.co.de
 
     @de.setter
     def de(self, value):
+        """."""
         self._t.co.de = value
 
     @property
     def dl(self):
+        """."""
         return self._t.co.dl
 
     @dl.setter
     def dl(self, value):
+        """."""
         self._t.co.dl = value
 
     @property
     def co(self):
+        """."""
         return _np.array([
             self.rx, self.px, self.ry, self.py, self.de, self.dl])
 
     @co.setter
     def co(self, value):
+        """."""
         self.rx, self.px = value[0], value[1]
         self.ry, self.py = value[2], value[3]
         self.de, self.dl = value[4], value[5]
 
     @property
     def betax(self):
+        """."""
         return self._t.betax
 
     @betax.setter
     def betax(self, value):
+        """."""
         self._t.betax = value
 
     @property
     def betay(self):
+        """."""
         return self._t.betay
 
     @betay.setter
     def betay(self, value):
+        """."""
         self._t.betay = value
 
     @property
     def alphax(self):
+        """."""
         return self._t.alphax
 
     @alphax.setter
     def alphax(self, value):
+        """."""
         self._t.alphax = value
 
     @property
     def alphay(self):
+        """."""
         return self._t.alphay
 
     @alphay.setter
     def alphay(self, value):
+        """."""
         self._t.alphay = value
 
     @property
     def mux(self):
+        """."""
         return self._t.mux
 
     @mux.setter
     def mux(self, value):
+        """."""
         self._t.mux = value
 
     @property
     def muy(self):
+        """."""
         return self._t.muy
 
     @muy.setter
     def muy(self, value):
+        """."""
         self._t.muy = value
 
     @property
     def etax(self):
+        """."""
         return self._t.etax[0]
 
     @etax.setter
     def etax(self, value):
+        """."""
         self._t.etax[0] = value
 
     @property
     def etay(self):
+        """."""
         return self._t.etay[0]
 
     @etay.setter
     def etay(self, value):
+        """."""
         self._t.etay[0] = value
 
     @property
     def etapx(self):
+        """."""
         return self._t.etax[1]
 
     @etapx.setter
     def etapx(self, value):
+        """."""
         self._t.etax[1] = value
 
     @property
     def etapy(self):
+        """."""
         return self._t.etay[1]
 
     @etapy.setter
     def etapy(self, value):
+        """."""
         self._t.etay[1] = value
 
-    def __str__(self):
-        r = ''
-        r += 'spos          : ' + '{0:+10.3e}'.format(self.spos)
-        fmt = '{0:+10.3e}, {1:+10.3e}'
-        r += '\nrx, ry        : ' + fmt.format(self.rx, self.ry)
-        r += '\npx, py        : ' + fmt.format(self.px, self.py)
-        r += '\nde, dl        : ' + fmt.format(self.de, self.dl)
-        r += '\nmux, muy      : ' + fmt.format(self.mux, self.muy)
-        r += '\nbetax, betay  : ' + fmt.format(self.betax, self.betay)
-        r += '\nalphax, alphay: ' + fmt.format(self.alphax, self.alphay)
-        r += '\netax, etapx   : ' + fmt.format(self.etax, self.etapx)
-        r += '\netay, etapy   : ' + fmt.format(self.etay, self.etapy)
-        return r
-
     def make_dict(self):
+        """."""
         cod = self.co
         beta = [self.betax, self.betay]
         alpha = [self.alphax, self.alphay]
@@ -220,8 +231,7 @@ class Twiss:
 
     @staticmethod
     def make_new(*args, **kwrgs):
-        """Build a Twiss object.
-        """
+        """Build a Twiss object."""
         if args:
             if isinstance(args[0], dict):
                 kwrgs = args[0]
@@ -234,8 +244,38 @@ class Twiss:
         twi.etay, twi.etapy = kwrgs.get('etay', (0.0, 0.0))
         return twi
 
+    def __str__(self):
+        """."""
+        rst = ''
+        rst += 'spos          : ' + '{0:+10.3e}'.format(self.spos)
+        fmt = '{0:+10.3e}, {1:+10.3e}'
+        rst += '\nrx, ry        : ' + fmt.format(self.rx, self.ry)
+        rst += '\npx, py        : ' + fmt.format(self.px, self.py)
+        rst += '\nde, dl        : ' + fmt.format(self.de, self.dl)
+        rst += '\nmux, muy      : ' + fmt.format(self.mux, self.muy)
+        rst += '\nbetax, betay  : ' + fmt.format(self.betax, self.betay)
+        rst += '\nalphax, alphay: ' + fmt.format(self.alphax, self.alphay)
+        rst += '\netax, etapx   : ' + fmt.format(self.etax, self.etapx)
+        rst += '\netay, etapy   : ' + fmt.format(self.etay, self.etapy)
+        return rst
 
-class TwissList(object):
+    def __eq__(self, other):
+        """."""
+        if not isinstance(other, Twiss):
+            return NotImplemented
+        for attr in self._t.__swig_getmethods__:
+            self_attr = getattr(self, attr)
+            if isinstance(self_attr, _np.ndarray):
+                if (self_attr != getattr(other, attr)).any():
+                    return False
+            else:
+                if self_attr != getattr(other, attr):
+                    return False
+        return True
+
+
+class TwissList:
+    """."""
 
     def __init__(self, twiss_list=None):
         """Read-only list of matrices.
@@ -253,9 +293,11 @@ class TwissList(object):
         self._ptl = [self._tl[i] for i in range(len(self._tl))]
 
     def __len__(self):
+        """."""
         return len(self._tl)
 
     def __getitem__(self, index):
+        """."""
         if isinstance(index, (int, _np.int_)):
             return Twiss(twiss=self._tl[index], copy=False)
         elif isinstance(index, (list, tuple, _np.ndarray)) and \
@@ -270,6 +312,7 @@ class TwissList(object):
             raise TypeError('invalid index')
 
     def append(self, value):
+        """."""
         if isinstance(value, _trackcpp.Twiss):
             self._tl.append(value)
             self._ptl.append(value)
@@ -296,54 +339,63 @@ class TwissList(object):
 
     @property
     def spos(self):
+        """."""
         spos = _np.array([
             float(self._ptl[i].spos) for i in range(len(self._ptl))])
         return spos if len(spos) > 1 else spos[0]
 
     @property
     def betax(self):
+        """."""
         betax = _np.array([
             float(self._ptl[i].betax) for i in range(len(self._ptl))])
         return betax if len(betax) > 1 else betax[0]
 
     @property
     def betay(self):
+        """."""
         betay = _np.array([
             float(self._ptl[i].betay) for i in range(len(self._ptl))])
         return betay if len(betay) > 1 else betay[0]
 
     @property
     def alphax(self):
+        """."""
         alphax = _np.array([
             float(self._ptl[i].alphax) for i in range(len(self._ptl))])
         return alphax if len(alphax) > 1 else alphax[0]
 
     @property
     def alphay(self):
+        """."""
         alphay = _np.array([
             float(self._ptl[i].alphay) for i in range(len(self._ptl))])
         return alphay if len(alphay) > 1 else alphay[0]
 
     @property
     def mux(self):
+        """."""
         mux = _np.array([
             float(self._ptl[i].mux) for i in range(len(self._ptl))])
         return mux if len(mux) > 1 else mux[0]
 
     @property
     def muy(self):
+        """."""
         muy = _np.array([
             float(self._ptl[i].muy) for i in range(len(self._ptl))])
         return muy if len(muy) > 1 else muy[0]
 
     @property
     def etax(self):
+        """."""
         etax = _np.array([
             float(self._ptl[i].etax[0]) for i in range(len(self._ptl))])
         return etax if len(etax) > 1 else etax[0]
 
     @property
     def etay(self):
+        """."""
         etay = _np.array([
             float(self._ptl[i].etay[0]) for i in range(len(self._ptl))])
         return etay if len(etay) > 1 else etay[0]
@@ -412,35 +464,35 @@ class EquilibriumParameters:
         self.accelerator = accelerator
 
     def __str__(self):
-        r = ''
+        rst = ''
         fmt = '{:<30s}: '
         fmtn = '{:.4g}'
 
         fmte = fmt + fmtn
-        r += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
+        rst += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
 
         ints = 'I1,I2,I3,I3a,I4,I5,I6'.split(',')
-        r += '\n' + fmt.format(', '.join(ints))
-        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+        rst += '\n' + fmt.format(', '.join(ints))
+        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
         ints = 'Jx,Jy,Je'.split(',')
-        r += '\n' + fmt.format(', '.join(ints))
-        r += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+        rst += '\n' + fmt.format(', '.join(ints))
+        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
         ints = 'taux,tauy,taue'.split(',')
-        r += '\n' + fmt.format(', '.join(ints) + ' [ms]')
-        r += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
+        rst += '\n' + fmt.format(', '.join(ints) + ' [ms]')
+        rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
 
-        r += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
-        r += fmte.format('\nenergy loss [keV]', self.U0/1000)
-        r += fmte.format('\novervoltage', self.overvoltage)
-        r += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
-        r += fmte.format('\nsync tune', self.synctune)
-        r += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
-        r += fmte.format('\nnatural espread [%]', self.espread0*100)
-        r += fmte.format('\nbunch length [mm]', self.bunch_length*1000)
-        r += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
-        return r
+        rst += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
+        rst += fmte.format('\nenergy loss [keV]', self.U0/1000)
+        rst += fmte.format('\novervoltage', self.overvoltage)
+        rst += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
+        rst += fmte.format('\nsync tune', self.synctune)
+        rst += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
+        rst += fmte.format('\nnatural espread [%]', self.espread0*100)
+        rst += fmte.format('\nbunch length [mm]', self.bunch_length*1000)
+        rst += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
+        return rst
 
     @property
     def accelerator(self):

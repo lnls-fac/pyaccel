@@ -4,12 +4,12 @@ import warnings
 import numpy as _numpy
 
 
-interactive_list = []
+INTERACTIVE_LIST = []
 
 
 def interactive(obj):
     """."""
-    interactive_list.append(
+    INTERACTIVE_LIST.append(
         {
             'module': obj.__module__,
             'name': obj.__name__

@@ -1,11 +1,15 @@
 
+"""."""
+
 import unittest
 import numpy
-import pyaccel
+
 import trackcpp
+import pyaccel
 
 
 class TestElement(unittest.TestCase):
+    """."""
 
     def setUp(self):
         self.element = pyaccel.elements.Element()
@@ -102,20 +106,20 @@ class TestElement(unittest.TestCase):
         self.assertAlmostEqual(self.element.r_out[1, 5], -3.0)
 
     def test_set_pass_method_from_index(self):
-        for i in range(len(pyaccel.elements.pass_methods)):
-            pass_method = pyaccel.elements.pass_methods[i]
+        for i in range(len(pyaccel.elements.PASS_METHODS)):
+            pass_method = pyaccel.elements.PASS_METHODS[i]
             self.element.pass_method = i
             self.assertEqual(self.element.pass_method, pass_method)
 
     def test_set_pass_method_from_string(self):
-        for pass_method in pyaccel.elements.pass_methods:
+        for pass_method in pyaccel.elements.PASS_METHODS:
             self.element.pass_method = pass_method
             self.assertEqual(self.element.pass_method, pass_method)
 
     def test_set_invalid_pass_method_from_index(self):
         error = False
         try:
-            self.element.pass_method = len(pyaccel.elements.pass_methods)
+            self.element.pass_method = len(pyaccel.elements.PASS_METHODS)
         except:
             error = True
         self.assertTrue(error, "invalid pass method set")
@@ -137,7 +141,7 @@ class TestTrackCppElement(unittest.TestCase):
 
     def test_pass_method(self):
         index = 2
-        self.element.pass_method = pyaccel.elements.pass_methods[index]
+        self.element.pass_method = pyaccel.elements.PASS_METHODS[index]
         self.assertEqual(self.trackcpp_element.pass_method, index)
 
     def test_fam_name(self):

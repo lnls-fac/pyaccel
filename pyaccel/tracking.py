@@ -20,9 +20,8 @@ import mathphys as _mp
 
 from . import accelerator as _accelerator
 from . import utils as _utils
+from .utils import interactive as _interactive
 
-
-_interactive = _utils.interactive
 
 LOST_PLANES = (None, 'x', 'y', 'z')
 
