@@ -27,7 +27,7 @@ LOST_PLANES = (None, 'x', 'y', 'z')
 
 
 class TrackingException(Exception):
-    pass
+    """."""
 
 
 @_interactive
