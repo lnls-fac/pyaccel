@@ -689,7 +689,7 @@ def _process_args(accelerator, pos, indices=None):
         if len(pos.shape) == 1:
             pos = _np.array(pos, ndmin=2).T
         elif len(pos.shape) > 2 or pos.shape[0] != 6:
-            raise TrackingException('invilid position argument.')
+            raise TrackingException('invalid position argument.')
     indices = _process_indices(accelerator, indices, proc_none=False)
     return pos, indices
 
