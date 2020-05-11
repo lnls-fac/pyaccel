@@ -1,4 +1,4 @@
-""" Pyaccel tracking module
+"""Pyaccel tracking module.
 
 This module concentrates all tracking routines of the accelerator.
 Most of them take a structure called 'positions' as an argument which
@@ -14,15 +14,14 @@ PCEN ordering is preserved.
 """
 
 import numpy as _np
+
 import trackcpp as _trackcpp
-import pyaccel.utils as _utils
 
-
-_interactive = _utils.interactive
+from .utils import interactive as _interactive
 
 
 class NaffException(Exception):
-    pass
+    """."""
 
 
 @_interactive

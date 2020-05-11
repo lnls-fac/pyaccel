@@ -1,5 +1,5 @@
 
-"""Interactive pyaccel module
+"""Interactive pyaccel module.
 
 Use this module to define variables and functions to be globally available when
 using
@@ -20,7 +20,7 @@ import pyaccel as _pyaccel
 
 plt.ion()
 
-pyaccel_version = _pyaccel.__version__
+PYACCEL_VERSION = _pyaccel.__version__
 
 # helpful labels for phase-space coordinates
 (rx, px) = 0, 1
@@ -29,7 +29,7 @@ pyaccel_version = _pyaccel.__version__
 
 __all__ = [name for name in dir() if not name.startswith('_')]
 
-for f in _pyaccel.utils.interactive_list:
+for f in _pyaccel.utils.INTERACTIVE_LIST:
     name = f['name']
     module = getattr(_pyaccel, f['module'].split('.')[1])
     globals()[name] = getattr(module, name)
