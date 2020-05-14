@@ -201,12 +201,12 @@ class Accelerator(object):
         """."""
         if isinstance(index, slice):
             start, stop, step = index.indices(len(self))
-            index = list(range(start, stop, step))
+            index = set(range(start, stop, step))
         if isinstance(index, (int, _np.int_)):
             self.trackcpp_acc.lattice.erase(
                 self.trackcpp_acc.lattice.begin() + int(index))
-        elif isinstance(index, (list, tuple, _np.ndarray)):
-            index = sorted(index, reverse=True)
+        elif isinstance(index, (set, list, tuple, _np.ndarray)):
+            index = sorted(set(index), reverse=True)
             for i in index:
                 self.trackcpp_acc.lattice.erase(
                     self.trackcpp_acc.lattice.begin() + int(i))
