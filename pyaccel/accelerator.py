@@ -199,19 +199,17 @@ class Accelerator(object):
 
     def __delitem__(self, index):
         """."""
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self))
+            index = set(range(start, stop, step))
         if isinstance(index, (int, _np.int_)):
             self.trackcpp_acc.lattice.erase(
                 self.trackcpp_acc.lattice.begin() + int(index))
-        elif isinstance(index, (list, tuple, _np.ndarray)):
+        elif isinstance(index, (set, list, tuple, _np.ndarray)):
+            index = sorted(set(index), reverse=True)
             for i in index:
                 self.trackcpp_acc.lattice.erase(
                     self.trackcpp_acc.lattice.begin() + int(i))
-        elif isinstance(index, slice):
-            start, stop, step = index.indices(len(self.trackcpp_acc.lattice))
-            iterator = range(start, stop, step)
-            for i in iterator:
-                self.trackcpp_acc.lattice.erase(
-                    self.trackcpp_acc.lattice.begin() + i)
 
     def __getitem__(self, index):
         """."""
