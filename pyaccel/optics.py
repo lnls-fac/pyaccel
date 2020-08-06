@@ -663,10 +663,7 @@ class EquilibriumParameters:
 
     @staticmethod
     def get_bend_idx(acc):
-        n = len(acc)
-        angle = _np.zeros(n)
-        for i in range(n):
-            angle[i] = acc[i].angle
+        angle = _np.array([elem.angle for elem in acc])
         idx, *_ = _np.nonzero(angle)
         return idx
 
