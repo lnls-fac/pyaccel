@@ -461,7 +461,11 @@ class EquilibriumParameters:
         self._integrals = _np.zeros(6)
         self._damping = _np.zeros(3)
         self._radiation_damping = _np.zeros(3)
-        self.accelerator = accelerator
+        self._bendidx = EquilibriumParameters.get_bend_idx(
+            acc=accelerator)
+        self.accelerator = _lattice.refine_lattice(
+            accelerator=accelerator,
+            max_length=0.05, indices=self._bendidx)
 
     def __str__(self):
         rst = ''
@@ -656,6 +660,15 @@ class EquilibriumParameters:
     def calcH(beta, alpha, x, xl):
         gamma = (1 + alpha**2) / beta
         return beta*xl**2 + 2*alpha*x*xl + gamma*x**2
+
+    @staticmethod
+    def get_bend_idx(acc):
+        n = len(acc)
+        angle = _np.zeros(n)
+        for i in range(n):
+            angle[i] = acc[i].angle
+        idx, *_ = _np.nonzero(angle)
+        return idx
 
     def as_dict(self):
         pars = {
