@@ -458,29 +458,39 @@ class EquilibriumParameters:
         self._m66 = None
         self._twi = None
         self._alpha = 0.0
-        self._integrals = _np.zeros(6)
+        self._integralsx = _np.zeros(6)
+        self._integralsy = _np.zeros(6)
         self._damping = _np.zeros(3)
         self._radiation_damping = _np.zeros(3)
         self.accelerator = accelerator
 
     def __str__(self):
         rst = ''
-        fmt = '{:<30s}: '
+        fmti = '{:32s}: '
+        fmtr = '{:33s}: '
         fmtn = '{:.4g}'
 
-        fmte = fmt + fmtn
+        fmte = fmtr + fmtn
         rst += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
 
-        ints = 'I1,I2,I3,I3a,I4,I5,I6'.split(',')
-        rst += '\n' + fmt.format(', '.join(ints))
+        ints = 'I1x,I4x,I5x,I6x'.split(',')
+        rst += '\n' + fmti.format(', '.join(ints))
+        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        ints = 'I1y,I4y,I5y,I6y'.split(',')
+        rst += '\n' + fmti.format(', '.join(ints))
+        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        ints = 'I2,I3,I3a'.split(',')
+        rst += '\n' + fmti.format(', '.join(ints))
         rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
         ints = 'Jx,Jy,Je'.split(',')
-        rst += '\n' + fmt.format(', '.join(ints))
+        rst += '\n' + fmti.format(', '.join(ints))
         rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
         ints = 'taux,tauy,taue'.split(',')
-        rst += '\n' + fmt.format(', '.join(ints) + ' [ms]')
+        rst += '\n' + fmti.format(', '.join(ints) + ' [ms]')
         rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
 
         rst += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
@@ -488,6 +498,8 @@ class EquilibriumParameters:
         rst += fmte.format('\novervoltage', self.overvoltage)
         rst += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
         rst += fmte.format('\nsync tune', self.synctune)
+        rst += fmte.format('\nhorizontal emittance [nm.rad]', self.emitx*1e9)
+        rst += fmte.format('\nvertical emittance [pm.rad]', self.emity*1e12)
         rst += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
         rst += fmte.format('\nnatural espread [%]', self.espread0*100)
         rst += fmte.format('\nbunch length [mm]', self.bunch_length*1000)
@@ -513,44 +525,63 @@ class EquilibriumParameters:
         return self._m66
 
     @property
-    def I1(self):
-        return self._integrals[0]
+    def I1x(self):
+        return self._integralsx[0]
 
     @property
     def I2(self):
-        return self._integrals[1]
+        """I2 is the same for x and y."""
+        return self._integralsx[1]
 
     @property
     def I3(self):
-        return self._integrals[2]
+        """I3 is the same for x and y."""
+        return self._integralsx[2]
 
     @property
     def I3a(self):
-        return self._integrals[3]
+        """I3a is the same for x and y."""
+        return self._integralsx[3]
 
     @property
-    def I4(self):
-        return self._integrals[4]
+    def I4x(self):
+        return self._integralsx[4]
 
     @property
-    def I5(self):
-        return self._integrals[5]
+    def I5x(self):
+        return self._integralsx[5]
 
     @property
-    def I6(self):
-        return self._integrals[6]
+    def I6x(self):
+        return self._integralsx[6]
+
+    @property
+    def I1y(self):
+        return self._integralsy[0]
+
+    @property
+    def I4y(self):
+        return self._integralsy[4]
+
+    @property
+    def I5y(self):
+        return self._integralsy[5]
+
+    @property
+    def I6y(self):
+        return self._integralsy[6]
 
     @property
     def Jx(self):
-        return 1.0 - self.I4/self.I2
+        return 1.0 - self.I4x/self.I2
 
     @property
     def Jy(self):
-        return 1.0
+        return 1.0 - self.I4y/self.I2
 
     @property
     def Je(self):
-        return 2.0 + self.I4/self.I2
+        return 2.0 + (self.I4x + self.I4y)/self.I2
 
     @property
     def alphax(self):
@@ -589,13 +620,24 @@ class EquilibriumParameters:
     def espread0(self):
         Cq = _mp.constants.Cq
         gamma = self._acc.gamma_factor
-        return _math.sqrt(Cq * gamma**2 * self.I3 / (2*self.I2 + self.I4))
+        return _math.sqrt(
+            Cq * gamma**2 * self.I3 / (2*self.I2 + self.I4x + self.I4y))
+
+    @property
+    def emitx(self):
+        Cq = _mp.constants.Cq
+        gamma = self._acc.gamma_factor
+        return Cq * gamma**2 * self.I5x / (self.Jx*self.I2)
+
+    @property
+    def emity(self):
+        Cq = _mp.constants.Cq
+        gamma = self._acc.gamma_factor
+        return Cq * gamma**2 * self.I5y / (self.Jy*self.I2)
 
     @property
     def emit0(self):
-        Cq = _mp.constants.Cq
-        gamma = self._acc.gamma_factor
-        return Cq * gamma**2 * self.I5 / (self.Jx*self.I2)
+        return self.emitx + self.emity
 
     @property
     def U0(self):
@@ -660,11 +702,14 @@ class EquilibriumParameters:
     def as_dict(self):
         pars = {
             'twiss',
-            'I1', 'I2', 'I3', 'I3a', 'I4', 'I5', 'I6',
+            'I1x', 'I2', 'I3', 'I3a', 'I4x', 'I5x', 'I6x',
+            'I1y', 'I4y', 'I5y', 'I6y',
             'Jx', 'Jy', 'Je',
             'alphax', 'alphay', 'alphae',
             'taux', 'tauy', 'taue',
-            'espread0', 'emit0', 'bunch_length',
+            'espread0',
+            'emitx', 'emity', 'emit0',
+            'bunch_length',
             'U0', 'overvoltage', 'syncphase', 'synctune',
             'alpha', 'etac', 'rf_acceptance',
             }
@@ -683,6 +728,7 @@ class EquilibriumParameters:
 
         spos = _lattice.find_spos(acc, indices='closed')
         etax, etapx, betax, alphax = twi.etax, twi.etapx, twi.betax, twi.alphax
+        etay, etapy, betay, alphay = twi.etay, twi.etapy, twi.betay, twi.alphay
 
         n = len(acc)
         angle, angle_in, angle_out, K = _np.zeros((4, n))
@@ -703,29 +749,54 @@ class EquilibriumParameters:
         betax_in, betax_out = betax[idx], betax[idx+1]
         alphax_in, alphax_out = alphax[idx], alphax[idx+1]
 
-        H_in = self.calcH(betax_in, alphax_in, etax_in, etapx_in)
-        H_out = self.calcH(betax_out, alphax_out, etax_in, etapx_out)
+        etay_in, etay_out = etay[idx], etay[idx+1]
+        etapy_in, etapy_out = etapy[idx], etapy[idx+1]
+        betay_in, betay_out = betay[idx], betay[idx+1]
+        alphay_in, alphay_out = alphay[idx], alphay[idx+1]
+
+        Hx_in = self.calcH(betax_in, alphax_in, etax_in, etapx_in)
+        Hx_out = self.calcH(betax_out, alphax_out, etax_in, etapx_out)
+
+        Hy_in = self.calcH(betay_in, alphay_in, etay_in, etapy_in)
+        Hy_out = self.calcH(betay_out, alphay_out, etay_in, etapy_out)
 
         etax_avg = (etax_in + etax_out) / 2
-        H_avg = (H_in + H_out) / 2
+        etay_avg = (etay_in + etay_out) / 2
+        Hx_avg = (Hx_in + Hx_out) / 2
+        Hy_avg = (Hy_in + Hy_out) / 2
         rho2, rho3 = rho**2, rho**3
         rho3abs = _np.abs(rho3)
 
-        integrals = _np.zeros(7)
-        integrals[0] = _np.dot(etax_avg/rho, leng)
-        integrals[1] = _np.dot(1/rho2, leng)
-        integrals[2] = _np.dot(1/rho3abs, leng)
-        integrals[3] = _np.dot(1/rho3, leng)
+        integralsx = _np.zeros(7)
+        integralsx[0] = _np.dot(etax_avg/rho, leng)
+        integralsx[1] = _np.dot(1/rho2, leng)
+        integralsx[2] = _np.dot(1/rho3abs, leng)
+        integralsx[3] = _np.dot(1/rho3, leng)
 
-        integrals[4] = _np.dot(etax_avg/rho3 * (1+2*rho2*K), leng)
+        integralsx[4] = _np.dot(etax_avg/rho3 * (1+2*rho2*K), leng)
         # for general wedge magnets:
-        integrals[4] += sum((etax_in/rho2) * _np.tan(angle_in))
-        integrals[4] += sum((etax_out/rho2) * _np.tan(angle_out))
+        integralsx[4] += sum((etax_in/rho2) * _np.tan(angle_in))
+        integralsx[4] += sum((etax_out/rho2) * _np.tan(angle_out))
 
-        integrals[5] = _np.dot(H_avg / rho3abs, leng)
-        integrals[6] = _np.dot((K*etax_avg)**2, leng)
+        integralsx[5] = _np.dot(Hx_avg / rho3abs, leng)
+        integralsx[6] = _np.dot((K*etax_avg)**2, leng)
 
-        self._integrals = integrals
+        self._integralsx = integralsx
+
+        integralsy = _np.zeros(7)
+        integralsy[0] = _np.dot(etay_avg/rho, leng)
+        integralsy[1] = integralsx[1]
+        integralsy[2] = integralsx[2]
+        integralsy[3] = integralsx[3]
+
+        integralsy[4] = _np.dot(etay_avg/rho3 * (1+2*rho2*K), leng)
+        # for general wedge magnets:
+        integralsy[4] += sum((etay_in/rho2) * _np.tan(angle_in))
+        integralsy[4] += sum((etay_out/rho2) * _np.tan(angle_out))
+
+        integralsy[5] = _np.dot(Hy_avg / rho3abs, leng)
+        integralsy[6] = _np.dot((K*etay_avg)**2, leng)
+        self._integralsy = integralsy
 
 
 @_interactive
