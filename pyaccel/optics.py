@@ -462,6 +462,7 @@ class EquilibriumParameters:
         self._integralsy = _np.zeros(6)
         self._damping = _np.zeros(3)
         self._radiation_damping = _np.zeros(3)
+        self._rho3_integral = None
         self.accelerator = accelerator
 
     def __str__(self):
@@ -628,6 +629,18 @@ class EquilibriumParameters:
         Cq = _mp.constants.Cq
         gamma = self._acc.gamma_factor
         return Cq * gamma**2 * self.I5x / (self.Jx*self.I2)
+
+    @property
+    def spin_pol(self):
+        num = 5*_np.sqrt(3)/8
+        Cs = _mp.constants.light_speed
+        compton = _mp.constants.reduced_planck_constant
+        compton /= _mp.constants.electron_mass
+        compton /= _mp.constants.light_speed
+        Cs *= compton
+        Cs *= _mp.constants.electron_radius
+        Cs *= self._acc.gamma_factor**5
+        return 1/(num * Cs * self._rho3_integral)
 
     @property
     def emity(self):
@@ -797,7 +810,7 @@ class EquilibriumParameters:
         integralsy[5] = _np.dot(Hy_avg / rho3abs, leng)
         integralsy[6] = _np.dot((K*etay_avg)**2, leng)
         self._integralsy = integralsy
-
+        self._rho3_integral = _np.dot(1/rho3abs, leng)/spos[-1]
 
 @_interactive
 def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
