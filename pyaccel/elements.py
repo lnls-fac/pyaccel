@@ -175,6 +175,19 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     return Element(element=ele)
 
 
+@_interactive
+def kickmap(fam_name, kicktable_fname, nr_steps=20):
+    """Create a kickmap element.
+
+    Keyword arguments:
+    fam_name -- family name
+    kicktable_fname -- filename of kicktable
+    nr_steps -- number of steps (default 20)
+    """
+    e = _trackcpp.kickmap_wrapper(fam_name, kicktable_fname, nr_steps)
+    return Element(element=e)
+
+
 def _process_polynoms(polya, polyb):
     # Make sure polya and polyb have same size and are initialized
     if polya is None:
