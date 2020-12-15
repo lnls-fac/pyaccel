@@ -176,15 +176,17 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
 
 
 @_interactive
-def kickmap(fam_name, kicktable_fname, nr_steps=20):
+def kickmap(fam_name, kicktable_fname, nr_steps=20, rescale_length=1, rescale_kicks=1.0):
     """Create a kickmap element.
 
     Keyword arguments:
     fam_name -- family name
     kicktable_fname -- filename of kicktable
     nr_steps -- number of steps (default 20)
+    rescale_length -- rescale kicktable length (default 1)
+    rescale_kicks -- rescale all kicktable length (default 1)
     """
-    e = _trackcpp.kickmap_wrapper(fam_name, kicktable_fname, nr_steps)
+    e = _trackcpp.kickmap_wrapper(fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks)
     return Element(element=e)
 
 
