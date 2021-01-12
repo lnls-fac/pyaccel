@@ -991,7 +991,7 @@ def _process_args_errors(indices, values):
             raise IndexError(
                 'length of values differs from length of indices.')
         newvalues.append(vals)
-    return indices, _np.array(newvalues), isflat
+    return indices, newvalues, isflat
 
 
 def _process_output(values, isflat):
