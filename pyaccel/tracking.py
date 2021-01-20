@@ -515,7 +515,8 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
         if ret > 0:
             raise TrackingException(_trackcpp.string_error_messages[ret])
     else:
-        _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
+        _closed_orbit = _process_array(closed_orbit, dim='6d')
+        _closed_orbit = _Numpy2CppDoublePosVector(_closed_orbit)
 
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 6, 6), dtype=float)
     m66 = _np.zeros((6, 6), dtype=float)
@@ -575,8 +576,9 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
         if ret > 0:
             raise TrackingException(_trackcpp.string_error_messages[ret])
     else:
+        _closed_orbit = _process_array(closed_orbit, dim='4d')
         _closed_orbit = _4Numpy2CppDoublePosVector(
-            closed_orbit, de=energy_offset)
+            _closed_orbit, de=energy_offset)
 
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 4, 4), dtype=float)
     m44 = _np.zeros((4, 4), dtype=float)
@@ -676,8 +678,13 @@ def _CppDoublePosVector24Numpy(poss):
     return poss_out
 
 
-def _process_args(accelerator, pos, indices=None):
+def _process_args(accelerator, pos, indices=None, dim='6d'):
+    pos = _process_array(pos, dim=dim)
+    indices = _process_indices(accelerator, indices, proc_none=False)
+    return pos, indices
 
+
+def _process_array(pos, dim='6d'):
     # checks whether single or multiple particles
     if isinstance(pos, (list, tuple)):
         if isinstance(pos[0], (list, tuple)):
@@ -685,12 +692,14 @@ def _process_args(accelerator, pos, indices=None):
         else:
             pos = _np.array(pos, ndmin=2).T
     elif isinstance(pos, _np.ndarray):
+        if dim not in ('4d', '6d'):
+            raise TrackingException('dimension argument must be 4d or 6d.')
+        posdim = 4 if dim == '4d' else 6
         if len(pos.shape) == 1:
             pos = _np.array(pos, ndmin=2).T
-        elif len(pos.shape) > 2 or pos.shape[0] != 6:
+        elif len(pos.shape) > 2 or pos.shape[0] != posdim:
             raise TrackingException('invalid position argument.')
-    indices = _process_indices(accelerator, indices, proc_none=False)
-    return pos, indices
+    return pos
 
 
 def _process_indices(accelerator, indices, closed=True, proc_none=True):
