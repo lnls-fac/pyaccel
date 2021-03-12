@@ -227,7 +227,7 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
     args = _trackcpp.LinePassArgs()
     for idx in indices:
         args.indices.push_back(int(idx))
-    args.element_offset = element_offset
+    args.element_offset = int(element_offset)
 
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
@@ -346,9 +346,9 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
 
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
-    args.nr_turns = nr_turns
+    args.nr_turns = int(nr_turns)
     args.trajectory = bool(turn_by_turn)
-    args.element_offset = element_offset
+    args.element_offset = int(element_offset)
 
     n_part = p_in.shape[1]
     if bool(turn_by_turn):
