@@ -542,6 +542,55 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
 
 @_interactive
+def find_orbit(
+        accelerator, energy_offset=0.0, indices=None, fixed_point_guess=None):
+    """Calculate 6D closed orbit of accelerator and return it.
+
+    Automatically identifies if find_orbit4 or find_orbit6 must be used based
+    on the state of `radiation_on` and `cavity_on` properties of accelerator.
+
+    Accepts an optional list of indices of ring elements where closed orbit
+    coordinates are to be returned. If this argument is not passed, closed
+    orbit positions are returned at the start of the first element. In
+    addition a guess fixed point at the entrance of the ring may be provided.
+
+    Keyword arguments:
+    accelerator : Accelerator object
+    indices : may be a (list,tuple, numpy.ndarray) of element indices
+        where closed orbit data is to be returned or a string:
+            'open'  : return the closed orbit at the entrance of all elements.
+            'closed' : equal 'open' plus the orbit at the end of the last
+                element.
+        If indices is None the closed orbit is returned only at the entrance
+        of the first element.
+    fixed_point_guess : A 6D position where to start the search of the closed
+        orbit at the entrance of the first element. If not provided the
+        algorithm will start with zero orbit.
+
+    Returns:
+        orbit : 6D closed orbit at the entrance of the selected elements as
+            a 2D numpy array with the 6 phase space variables in the first
+            dimension and the indices of the elements in the second dimension.
+
+    Raises TrackingException
+
+    """
+    if not accelerator.cavity_on and not accelerator.radiation_on:
+        orb = find_orbit4(
+            accelerator, indices=indices, energy_offset=energy_offset,
+            fixed_point_guess=fixed_point_guess[:4])
+        corb = _np.zeros((6, orb.shape[1]))
+        corb[:4, :] = orb
+        corb[4, :] = energy_offset
+        return corb
+    elif not accelerator.cavity_on and accelerator.radiation_on:
+        raise TrackingException('The radiation is on but the cavity is off')
+    else:
+        return find_orbit6(
+            accelerator, indices=indices, fixed_point_guess=fixed_point_guess)
+
+
+@_interactive
 def find_m66(accelerator, indices='m66', closed_orbit=None):
     """Calculate 6D transfer matrices of elements in an accelerator.
 
