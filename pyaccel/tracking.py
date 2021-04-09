@@ -445,7 +445,7 @@ def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset):
 
 
 @_interactive
-def find_orbit4(accelerator, energy_offset=0, indices=None,
+def find_orbit4(accelerator, energy_offset=0.0, indices=None,
                 fixed_point_guess=None):
     """Calculate 4D closed orbit of accelerator and return it.
 
@@ -475,7 +475,7 @@ def find_orbit4(accelerator, energy_offset=0, indices=None,
 
     Raises TrackingException
     """
-    indices = _process_indices(accelerator, indices, closed=False)
+    indices = _process_indices(accelerator, indices)
 
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()
