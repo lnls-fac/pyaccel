@@ -3,6 +3,7 @@
 import sys as _sys
 import math as _math
 import numpy as _np
+import scipy.linalg as _scylin
 
 import mathphys as _mp
 import trackcpp as _trackcpp
@@ -800,6 +801,104 @@ class EquilibriumParameters:
 
 
 @_interactive
+def calc_ohmienvelope(
+        accelerator, fixed_point=None, indices='open', energy_offset=0.0,
+        cumul_trans_matrices=None, init_env=None):
+    """Calculate equilibrium beam envelope matrix or transport initial one.
+
+    It employs Ohmi formalism to do so:
+        Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+
+    Keyword arguments:
+    accelerator : Accelerator object. Only non-optional argument.
+
+    fixed_point : 6D position at the start of first element. I might be the
+      fixed point of the one turn map or an arbitrary initial condition.
+
+    indices : may be a (list,tuple, numpy.ndarray) of element indices where
+      closed orbit data is to be returned or a string:
+        'open'  : return the closed orbit at the entrance of all elements.
+        'closed' : equal 'open' plus the orbit at the end of the last element.
+      If indices is None the envelope is returned only at the entrance of
+      the first element.
+
+    energy_offset : float denoting the energy deviation (ignored if
+      fixed_point is not None).
+
+    cumul_trans_matrices : cumulated transfer matrices for all elements of the
+      rin. Must include matrix at the end of the last element. If not passed
+      or has the wrong shape it will be calculated internally.
+      CAUTION: In case init_env is not passed and equilibrium solution is to
+      be found, it must be calculated with cavity and radiation on.
+
+    init_env: initial envelope matrix to be transported. In case it is not
+      provided, the equilibrium solution will be returned.
+
+    Returns:
+    envelope -- rank-3 numpy array with shape (len(indices), 6, 6). Of the
+      beam envelope matrices at the desired indices.
+
+    """
+    indices = _tracking._process_indices(accelerator, indices)
+
+    if fixed_point is None:
+        fixed_point = _tracking.find_orbit(
+            accelerator, energy_offset=energy_offset)
+
+    cum_mat = cumul_trans_matrices
+    if cum_mat is None or cum_mat.shape[0] != len(accelerator)+1:
+        if init_env is None:
+            rad_stt = accelerator.radiation_on
+            cav_stt = accelerator.cavity_on
+            accelerator.radiation_on = True
+            accelerator.cavity_on = True
+
+        _, cum_mat = _tracking.find_m66(
+            accelerator, indices='closed', closed_orbit=fixed_point)
+
+        if init_env is None:
+            accelerator.radiation_on = rad_stt
+            accelerator.cavity_on = cav_stt
+
+    # perform: M(i, i) = M(0, i+1) @ M(0, i)^-1
+    mat_ele = _np.linalg.solve(
+        cum_mat[:-1].transpose((0, 2, 1)), cum_mat[1:].transpose((0, 2, 1)))
+    mat_ele = mat_ele.transpose((0, 2, 1))
+    mat_ele = mat_ele.copy()
+
+    fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
+    bdiffs = _np.zeros((len(accelerator), 6, 6), dtype=float)
+    _trackcpp.track_diffusionmatrix_wrapper(
+        accelerator.trackcpp_acc, fixed_point, mat_ele, bdiffs)
+
+    if init_env is None:
+        # ------------------------------------------------------------
+        # Equation for the moment matrix env is
+        #        env = m66 @ env @ m66' + bcum;
+        # We rewrite it in the form of the Sylvester equation:
+        #        m66i @ env + env @ m66t = bcumi
+        # where
+        #        m66i =  inv(m66)
+        #        m66t = -m66'
+        #        bcumi = -m66i @ bcum
+        # ------------------------------------------------------------
+        m66 = cum_mat[-1]
+        m66i = _np.linalg.inv(m66)
+        m66t = -m66.T
+        bcumi = _np.linalg.solve(m66, bdiffs[-1])
+        # Envelope matrix at the ring entrance
+        init_env = _scylin.solve_sylvester(m66i, m66t, bcumi)
+
+    envelopes = _np.zeros((len(accelerator)+1, 6, 6), dtype=float)
+    envelopes[0] = init_env
+    for i in range(len(accelerator)):
+        envelopes[i+1] = _sandwich_matrix(cum_mat[i+1], init_env) + bdiffs[i]
+
+    return envelopes[indices]
+
+
+@_interactive
 def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
                indices='open', energy_offset=None):
     """Return Twiss parameters of uncoupled dynamics.
@@ -1156,3 +1255,9 @@ def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None,
     accepy *= accepy
 
     return accepx, accepy, twiss
+
+
+def _sandwich_matrix(mat1, mat2):
+    """."""
+    # return mat1 @ mat2 @ mat1.swapaxes(-1, -2)
+    return _np.dot(mat1, _np.dot(mat2, mat1.T))
