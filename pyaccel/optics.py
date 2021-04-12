@@ -305,7 +305,7 @@ class TwissList:
                 all(isinstance(x, (int, _np.int_)) for x in index):
             tl = _trackcpp.CppTwissVector()
             for i in index:
-                tl.append(self._tl[i])
+                tl.append(self._tl[int(i)])
             return TwissList(twiss_list=tl)
         elif isinstance(index, slice):
             return TwissList(twiss_list=self._tl[index])
