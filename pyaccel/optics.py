@@ -1,6 +1,5 @@
 """Optics module."""
 
-import sys as _sys
 import math as _math
 import numpy as _np
 import scipy.linalg as _scylin
@@ -916,12 +915,7 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
     m66 -- one-turn transfer matrix
 
     """
-    if indices == 'open':
-        closed_flag = False
-    elif indices == 'closed':
-        closed_flag = True
-    else:
-        raise OpticsException("invalid value for 'indices' in calc_twiss")
+    indices = _tracking._process_indices(accelerator, indices)
 
     _m66 = _trackcpp.Matrix()
     _twiss = _trackcpp.CppTwissVector()
@@ -977,13 +971,10 @@ def calc_twiss(accelerator=None, init_twiss=None, fixed_point=None,
     if r > 0:
         raise OpticsException(_trackcpp.string_error_messages[r])
 
-    if not closed_flag:
-        _twiss.pop_back()
-
     twiss = TwissList(_twiss)
     m66 = _tracking._CppMatrix2Numpy(_m66)
 
-    return twiss, m66
+    return twiss[indices], m66
 
 
 @_interactive
