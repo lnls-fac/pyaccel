@@ -460,20 +460,22 @@ class TwissList:
         return co if len(co[0, :]) > 1 else co[:, 0]
 
 
-class EquilibriumParameters:
+class EquilibriumParametersIntegrals:
+    """."""
 
-    def __init__(self, accelerator):
+    def __init__(self, accelerator, energy_offset=0.0):
+        """."""
         self._acc = _accelerator.Accelerator()
+        self._energy_offset = energy_offset
         self._m66 = None
         self._twi = None
         self._alpha = 0.0
         self._integralsx = _np.zeros(6)
         self._integralsy = _np.zeros(6)
-        self._damping = _np.zeros(3)
-        self._radiation_damping = _np.zeros(3)
         self.accelerator = accelerator
 
     def __str__(self):
+        """."""
         rst = ''
         fmti = '{:32s}: '
         fmtr = '{:33s}: '
@@ -481,6 +483,7 @@ class EquilibriumParameters:
 
         fmte = fmtr + fmtn
         rst += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
+        rst += fmte.format('\nEnergy Deviation [%]', self.energy_offset*100)
 
         ints = 'I1x,I4x,I5x,I6x'.split(',')
         rst += '\n' + fmti.format(', '.join(ints))
@@ -502,6 +505,10 @@ class EquilibriumParameters:
         rst += '\n' + fmti.format(', '.join(ints) + ' [ms]')
         rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
 
+        ints = 'alphax,alphay,alphae'.split(',')
+        rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
+        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
         rst += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
         rst += fmte.format('\nenergy loss [keV]', self.U0/1000)
         rst += fmte.format('\novervoltage', self.overvoltage)
@@ -511,12 +518,13 @@ class EquilibriumParameters:
         rst += fmte.format('\nvertical emittance [pm.rad]', self.emity*1e12)
         rst += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
         rst += fmte.format('\nnatural espread [%]', self.espread0*100)
-        rst += fmte.format('\nbunch length [mm]', self.bunch_length*1000)
+        rst += fmte.format('\nbunch length [mm]', self.bunlen*1000)
         rst += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
         return rst
 
     @property
     def accelerator(self):
+        """."""
         return self._acc
 
     @accelerator.setter
@@ -526,15 +534,28 @@ class EquilibriumParameters:
             self._calc_radiation_integrals()
 
     @property
+    def energy_offset(self):
+        """."""
+        return self._energy_offset
+
+    @energy_offset.setter
+    def energy_offset(self, value):
+        self._energy_offset = float(value)
+        self._calc_radiation_integrals()
+
+    @property
     def twiss(self):
+        """."""
         return self._twi
 
     @property
     def m66(self):
+        """."""
         return self._m66
 
     @property
     def I1x(self):
+        """."""
         return self._integralsx[0]
 
     @property
@@ -554,144 +575,180 @@ class EquilibriumParameters:
 
     @property
     def I4x(self):
+        """."""
         return self._integralsx[4]
 
     @property
     def I5x(self):
+        """."""
         return self._integralsx[5]
 
     @property
     def I6x(self):
+        """."""
         return self._integralsx[6]
 
     @property
     def I1y(self):
+        """."""
         return self._integralsy[0]
 
     @property
     def I4y(self):
+        """."""
         return self._integralsy[4]
 
     @property
     def I5y(self):
+        """."""
         return self._integralsy[5]
 
     @property
     def I6y(self):
+        """."""
         return self._integralsy[6]
 
     @property
     def Jx(self):
+        """."""
         return 1.0 - self.I4x/self.I2
 
     @property
     def Jy(self):
+        """."""
         return 1.0 - self.I4y/self.I2
 
     @property
     def Je(self):
+        """."""
         return 2.0 + (self.I4x + self.I4y)/self.I2
 
     @property
     def alphax(self):
+        """."""
         Ca = _mp.constants.Ca
         E0 = self._acc.energy / 1e9  # in GeV
+        E0 *= (1 + self._energy_offset)
         leng = self._acc.length
         return Ca * E0**3 * self.I2 * self.Jx / leng
 
     @property
     def alphay(self):
+        """."""
         Ca = _mp.constants.Ca
         E0 = self._acc.energy / 1e9  # in GeV
+        E0 *= (1 + self._energy_offset)
         leng = self._acc.length
         return Ca * E0**3 * self.I2 * self.Jy / leng
 
     @property
     def alphae(self):
+        """."""
         Ca = _mp.constants.Ca
         E0 = self._acc.energy / 1e9  # in GeV
+        E0 *= (1 + self._energy_offset)
         leng = self._acc.length
         return Ca * E0**3 * self.I2 * self.Je / leng
 
     @property
     def taux(self):
+        """."""
         return 1/self.alphax
 
     @property
     def tauy(self):
+        """."""
         return 1/self.alphay
 
     @property
     def taue(self):
+        """."""
         return 1/self.alphae
 
     @property
     def espread0(self):
+        """."""
         Cq = _mp.constants.Cq
         gamma = self._acc.gamma_factor
+        gamma *= (1 + self._energy_offset)
         return _math.sqrt(
             Cq * gamma**2 * self.I3 / (2*self.I2 + self.I4x + self.I4y))
 
     @property
     def emitx(self):
+        """."""
         Cq = _mp.constants.Cq
         gamma = self._acc.gamma_factor
+        gamma *= (1 + self._energy_offset)
         return Cq * gamma**2 * self.I5x / (self.Jx*self.I2)
 
     @property
     def emity(self):
+        """."""
         Cq = _mp.constants.Cq
         gamma = self._acc.gamma_factor
+        gamma *= (1 + self._energy_offset)
         return Cq * gamma**2 * self.I5y / (self.Jy*self.I2)
 
     @property
     def emit0(self):
+        """."""
         return self.emitx + self.emity
 
     @property
     def U0(self):
+        """."""
         E0 = self._acc.energy / 1e9  # in GeV
+        E0 *= (1 + self._energy_offset)
         rad_cgamma = _mp.constants.rad_cgamma
         return rad_cgamma/(2*_math.pi) * E0**4 * self.I2 * 1e9  # in eV
 
     @property
     def overvoltage(self):
+        """."""
         v_cav = get_rf_voltage(self._acc)
         return v_cav/self.U0
 
     @property
     def syncphase(self):
+        """."""
         return _math.pi - _math.asin(1/self.overvoltage)
 
     @property
     def alpha(self):
+        """."""
         return self._alpha
 
     @property
     def etac(self):
+        """."""
         gamma = self._acc.gamma_factor
+        gamma *= (1 + self._energy_offset)
         return 1/(gamma*gamma) - self.alpha
 
     @property
     def synctune(self):
+        """."""
         E0 = self._acc.energy
+        E0 *= (1 + self._energy_offset)
         v_cav = get_rf_voltage(self._acc)
         harmon = self._acc.harmonic_number
         return _math.sqrt(
             self.etac*harmon*v_cav*_math.cos(self.syncphase)/(2*_math.pi*E0))
 
     @property
-    def bunch_length(self):
-        c = _mp.constants.light_speed
-        beta = self._acc.beta_factor
+    def bunlen(self):
+        """."""
+        vel = self._acc.velocity
         rev_freq = get_revolution_frequency(self._acc)
 
-        bunlen = beta * c * abs(self.etac) * self.espread0
+        bunlen = vel * abs(self.etac) * self.espread0
         bunlen /= 2*_math.pi * self.synctune * rev_freq
         return bunlen
 
     @property
     def rf_acceptance(self):
+        """."""
         E0 = self._acc.energy
         sph = self.syncphase
         V = get_rf_voltage(self._acc)
@@ -703,14 +760,44 @@ class EquilibriumParameters:
         eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
         return _math.sqrt(eaccep2)
 
+    @property
+    def sigma_rx(self):
+        """."""
+        emitx = self.emitx
+        espread0 = self.espread0
+        return _np.sqrt(emitx*self._twi.betax + (espread0*self._twi.etax)**2)
+
+    @property
+    def sigma_px(self):
+        """."""
+        emitx = self.emitx
+        espread0 = self.espread0
+        return _np.sqrt(emitx*self._twi.alphax + (espread0*self._twi.etapx)**2)
+
+    @property
+    def sigma_ry(self):
+        """."""
+        emity = self.emity
+        espread0 = self.espread0
+        return _np.sqrt(emity*self._twi.betay + (espread0*self._twi.etay)**2)
+
+    @property
+    def sigma_py(self):
+        """."""
+        emity = self.emity
+        espread0 = self.espread0
+        return _np.sqrt(emity*self._twi.alphay + (espread0*self._twi.etapy)**2)
+
     @staticmethod
     def calcH(beta, alpha, x, xl):
+        """."""
         gamma = (1 + alpha**2) / beta
         return beta*xl**2 + 2*alpha*x*xl + gamma*x**2
 
     def as_dict(self):
+        """."""
         pars = {
-            'twiss',
+            'energy_offset', 'twiss',
             'I1x', 'I2', 'I3', 'I3a', 'I4x', 'I5x', 'I6x',
             'I1y', 'I4y', 'I5y', 'I6y',
             'Jx', 'Jy', 'Je',
@@ -727,13 +814,13 @@ class EquilibriumParameters:
         return dic
 
     def _calc_radiation_integrals(self):
-        """Calculate radiation integrals for periodic systems"""
-
+        """Calculate radiation integrals for periodic systems."""
         acc = self._acc
-        twi, m66 = calc_twiss(acc, indices='closed')
+        twi, m66 = calc_twiss(
+            acc, indices='closed', energy_offset=self._energy_offset)
         self._twi = twi
         self._m66 = m66
-        self._alpha = get_mcf(acc)
+        self._alpha = get_mcf(acc, energy_offset=self._energy_offset)
 
         spos = _lattice.find_spos(acc, indices='closed')
         etax, etapx, betax, alphax = twi.etax, twi.etapx, twi.betax, twi.alphax
