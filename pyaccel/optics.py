@@ -1290,11 +1290,10 @@ def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, twiss=None,
     gammay = (1.0 + alphay**2)/betay
 
     # emittances and energy spread
-    equi = EquilibriumParameters(accelerator)
-    emit0 = equi.emit0
+    equi = EquilibriumParametersIntegrals(accelerator)
     sigmae = equi.espread0
-    emitx = emit0 / (1.0 + coupling)
-    emity = emitx * coupling
+    emitx = (equi.emitx + equi.emity*coupling) / (1.0 + coupling)
+    emity = (equi.emity + equi.emitx*coupling) / (1.0 + coupling)
 
     # beamsizes per se
     sigmax = _np.sqrt(emitx * betax + (sigmae * etax)**2)
