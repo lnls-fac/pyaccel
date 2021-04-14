@@ -897,8 +897,8 @@ class EquilibriumParametersIntegrals:
 
 @_interactive
 def calc_ohmienvelope(
-        accelerator, fixed_point=None, indices='open', energy_offset=0.0,
-        cumul_trans_matrices=None, init_env=None):
+        accelerator, fixed_point=None, indices='closed', energy_offset=0.0,
+        cumul_trans_matrices=None, init_env=None, full=False):
     """Calculate equilibrium beam envelope matrix or transport initial one.
 
     It employs Ohmi formalism to do so:
@@ -963,7 +963,7 @@ def calc_ohmienvelope(
     mat_ele = mat_ele.copy()
 
     fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
-    bdiffs = _np.zeros((len(accelerator), 6, 6), dtype=float)
+    bdiffs = _np.zeros((len(accelerator)+1, 6, 6), dtype=float)
     _trackcpp.track_diffusionmatrix_wrapper(
         accelerator.trackcpp_acc, fixed_point, mat_ele, bdiffs)
 
@@ -986,11 +986,12 @@ def calc_ohmienvelope(
         init_env = _scylin.solve_sylvester(m66i, m66t, bcumi)
 
     envelopes = _np.zeros((len(accelerator)+1, 6, 6), dtype=float)
-    envelopes[0] = init_env
-    for i in range(len(accelerator)):
-        envelopes[i+1] = _sandwich_matrix(cum_mat[i+1], init_env) + bdiffs[i]
+    for i in range(envelopes.shape[0]):
+        envelopes[i] = _sandwich_matrix(cum_mat[i], init_env) + bdiffs[i]
 
-    return envelopes[indices]
+    if not full:
+        return envelopes[indices]
+    return envelopes[indices], cum_mat[indices], bdiffs[indices], fixed_point
 
 
 @_interactive
