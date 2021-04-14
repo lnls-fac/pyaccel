@@ -1228,6 +1228,7 @@ def get_frac_tunes(accelerator=None, m1turn=None, dim='6D', closed_orbit=None,
 
 @_interactive
 def get_chromaticities(accelerator, energy_offset=1e-6):
+    """."""
     cav_on = accelerator.cavity_on
     rad_on = accelerator.radiation_on
     accelerator.radiation_on = False
@@ -1245,23 +1246,26 @@ def get_chromaticities(accelerator, energy_offset=1e-6):
 
 
 @_interactive
-def get_mcf(accelerator, order=1, energy_offset=None):
+def get_mcf(accelerator, order=1, energy_offset=None, energy_range=None):
     """Return momentum compaction factor of the accelerator"""
-    if energy_offset is None:
-        energy_offset = _np.linspace(-1e-3, 1e-3, 11)
+    if energy_range is None:
+        energy_range = _np.linspace(-1e-3, 1e-3, 11)
+
+    if energy_offset is not None:
+        energy_range += energy_offset
 
     accel = accelerator[:]
     _tracking.set_4d_tracking(accel)
     leng = accel.length
 
-    dl = _np.zeros(_np.size(energy_offset))
-    for i, ene in enumerate(energy_offset):
+    dl = _np.zeros(_np.size(energy_range))
+    for i, ene in enumerate(energy_range):
         cod = _tracking.find_orbit4(accel, ene)
         cod = _np.concatenate([cod.flatten(), [ene, 0]])
         T, *_ = _tracking.ring_pass(accel, cod)
         dl[i] = T[5]/leng
 
-    polynom = _np.polynomial.polynomial.polyfit(energy_offset, dl, order)
+    polynom = _np.polynomial.polynomial.polyfit(energy_range, dl, order)
     polynom = polynom[1:]
     if len(polynom) == 1:
         polynom = polynom[0]
