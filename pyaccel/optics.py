@@ -1171,13 +1171,15 @@ def get_rf_voltage(accelerator):
 
 
 @_interactive
-def get_revolution_period(accelerator):
-    return accelerator.length/accelerator.velocity
+def get_revolution_frequency(accelerator):
+    """."""
+    return get_rf_frequency(accelerator) / accelerator.harmonic_number
 
 
 @_interactive
-def get_revolution_frequency(accelerator):
-    return 1.0/get_revolution_period(accelerator)
+def get_revolution_period(accelerator):
+    """."""
+    return 1 / get_revolution_frequency(accelerator)
 
 
 @_interactive
