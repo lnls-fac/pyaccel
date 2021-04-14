@@ -402,48 +402,57 @@ class TwissList:
 
     @property
     def etapx(self):
+        """."""
         etapx = _np.array([
             float(self._ptl[i].etax[1]) for i in range(len(self._ptl))])
         return etapx if len(etapx) > 1 else etapx[0]
 
     @property
     def etapy(self):
+        """."""
         etapy = _np.array([
             float(self._ptl[i].etay[1]) for i in range(len(self._ptl))])
         return etapy if len(etapy) > 1 else etapy[0]
 
     @property
     def rx(self):
+        """."""
         res = _np.array([float(ptl.co.rx) for ptl in self._ptl])
         return res if len(res) > 1 else res[0]
 
     @property
     def ry(self):
+        """."""
         res = _np.array([float(ptl.co.ry) for ptl in self._ptl])
         return res if len(res) > 1 else res[0]
 
     @property
     def px(self):
+        """."""
         res = _np.array([float(ptl.co.px) for ptl in self._ptl])
         return res if len(res) > 1 else res[0]
 
     @property
     def py(self):
+        """."""
         res = _np.array([float(ptl.co.py) for ptl in self._ptl])
         return res if len(res) > 1 else res[0]
 
     @property
     def de(self):
+        """."""
         res = _np.array([float(ptl.co.de) for ptl in self._ptl])
         return res if len(res) > 1 else res[0]
 
     @property
     def dl(self):
+        """."""
         res = _np.array([float(ptl.co.dl) for ptl in self._ptl])
         return res if len(res) > 1 else res[0]
 
     @property
     def co(self):
+        """."""
         co = [self._ptl[i].co for i in range(len(self._ptl))]
         co = [[co[i].rx, co[i].px, co[i].ry, co[i].py, co[i].de, co[i].dl]
               for i in range(len(co))]
