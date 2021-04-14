@@ -29,7 +29,7 @@ class Lifetime:
     def __init__(self, accelerator):
         """."""
         self._acc = accelerator
-        self._eqpar = _optics.EquilibriumParameters(accelerator)
+        self._eqpar = _optics.EquilibriumParametersIntegrals(accelerator)
         res = _optics.get_transverse_acceptance(self._acc, self._eqpar.twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
@@ -39,7 +39,7 @@ class Lifetime:
         self._atomic_number = 7
         self._temperature = 300
         self._taux = self._tauy = self._taue = None
-        self._emit0 = self._espread0 = self._bunch_length = None
+        self._emit0 = self._espread0 = self._bunlen = None
         self._accepx = self._accepy = self._accepen = None
 
     @property
@@ -49,7 +49,7 @@ class Lifetime:
 
     @accelerator.setter
     def accelerator(self, val):
-        self._eqpar = _optics.EquilibriumParameters(val)
+        self._eqpar = _optics.EquilibriumParametersIntegrals(accelerator)
         res = _optics.get_transverse_acceptance(val, self._eqpar.twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
@@ -135,15 +135,15 @@ class Lifetime:
         self._espread0 = float(val)
 
     @property
-    def bunch_length(self):
+    def bunlen(self):
         """Bunch length in m."""
-        if self._bunch_length is not None:
-            return self._bunch_length
-        return self._eqpar.bunch_length
+        if self._bunlen is not None:
+            return self._bunlen
+        return self._eqpar.bunlen
 
-    @bunch_length.setter
-    def bunch_length(self, val):
-        self._bunch_length = float(val)
+    @bunlen.setter
+    def bunlen(self, val):
+        self._bunlen = float(val)
 
     @property
     def taux(self):
@@ -271,7 +271,7 @@ class Lifetime:
         energy       = Bunch energy in [GeV]
         nr_part      = Number of electrons ber bunch
         espread      = relative energy spread,
-        bunch_length = bunch length in [m]
+        bunlen       = bunch length in [m]
         coupling     = emittance coupling factor (emity = coupling*emitx)
         accepen      = relative energy acceptance of the machine.
 
@@ -293,7 +293,7 @@ class Lifetime:
         coup = self.coupling
         emit0 = self.emit0
         espread = self.espread0
-        bunlen = self.bunch_length
+        bunlen = self.bunlen
         nr_part = self.particles_per_bunch
 
         _, ind = _np.unique(twiss.spos, return_index=True)
