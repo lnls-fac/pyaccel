@@ -895,6 +895,340 @@ class EquilibriumParametersIntegrals:
         self._integralsy = integralsy
 
 
+class EquilibriumParametersOhmiFormalism:
+    """."""
+
+    LONG = 2
+    HORI = 1
+    VERT = 0
+
+    def __init__(self, accelerator, energy_offset=0.0):
+        """."""
+        self._acc = _accelerator.Accelerator()
+        self._energy_offset = energy_offset
+        self._m66 = None
+        self._cumul_mat = _np.zeros((len(self._acc)+1, 6, 6), dtype=float)
+        self._bdiff = _np.zeros((len(self._acc)+1, 6, 6), dtype=float)
+        self._envelope = _np.zeros((len(self._acc)+1, 6, 6), dtype=float)
+        self._alpha = 0.0
+        self._emits = _np.zeros(3)
+        self._alphas = _np.zeros(3)
+        self._damping_numbers = _np.zeros(3)
+        self._tunes = _np.zeros(3)
+        self.accelerator = accelerator
+
+    def __str__(self):
+        """."""
+        rst = ''
+        fmti = '{:32s}: '
+        fmtr = '{:33s}: '
+        fmtn = '{:.4g}'
+
+        fmte = fmtr + fmtn
+        rst += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
+        rst += fmte.format('\nEnergy Deviation [%]', self.energy_offset*100)
+
+        ints = 'Jx,Jy,Je'.split(',')
+        rst += '\n' + fmti.format(', '.join(ints))
+        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        ints = 'taux,tauy,taue'.split(',')
+        rst += '\n' + fmti.format(', '.join(ints) + ' [ms]')
+        rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
+
+        ints = 'alphax,alphay,alphae'.split(',')
+        rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
+        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        ints = 'tunex,tuney'.split(',')
+        rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
+        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
+
+        rst += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
+        rst += fmte.format('\nenergy loss [keV]', self.U0/1000)
+        rst += fmte.format('\novervoltage', self.overvoltage)
+        rst += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
+        rst += fmte.format('\nsync tune', self.synctune)
+        rst += fmte.format('\nhorizontal emittance [nm.rad]', self.emitx*1e9)
+        rst += fmte.format('\nvertical emittance [pm.rad]', self.emity*1e12)
+        rst += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
+        rst += fmte.format('\nnatural espread [%]', self.espread0*100)
+        rst += fmte.format('\nbunch length [mm]', self.bunlen*1000)
+        rst += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
+        return rst
+
+    @property
+    def accelerator(self):
+        """."""
+        return self._acc
+
+    @accelerator.setter
+    def accelerator(self, acc):
+        if isinstance(acc, _accelerator.Accelerator):
+            self._acc = acc
+            self._calc_envelope()
+
+    @property
+    def energy_offset(self):
+        """."""
+        return self._energy_offset
+
+    @energy_offset.setter
+    def energy_offset(self, value):
+        self._energy_offset = float(value)
+        self._calc_envelope()
+
+    @property
+    def cumul_trans_matrices(self):
+        """."""
+        return self._cumul_mat.copy()
+
+    @property
+    def m66(self):
+        """."""
+        return self._cumul_mat[-1].copy()
+
+    @property
+    def envelopes(self):
+        """."""
+        return self._envelope.copy()
+
+    @property
+    def diffusion_matrices(self):
+        """."""
+        return self._bdiff.copy()
+
+    @property
+    def tunex(self):
+        """."""
+        return self._tunes[self.HORI]
+
+    @property
+    def tuney(self):
+        """."""
+        return self._tunes[self.VERT]
+
+    @property
+    def synctune(self):
+        """."""
+        return self._tunes[self.LONG]
+
+    @property
+    def alphax(self):
+        """."""
+        return self._alphas[self.HORI]
+
+    @property
+    def alphay(self):
+        """."""
+        return self._alphas[self.VERT]
+
+    @property
+    def alphae(self):
+        """."""
+        return self._alphas[self.LONG]
+
+    @property
+    def taux(self):
+        """."""
+        return 1/self.alphax
+
+    @property
+    def tauy(self):
+        """."""
+        return 1/self.alphay
+
+    @property
+    def taue(self):
+        """."""
+        return 1/self.alphae
+
+    @property
+    def Jx(self):
+        """."""
+        return self._damping_numbers[self.HORI]
+
+    @property
+    def Jy(self):
+        """."""
+        return self._damping_numbers[self.VERT]
+
+    @property
+    def Je(self):
+        """."""
+        return self._damping_numbers[self.LONG]
+
+    @property
+    def espread0(self):
+        """."""
+        return _np.sqrt(self._envelope[0, 4, 4])
+
+    @property
+    def bunlen(self):
+        """."""
+        return _np.sqrt(self._envelope[0, 5, 5])
+
+    @property
+    def emitl(self):
+        """."""
+        return self._emits[2]
+
+    @property
+    def emitx(self):
+        """."""
+        return self._emits[1]
+
+    @property
+    def emity(self):
+        """."""
+        return self._emits[0]
+
+    @property
+    def emit0(self):
+        """."""
+        return _np.sum(self._emits[:-1])
+
+    @property
+    def sigma_rx(self):
+        """."""
+        return _np.sqrt(self._envelope[:, 0, 0])
+
+    @property
+    def sigma_px(self):
+        """."""
+        return _np.sqrt(self._envelope[:, 1, 1])
+
+    @property
+    def sigma_ry(self):
+        """."""
+        return _np.sqrt(self._envelope[:, 2, 2])
+
+    @property
+    def sigma_py(self):
+        """."""
+        return _np.sqrt(self._envelope[:, 3, 3])
+
+    @property
+    def U0(self):
+        """."""
+        E0 = self._acc.energy / 1e9  # in GeV
+        rad_cgamma = _mp.constants.rad_cgamma
+        return rad_cgamma/(2*_math.pi) * E0**4 * self._integral2 * 1e9  # in eV
+
+    @property
+    def overvoltage(self):
+        """."""
+        v_cav = get_rf_voltage(self._acc)
+        return v_cav/self.U0
+
+    @property
+    def syncphase(self):
+        """."""
+        return _math.pi - _math.asin(1/self.overvoltage)
+
+    @property
+    def etac(self):
+        """."""
+        vel = self._acc.velocity
+        rev_freq = get_revolution_frequency(self._acc)
+
+        # It is possible to infer the slippage factor via the relation between
+        # the energy spread and the bunch length
+        etac = self.bunlen / self.espread0 / vel
+        etac *= 2*_math.pi * self.synctune * rev_freq
+
+        # Assume momentum compaction is positive and we are above transition:
+        etac *= -1
+        return etac
+
+    @property
+    def alpha(self):
+        """."""
+        # get alpha from slippage factor:
+        gamma = self._acc.gamma_factor
+        gamma *= (1 + self._energy_offset)
+        return 1/(gamma*gamma) - self.etac
+
+    @property
+    def rf_acceptance(self):
+        """."""
+        E0 = self._acc.energy
+        sph = self.syncphase
+        V = get_rf_voltage(self._acc)
+        ov = self.overvoltage
+        h = self._acc.harmonic_number
+        etac = self.etac
+
+        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
+        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
+        return _math.sqrt(eaccep2)
+
+    def as_dict(self):
+        """."""
+        pars = {
+            'Jx', 'Jy', 'Je',
+            'alphax', 'alphay', 'alphae',
+            'taux', 'tauy', 'taue',
+            'espread0',
+            'emitx', 'emity', 'emit0',
+            'bunlen',
+            'U0', 'overvoltage', 'syncphase', 'synctune',
+            'alpha', 'etac', 'rf_acceptance',
+            }
+        dic = {par: getattr(self, par) for par in pars}
+        dic['energy'] = self.accelerator.energy
+        return dic
+
+    def _calc_envelope(self):
+        self._envelope, self._cumul_mat, self._bdiff, self._fixed_point = \
+            calc_ohmienvelope(
+                self._acc, full=True, energy_offset=self._energy_offset)
+
+        m66 = self._cumul_mat[-1]
+
+        # Look at section  D.2 of the Ohmi paper to understand this part of the
+        # code on how to get the emmitances:
+        evals, evecs = _np.linalg.eig(m66)
+        evecsi = _np.linalg.inv(evecs)
+        evecsih = evecsi.swapaxes(-1, -2).conj()
+        env0r = evecsi @ self._envelope[0] @ evecsih
+        emits = _np.diagonal(env0r, axis1=-1, axis2=-2).real[::2].copy()
+        emits /= _np.linalg.norm(evecsi, axis=-1)[::2]
+        # # To calculate the emittances along the whole ring use this code:
+        # m66i = self._cumul_mat @ m66 @ _np.linalg.inv(self._cumul_mat)
+        # _, evecs = np.linalg.eig(m66i)
+        # evecsi = np.linalg.inv(evecs)
+        # evecsih = evecsi.swapaxes(-1, -2).conj()
+        # env0r = evecsi @ self._envelope @ evecsih
+        # emits = np.diagonal(env0r, axis1=-1, axis2=-2).real[:, ::2] * 1e12
+        # emits /= np.linalg.norm(evecsi, axis=-1)[:, ::2]
+
+        # get tunes and damping rates from one turn matrix
+        trc = (evals[::2] + evals[1::2]).real
+        dff = (evals[::2] - evals[1::2]).imag
+        mus = _np.arctan2(dff, trc)
+        alphas = trc / _np.cos(mus) / 2
+        alphas = -_np.log(alphas) * get_revolution_frequency(self._acc)
+
+        # The longitudinal emittance is the largest one, then comes the
+        # horizontal and latter the vertical:
+        idx = _np.argsort(emits)
+        self._alphas = alphas[idx]
+        self._tunes = mus[idx] / 2 / _np.pi
+        self._emits = emits[idx]
+
+        # we know the damping numbers must sum to 4
+        fac = _np.sum(self._alphas) / 4
+        self._damping_numbers = self._alphas / fac
+
+        # we can also extract the value of the second integral:
+        Ca = _mp.constants.Ca
+        E0 = self._acc.energy / 1e9  # in GeV
+        E0 *= (1 + self._energy_offset)
+        leng = self._acc.length
+        self._integral2 = fac / (Ca * E0**3 / leng)
+
+
 @_interactive
 def calc_ohmienvelope(
         accelerator, fixed_point=None, indices='closed', energy_offset=0.0,
