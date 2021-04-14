@@ -578,7 +578,7 @@ def find_orbit(
     if not accelerator.cavity_on and not accelerator.radiation_on:
         orb = find_orbit4(
             accelerator, indices=indices, energy_offset=energy_offset,
-            fixed_point_guess=fixed_point_guess[:4])
+            fixed_point_guess=fixed_point_guess)
         corb = _np.zeros((6, orb.shape[1]))
         corb[:4, :] = orb
         corb[4, :] = energy_offset
