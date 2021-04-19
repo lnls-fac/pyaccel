@@ -176,7 +176,9 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
 
 
 @_interactive
-def kickmap(fam_name, kicktable_fname, nr_steps=20, rescale_length=1, rescale_kicks=1.0):
+def kickmap(
+        fam_name, kicktable_fname, nr_steps=20,
+        rescale_length=1, rescale_kicks=1.0):
     """Create a kickmap element.
 
     Keyword arguments:
@@ -186,7 +188,8 @@ def kickmap(fam_name, kicktable_fname, nr_steps=20, rescale_length=1, rescale_ki
     rescale_length -- rescale kicktable length (default 1)
     rescale_kicks -- rescale all kicktable length (default 1)
     """
-    e = _trackcpp.kickmap_wrapper(fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks)
+    e = _trackcpp.kickmap_wrapper(
+        fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks)
     return Element(element=e)
 
 
@@ -693,7 +696,8 @@ class Element:
         """."""
         Element._check_type(value, Element._t_valid_types)
         Element._check_size(value, _NUM_COORDS)
-        Element._set_c_array_from_vector(self.trackcpp_e.t_in, _NUM_COORDS, value)
+        Element._set_c_array_from_vector(
+            self.trackcpp_e.t_in, _NUM_COORDS, value)
 
     @property
     def t_out(self):
@@ -705,7 +709,8 @@ class Element:
         """."""
         Element._check_type(value, Element._t_valid_types)
         Element._check_size(value, _NUM_COORDS)
-        Element._set_c_array_from_vector(self.trackcpp_e.t_out, _NUM_COORDS, value)
+        Element._set_c_array_from_vector(
+            self.trackcpp_e.t_out, _NUM_COORDS, value)
 
     @property
     def r_in(self):
