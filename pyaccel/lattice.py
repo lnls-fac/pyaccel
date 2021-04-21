@@ -106,7 +106,7 @@ def find_indices(lattice, attribute_name, value, comparison=None):
     attribute_name: string identifying the attribute to match
     value: any data type or collection data type
     comparison: function which takes two arguments, the value of the attribute
-        and value, performs a comparison between then and returns a boolean
+        and value, performs a comparison between them and returns a boolean
         (default: __eq__)
 
     Returns list of indices where the comparison returns True.
