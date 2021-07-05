@@ -169,7 +169,7 @@ def set_attribute(lattice, attribute_name, indices, values, m=None, n=None):
                 tdata[m][n] = val
     elif (m is not None) and (n is None):
         for segs, vals in zip(indices, values):
-            for seg, val in zip(segs, val):
+            for seg, val in zip(segs, vals):
                 tdata = getattr(lattice[seg], attribute_name)
                 tdata[m] = val
     else:
