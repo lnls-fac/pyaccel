@@ -317,8 +317,19 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
                 new_acc.append(
                     _Element(elem))
             new_acc.append(e_out)
-        elif ele.kicktable is not None:
-            raise Exception('no refinement implemented for IDs yet')
+        elif ele.trackcpp_e.kicktable_idx != -1:
+            kicktable = _trackcpp.cvar.kicktable_list[elem.trackcpp_e.kicktable_idx]
+            for _ in range(nr_segs):
+                el_ = _trackcpp.kickmap_wrapper(
+                    ele.fam_name,
+                    kicktable.filename,
+                    elem.nr_steps,
+                    1.0/nr_segs,
+                    1.0/nr_segs)
+                elem = _Element(element=el_)
+                elem.length = ele.length / nr_segs
+                elem.angle = ele.angle / nr_segs
+                new_acc.append(elem)
         else:
             for _ in range(nr_segs):
                 elem = _Element(ele)

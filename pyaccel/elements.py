@@ -178,7 +178,7 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
 @_interactive
 def kickmap(
         fam_name, kicktable_fname, nr_steps=20,
-        rescale_length=1, rescale_kicks=1.0):
+        rescale_length=1.0, rescale_kicks=1.0):
     """Create a kickmap element.
 
     Keyword arguments:
@@ -217,9 +217,19 @@ class Kicktable:
         """."""
         if 'kicktable' in kwargs:
             self._kicktable = kwargs['kicktable']
+            filename = kwargs['kicktable'].filename
         else:
             filename = kwargs.get('filename', "")
-            self._kicktable = _trackcpp.Kicktable(filename)
+        self._kicktable_idx = _trackcpp.add_kicktable(filename)
+        if self._kicktable_idx != -1:
+            self._kicktable = _trackcpp.cvar.kicktable_list[self._kicktable_idx]
+        else:
+            raise ValueError('Could not create Kicktable {}!'.format(filename))
+
+    @property
+    def kicktable_idx(self):
+        """."""
+        return self._kicktable_idx
 
     @property
     def filename(self):
@@ -473,8 +483,9 @@ class Element:
     @property
     def kicktable(self):
         """."""
-        if self.trackcpp_e.kicktable is not None:
-            return Kicktable(kicktable=self.trackcpp_e.kicktable)
+        if self.trackcpp_e.kicktable_idx != -1:
+            kicktable = _trackcpp.cvar.kicktable_list[self.trackcpp_e.kicktable_idx]
+            return Kicktable(kicktable=kicktable)
         else:
             return None
 
@@ -804,8 +815,9 @@ class Element:
             rst += fmtstr.format('vmin', self.vmin, 'm')
         if self.vmax != _DBL_MAX:
             rst += fmtstr.format('vmax', self.vmax, 'm')
-        if self.kicktable is not None:
-            rst += fmtstr.format('kicktable', self.kicktable.filename, '')
+        if self.trackcpp_e.kicktable_idx != -1:
+            kicktable = _trackcpp.cvar.kicktable_list[self.trackcpp_e.kicktable_idx]
+            rst += fmtstr.format('kicktable', kicktable.filename, '')
         if not (self.t_in == _numpy.zeros(_NUM_COORDS)).all():
             rst += fmtstr.format('t_in', self.t_in, 'm')
         if not (self.t_out == _numpy.zeros(_NUM_COORDS)).all():
