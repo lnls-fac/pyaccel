@@ -213,27 +213,39 @@ def _process_polynoms(polya, polyb):
 class Kicktable:
     """."""
 
+    kicktable_list = _trackcpp.cvar.kicktable_list  # trackcpp vector with all Kicktables in use.
+
     def __init__(self, **kwargs):
         """."""
+        # get kicktable filename
         if 'kicktable' in kwargs:
-            self._kicktable = kwargs['kicktable']
             filename = kwargs['kicktable'].filename
+        elif 'filename' in kwargs:
+            filename = kwargs['filename']
         else:
-            filename = kwargs.get('filename', "")
-        self._kicktable_idx = _trackcpp.add_kicktable(filename)
-        if self._kicktable_idx != -1:
-            self._kicktable = _trackcpp.cvar.kicktable_list[self._kicktable_idx]
+            raise NotImplementedError('Invalid Kicktable argument')
+
+        # add new kicktable to list or retrieve index of existing one with same fname.
+        idx = _trackcpp.add_kicktable(filename)
+
+        # update object attributes
+        if idx != -1:
+            self._status = _trackcpp.Status.success
+            self._kicktable_idx = idx
+            self._kicktable = _trackcpp.cvar.kicktable_list[idx]
         else:
-            raise ValueError('Could not create Kicktable {}!'.format(filename))
+            self._status = _trackcpp.Status.file_not_found
+            self._kicktable_idx = -1
+            self._kicktable = None
 
     @property
     def kicktable_idx(self):
-        """."""
+        """Return kicktable index in trackcpp kicktable_list vector."""
         return self._kicktable_idx
 
     @property
     def filename(self):
-        """."""
+        """Filename corresponding to kicktable"""
         return self._kicktable.filename
 
     @property
@@ -270,6 +282,17 @@ class Kicktable:
     def y_nrpts(self):
         """."""
         return self._kicktable.y_nrpts
+
+    @property
+    def status(self):
+        """Return last object status."""
+        return self._status
+
+    def get_kicks(self, rx, ry):
+        """Return (kickh, vkick) at (rx,ry)."""
+        idx = self.kicktable_idx
+        self._status, hkick, vkick = _trackcpp.kicktable_getkicks_wrapper(idx, rx, ry)
+        return hkick, vkick
 
     def __eq__(self, other):
         """."""
