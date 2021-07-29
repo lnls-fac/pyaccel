@@ -239,6 +239,11 @@ class Kicktable:
             self._kicktable = None
 
     @property
+    def trackcpp_kickmap(self):
+        """Return trackcpp Kickmap object."""
+        return self._kicktable
+
+    @property
     def kicktable_idx(self):
         """Return kicktable index in trackcpp kicktable_list vector."""
         return self._kicktable_idx
