@@ -294,7 +294,7 @@ class Kicktable:
         return self._status
 
     def get_kicks(self, rx, ry):
-        """Return (kickh, vkick) at (rx,ry)."""
+        """Return (hkick, vkick) at (rx,ry)."""
         idx = self.kicktable_idx
         self._status, hkick, vkick = _trackcpp.kicktable_getkicks_wrapper(idx, rx, ry)
         return hkick, vkick
