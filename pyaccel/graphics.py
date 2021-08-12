@@ -63,11 +63,14 @@ def plot_twiss(accelerator, twiss=None, plot_eta=True, add_lattice=True,
     is_interactive = _plt.isinteractive()
     _plt.interactive = False
 
-    if gca:
+    if gca is True:
         fig = _plt.gcf()
         axis = _plt.gca()
-    else:
+    elif gca is False:
         fig, axis = _plt.subplots()
+    else:
+        axis = gca
+        fig = axis.figure
 
     _plt.plot(spos, betax, label='$\\beta_x$', color='#085199')
     _plt.plot(spos, betay, label='$\\beta_y$', color='#990851')
@@ -249,8 +252,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
             'slow_corrector_coil',
             'skew_quadupole_core',
             'skew_quadupole_coil',
-            'bpm'
-        ]
+            'bpm']
     else:
         if 'slow_corrector' in selection:
             selection.remove('slow_corrector')
@@ -277,16 +279,17 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
         is_interactive = _plt.isinteractive()
     _plt.interactive = False
 
-    if gca:
+    if gca is True:
         fig = _plt.gcf()
         axis = _plt.gca()
-        y_min, y_max = _plt.ylim()
-        if offset is None:
-            offset = y_min - height
-    else:
+    elif gca is False:
         fig, axis = _plt.subplots()
-        if offset is None:
-            offset = 0.0
+    else:
+        axis = gca
+        fig = axis.figure
+
+    if offset is None:
+        offset = 0.0
 
     if symmetry is not None:
         max_length = lattice.length/symmetry
@@ -303,8 +306,6 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     line.set_zorder(0)
     axis.add_line(line)
 
-    axis.set_ylim(offset-2.1*height, y_max)
-
     drawer = _LatticeDrawer(
         lattice, offset, height, draw_edges, family_data,
         family_mapping, colours, show_label)
@@ -312,11 +313,6 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     if not gca:
         axis.set_xlim(0, lattice.length)
         axis.set_ylim(offset-height, offset+19*height)
-    else:
-        if show_label:
-            _plt.ylim(offset-2.1*height, y_max)
-        else:
-            _plt.ylim(offset-height, y_max)
 
     for s in selection:
         axis.add_collection(drawer.patch_collections[s])
@@ -335,9 +331,11 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
 
 class _LatticeDrawer(object):
     """."""
-    def __init__(self, lattice, offset, height, draw_edges, family_data,
-                 family_mapping, colours, show_label):
 
+    def __init__(
+            self, lattice, offset, height, draw_edges, family_data,
+            family_mapping, colours, show_label):
+        """."""
         self._show_label = show_label
         self._bpm_length = 0.10
         self._coil_length = 0.15
