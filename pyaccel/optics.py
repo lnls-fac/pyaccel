@@ -788,12 +788,6 @@ class EquilibriumParametersIntegrals:
         espread0 = self.espread0
         return _np.sqrt(emity*self._twi.alphay + (espread0*self._twi.etapy)**2)
 
-    @staticmethod
-    def calcH(beta, alpha, x, xl):
-        """."""
-        gamma = (1 + alpha**2) / beta
-        return beta*xl**2 + 2*alpha*x*xl + gamma*x**2
-
     def as_dict(self):
         """."""
         pars = {
@@ -850,11 +844,11 @@ class EquilibriumParametersIntegrals:
         betay_in, betay_out = betay[idx], betay[idx+1]
         alphay_in, alphay_out = alphay[idx], alphay[idx+1]
 
-        Hx_in = self.calcH(betax_in, alphax_in, etax_in, etapx_in)
-        Hx_out = self.calcH(betax_out, alphax_out, etax_in, etapx_out)
+        Hx_in = get_curlyh(betax_in, alphax_in, etax_in, etapx_in)
+        Hx_out = get_curlyh(betax_out, alphax_out, etax_in, etapx_out)
 
-        Hy_in = self.calcH(betay_in, alphay_in, etay_in, etapy_in)
-        Hy_out = self.calcH(betay_out, alphay_out, etay_in, etapy_out)
+        Hy_in = get_curlyh(betay_in, alphay_in, etay_in, etapy_in)
+        Hy_out = get_curlyh(betay_out, alphay_out, etay_in, etapy_out)
 
         etax_avg = (etax_in + etax_out) / 2
         etay_avg = (etay_in + etay_out) / 2
@@ -1189,6 +1183,7 @@ class EquilibriumParametersOhmiFormalism:
         # Look at section  D.2 of the Ohmi paper to understand this part of the
         # code on how to get the emmitances:
         evals, evecs = _np.linalg.eig(m66)
+        # evecsh = evecs.swapaxes(-1, -2).conj()
         evecsi = _np.linalg.inv(evecs)
         evecsih = evecsi.swapaxes(-1, -2).conj()
         env0r = evecsi @ self._envelope[0] @ evecsih
@@ -1216,6 +1211,19 @@ class EquilibriumParametersOhmiFormalism:
         self._alphas = alphas[idx]
         self._tunes = mus[idx] / 2 / _np.pi
         self._emits = emits[idx]
+
+        # idcs = _np.r_[2*idx, 2*idx+1]
+        # sig = env0r[:, idcs][idcs, :][:4, :4]
+        # trans_evecs = evecs[:, idcs][idcs, :][:4, :4]
+        # trans_evecsi = evecsi[:, idcs][idcs, :][:4, :4]
+
+        # print(evecs @ evecsi)
+
+        # trans_evecsh = evecsh[:, idcs][idcs, :][:4, :4]
+        # sig = trans_evecs @ sig @ trans_evecsh
+        # emity = _np.sqrt(_np.linalg.det(sig[:2, :2]).real)
+        # emitx = _np.sqrt(_np.linalg.det(sig[2:4, 2:4]).real)
+        # print(emitx, emity)
 
         # we know the damping numbers must sum to 4
         fac = _np.sum(self._alphas) / 4
@@ -1638,50 +1646,242 @@ def get_beam_size(accelerator, coupling=0.0, closed_orbit=None, twiss=None,
 
 
 @_interactive
-def get_transverse_acceptance(accelerator, twiss=None, init_twiss=None,
-                              fixed_point=None, energy_offset=0.0):
-    """Return linear transverse horizontal and vertical physical acceptances"""
-
+def calc_transverse_acceptance(
+        accelerator, twiss=None, init_twiss=None, fixed_point=None,
+        energy_offset=0.0):
+    """Return transverse horizontal and vertical physical acceptances."""
     if twiss is None:
         twiss, _ = calc_twiss(
             accelerator, init_twiss=init_twiss, fixed_point=fixed_point,
-            indices='closed')
+            indices='closed', energy_offset=energy_offset)
+
     n_twi = len(twiss)
     n_acc = len(accelerator)
     if n_twi not in {n_acc, n_acc+1}:
         raise OpticsException(
             'Mismatch between size of accelerator and size of twiss object')
 
-    closed_orbit = twiss.co
-    betax, betay, etax, etay = twiss.betax, twiss.betay, twiss.etax, twiss.etay
+    betax = twiss.betax[:n_acc]
+    betay = twiss.betay[:n_acc]
+    co_x = twiss.rx[:n_acc]
+    co_y = twiss.ry[:n_acc]
 
     # physical apertures
-    lattice = accelerator.trackcpp_acc.lattice
-    hmax = _lattice.get_attribute(accelerator, 'hmax')
-    vmax = _lattice.get_attribute(accelerator, 'vmax')
-    if len(hmax) != n_twi:
-        hmax = _np.append(hmax, hmax[-1])
-        vmax = _np.append(vmax, vmax[-1])
-
-    # calcs local linear acceptances
-    co_x, co_y = closed_orbit[(0, 2), :]
+    hmax = _np.zeros(n_acc)
+    hmin = _np.zeros(n_acc)
+    vmax = _np.zeros(n_acc)
+    vmin = _np.zeros(n_acc)
+    for idx, ele in enumerate(accelerator):
+        hmax[idx] = ele.hmax
+        hmin[idx] = ele.hmin
+        vmax[idx] = ele.vmax
+        vmin[idx] = ele.vmin
 
     # calcs acceptance with beta at entrance of elements
     betax_sqrt, betay_sqrt = _np.sqrt(betax), _np.sqrt(betay)
-    accepx_pos = (hmax - (co_x + etax * energy_offset)) / betax_sqrt
-    accepx_neg = (hmax + (co_x + etax * energy_offset)) / betax_sqrt
-    accepy_pos = (vmax - (co_y + etay * energy_offset)) / betay_sqrt
-    accepy_neg = (vmax + (co_y + etay * energy_offset)) / betay_sqrt
-    accepx_pos[accepx_pos < 0] = 0
-    accepx_neg[accepx_neg < 0] = 0
-    accepx_pos[accepy_pos < 0] = 0
-    accepx_neg[accepy_neg < 0] = 0
-    accepx = _np.min([accepx_pos, accepx_neg], axis=0)
+    accepx_pos = (hmax - co_x)
+    accepx_neg = (-hmin + co_x)
+    accepy_pos = (vmax - co_y)
+    accepy_neg = (-vmin + co_y)
+    accepx_pos /= betax_sqrt
+    accepx_neg /= betax_sqrt
+    accepy_pos /= betay_sqrt
+    accepy_neg /= betay_sqrt
+    accepx = _np.minimum(accepx_pos, accepx_neg)
+    accepy = _np.minimum(accepy_pos, accepy_neg)
+    accepx[accepx < 0] = 0
+    accepy[accepy < 0] = 0
     accepx *= accepx
-    accepy = _np.min([accepy_pos, accepy_neg], axis=0)
     accepy *= accepy
 
     return accepx, accepy, twiss
+
+
+@_interactive
+def get_curlyh(beta, alpha, x, xl):
+    """."""
+    gamma = (1 + alpha*alpha) / beta
+    return beta*xl*xl + 2*alpha*x*xl + gamma*x*x
+
+
+@_interactive
+def calc_tousheck_energy_acceptance(
+        accelerator, energy_offsets=None, track=False, **kwargs):
+    """."""
+    hmax = _lattice.get_attribute(accelerator, 'hmax')
+    hmin = _lattice.get_attribute(accelerator, 'hmin')
+
+    vcham_sts = accelerator.vchamber_on
+    rad_sts = accelerator.radiation_on
+    cav_sts = accelerator.cavity_on
+
+    accelerator.radiation_on = False
+    accelerator.cavity_on = False
+    accelerator.vchamber_on = False
+
+    twi0, *_ = calc_twiss(accelerator)
+
+    if energy_offsets is None:
+        energy_offsets = _np.linspace(1e-6, 6e-2, 60)
+
+    if _np.any(energy_offsets < 0):
+        raise ValueError('delta must be a positive vector.')
+
+    curh_pos = _np.full((energy_offsets.size, len(accelerator)), _np.inf)
+    curh_neg = _np.full((energy_offsets.size, len(accelerator)), _np.inf)
+
+    # Calculate physical aperture
+    tune_pos = _np.full((2, energy_offsets.size), _np.nan)
+    tune_neg = _np.full((2, energy_offsets.size), _np.nan)
+    ap_phys_pos = _np.zeros(energy_offsets.size)
+    ap_phys_neg = _np.zeros(energy_offsets.size)
+    beta_pos = _np.ones(energy_offsets.size)
+    beta_neg = beta_pos.copy()
+    # positive energies
+    try:
+        for idx, delta in enumerate(energy_offsets):
+            twi, *_ = calc_twiss(accelerator, energy_offset=delta)
+            if _np.any(_np.isnan(twi[0].betax)):
+                raise OpticsException('error')
+            tune_pos[0, idx] = twi[-1].mux / 2 / _np.pi
+            tune_pos[1, idx] = twi[-1].muy / 2 / _np.pi
+            beta_pos[idx] = twi[0].betax
+            dcox = twi.rx - twi0.rx
+            dcoxp = twi.px - twi0.px
+            curh_pos[idx] = get_curlyh(twi.betax, twi.alphax, dcox, dcoxp)
+
+            apper_loc = _np.minimum(
+                (hmax - twi.rx)**2, (hmin + twi.rx)**2)
+            ap_phys_pos[idx] = _np.min(apper_loc / twi.betax)
+    except (OpticsException, _tracking.TrackingException):
+        pass
+
+    # negative energies
+    try:
+        for idx, delta in enumerate(energy_offsets):
+            twi, *_ = calc_twiss(accelerator, energy_offset=-delta)
+            if _np.any(_np.isnan(twi[0].betax)):
+                raise OpticsException('error')
+            tune_neg[0, idx] = twi[-1].mux / 2 / _np.pi
+            tune_neg[1, idx] = twi[-1].muy / 2 / _np.pi
+            beta_neg[idx] = twi[0].betax
+            dcox = twi.rx - twi0.rx
+            dcoxp = twi.px - twi0.px
+            curh_neg[idx] = get_curlyh(twi.betax, twi.alphax, dcox, dcoxp)
+
+            apper_loc = _np.minimum(
+                (hmax - twi.rx)**2, (hmin + twi.rx)**2)
+            ap_phys_neg[idx] = _np.min(apper_loc / twi.betax)
+    except (OpticsException, _tracking.TrackingException):
+        pass
+
+    # Considering synchrotron oscillations, negative energy deviations will
+    # turn into positive ones and vice-versa, so the apperture must be
+    # symmetric:
+    ap_phys = _np.minimum(ap_phys_pos, ap_phys_neg)
+
+    # Calculate Dynamic Aperture
+    ap_dyn_pos = _np.full(energy_offsets.shape, _np.inf)
+    ap_dyn_neg = _np.full(energy_offsets.shape, _np.inf)
+    if track:
+        nturns = kwargs.get('nturns_track', 131)
+        curh_track = kwargs.get(
+            'curh_track', _np.linspace(0, 4e-6, 30))
+        ener_pos = kwargs.get(
+            'delta_track_pos', _np.linspace(0.02, energy_offsets.max(), 20))
+        ener_neg = kwargs.get('delta_track_neg', -ener_pos)
+
+        # Find de 4D orbit to track around it:
+        rin_pos = _np.full((6, ener_pos.size, curh_track.size), _np.nan)
+        try:
+            for idx, en in enumerate(ener_pos):
+                rin_pos[:4, idx, :] = _tracking.find_orbit4(
+                    accelerator, energy_offset=en).ravel()[:, None]
+        except _tracking.TrackingException:
+            pass
+        rin_pos = rin_pos.reshape(6, -1)
+
+        rin_neg = _np.full((6, ener_neg.size, curh_track.size), _np.nan)
+        try:
+            for idx, en in enumerate(ener_neg):
+                rin_neg[:4, idx, :] = _tracking.find_orbit4(
+                    accelerator, energy_offset=en).ravel()[:, None]
+        except _tracking.TrackingException:
+            pass
+        rin_neg = rin_neg.reshape(6, -1)
+
+        # Get beta at tracking energies to define initial tracking angle:
+        beta_pos = _np.interp(ener_pos, energy_offsets, beta_pos)
+        beta_neg = _np.interp(-ener_neg, energy_offsets, beta_neg)
+
+        accelerator.cavity_on = True
+        accelerator.radiation_on = True
+        accelerator.vchamber_on = True
+        orb6d = _tracking.find_orbit6(accelerator)
+
+        # Track positive energies
+        curh0, ener = _np.meshgrid(curh_track, ener_pos)
+        xl = _np.sqrt(curh0/beta_pos[:, None])
+
+        rin_pos[1, :] += xl.ravel()
+        rin_pos[2, :] += 1e-6
+        rin_pos[4, :] = orb6d[4] + ener.ravel()
+        rin_pos[5, :] = orb6d[5]
+
+        _, _, lostturn_pos, *_ = _tracking.ring_pass(
+            accelerator, rin_pos, nturns, turn_by_turn=False)
+        lostturn_pos = _np.reshape(lostturn_pos, curh0.shape)
+        lost_pos = lostturn_pos != nturns
+
+        ind_dyn = _np.argmax(lost_pos, axis=1)
+        ap_dyn_pos = curh_track[ind_dyn]
+        ap_dyn_pos = _np.interp(energy_offsets, ener_pos, ap_dyn_pos)
+
+        # Track negative energies:
+        curh0, ener = _np.meshgrid(curh_track, ener_neg)
+        xl = _np.sqrt(curh0/beta_neg[:, None])
+
+        rin_neg[1, :] += xl.ravel()
+        rin_neg[2, :] += 1e-6
+        rin_neg[4, :] = orb6d[4] + ener.ravel()
+        rin_neg[5, :] = orb6d[5]
+
+        _, _, lostturn_neg, *_ = _tracking.ring_pass(
+            accelerator, rin_neg, nturns, turn_by_turn=False)
+        lostturn_neg = _np.reshape(lostturn_neg, curh0.shape)
+        lost_neg = lostturn_neg != nturns
+
+        ind_dyn = _np.argmax(lost_neg, axis=1)
+        ap_dyn_neg = curh_track[ind_dyn]
+        ap_dyn_neg = _np.interp(energy_offsets, -ener_neg, ap_dyn_neg)
+
+    # Calculate Aperture and Acceptance
+    ap_dyn_pos = _np.minimum(ap_dyn_pos, ap_phys)
+    for idx in _np.arange(1, ap_dyn_pos.size):
+        ap_dyn_pos[idx] = _np.minimum(ap_dyn_pos[idx], ap_dyn_pos[idx-1])
+
+    ap_dyn_neg = _np.minimum(ap_dyn_neg, ap_phys)
+    for idx in _np.arange(1, ap_dyn_neg.size):
+        ap_dyn_neg[idx] = _np.minimum(ap_dyn_neg[idx], ap_dyn_neg[idx-1])
+
+    # return curh_pos, curh_neg
+    comp = curh_pos[:, :] >= ap_dyn_pos[:, None]
+    idcs = _np.argmax(comp, axis=0)
+    boo = _np.take_along_axis(comp, _np.expand_dims(idcs, axis=0), axis=0)
+    idcs[~boo.ravel()] = ap_dyn_pos.size-1
+    accep_pos = energy_offsets[idcs]
+
+    comp = curh_neg[:, :] >= ap_dyn_neg[:, None]
+    idcs = _np.argmax(comp, axis=0)
+    boo = _np.take_along_axis(comp, _np.expand_dims(idcs, axis=0), axis=0)
+    idcs[~boo.ravel()] = ap_dyn_pos.size-1
+    accep_neg = -energy_offsets[idcs]
+
+    accelerator.vchamber_on = vcham_sts
+    accelerator.radiation_on = rad_sts
+    accelerator.cavity_on = cav_sts
+
+    return accep_pos, accep_neg
 
 
 def _sandwich_matrix(mat1, mat2):
