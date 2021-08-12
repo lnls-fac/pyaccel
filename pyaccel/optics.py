@@ -1881,7 +1881,7 @@ def calc_tousheck_energy_acceptance(
     accelerator.radiation_on = rad_sts
     accelerator.cavity_on = cav_sts
 
-    return accep_pos, accep_neg
+    return accep_neg, accep_pos
 
 
 def _sandwich_matrix(mat1, mat2):
