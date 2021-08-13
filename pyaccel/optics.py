@@ -1731,17 +1731,14 @@ def calc_tousheck_energy_acceptance(
     curh_neg = _np.full((energy_offsets.size, len(twi0)), _np.inf)
 
     # Calculate physical aperture
-    tune_pos = _np.full((2, energy_offsets.size), _np.nan)
-    tune_neg = _np.full((2, energy_offsets.size), _np.nan)
-    ap_phys_pos = _np.zeros(energy_offsets.size)
-    ap_phys_neg = _np.zeros(energy_offsets.size)
-    beta_pos = _np.ones(energy_offsets.size)
-    beta_neg = beta_pos.copy()
-
     # positive energies
+    tune_pos = _np.full((2, energy_offsets.size), _np.nan)
+    ap_phys_pos = _np.zeros(energy_offsets.size)
+    beta_pos = _np.ones(energy_offsets.size)
     try:
         for idx, delta in enumerate(energy_offsets):
-            twi, *_ = calc_twiss(accelerator, energy_offset=delta, indices='closed')
+            twi, *_ = calc_twiss(
+                accelerator, energy_offset=delta, indices='closed')
             if _np.any(_np.isnan(twi[0].betax)):
                 raise OpticsException('error')
             tune_pos[0, idx] = twi[-1].mux / 2 / _np.pi
@@ -1758,9 +1755,13 @@ def calc_tousheck_energy_acceptance(
         pass
 
     # negative energies
+    tune_neg = tune_pos.copy()
+    ap_phys_neg = ap_phys_pos.copy()
+    beta_neg = beta_pos.copy()
     try:
         for idx, delta in enumerate(energy_offsets):
-            twi, *_ = calc_twiss(accelerator, energy_offset=-delta, indices='closed')
+            twi, *_ = calc_twiss(
+                accelerator, energy_offset=-delta, indices='closed')
             if _np.any(_np.isnan(twi[0].betax)):
                 raise OpticsException('error')
             tune_neg[0, idx] = twi[-1].mux / 2 / _np.pi
@@ -1783,7 +1784,7 @@ def calc_tousheck_energy_acceptance(
 
     # Calculate Dynamic Aperture
     ap_dyn_pos = _np.full(energy_offsets.shape, _np.inf)
-    ap_dyn_neg = _np.full(energy_offsets.shape, _np.inf)
+    ap_dyn_neg = ap_dyn_pos.copy()
     if track:
         nturns = kwargs.get('nturns_track', 131)
         curh_track = kwargs.get(
@@ -1866,16 +1867,16 @@ def calc_tousheck_energy_acceptance(
         ap_dyn_neg[idx] = _np.minimum(ap_dyn_neg[idx], ap_dyn_neg[idx-1])
 
     # return curh_pos, curh_neg
-    comp = curh_pos[:, :] >= ap_dyn_pos[:, None]
+    comp = curh_pos >= ap_dyn_pos[:, None]
     idcs = _np.argmax(comp, axis=0)
     boo = _np.take_along_axis(comp, _np.expand_dims(idcs, axis=0), axis=0)
     idcs[~boo.ravel()] = ap_dyn_pos.size-1
     accep_pos = energy_offsets[idcs]
 
-    comp = curh_neg[:, :] >= ap_dyn_neg[:, None]
+    comp = curh_neg >= ap_dyn_neg[:, None]
     idcs = _np.argmax(comp, axis=0)
     boo = _np.take_along_axis(comp, _np.expand_dims(idcs, axis=0), axis=0)
-    idcs[~boo.ravel()] = ap_dyn_pos.size-1
+    idcs[~boo.ravel()] = ap_dyn_neg.size-1
     accep_neg = -energy_offsets[idcs]
 
     accelerator.vchamber_on = vcham_sts
