@@ -1779,6 +1779,7 @@ def calc_tousheck_energy_acceptance(
     ap_dyn_neg = ap_dyn_pos.copy()
     if track:
         nturns = kwargs.get('nturns_track', 131)
+        parallel = kwargs.get('parallel_track', True)
         curh_track = kwargs.get(
             'curh_track', _np.linspace(0, 4e-6, 30))
         ener_pos = kwargs.get(
@@ -1823,7 +1824,8 @@ def calc_tousheck_energy_acceptance(
         rin_pos[5, :] = orb6d[5]
 
         _, _, lostturn_pos, *_ = _tracking.ring_pass(
-            accelerator, rin_pos, nturns, turn_by_turn=False)
+            accelerator, rin_pos, nturns, turn_by_turn=False,
+            parallel=parallel)
         lostturn_pos = _np.reshape(lostturn_pos, curh0.shape)
         lost_pos = lostturn_pos != nturns
 
@@ -1841,7 +1843,8 @@ def calc_tousheck_energy_acceptance(
         rin_neg[5, :] = orb6d[5]
 
         _, _, lostturn_neg, *_ = _tracking.ring_pass(
-            accelerator, rin_neg, nturns, turn_by_turn=False)
+            accelerator, rin_neg, nturns, turn_by_turn=False,
+            parallel=parallel)
         lostturn_neg = _np.reshape(lostturn_neg, curh0.shape)
         lost_neg = lostturn_neg != nturns
 
