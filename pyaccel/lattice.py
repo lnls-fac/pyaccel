@@ -133,10 +133,11 @@ def find_indices(lattice, attribute_name, value, comparison=None):
 @_interactive
 def get_attribute(lattice, attribute_name, indices='open', m=None, n=None):
     """Return a list with requested lattice data."""
-    if indices == 'open':
+    if indices == 'open' or indices is None:
         indices = range(len(lattice))
     elif indices == 'closed':
-        indices = list(range(len(lattice))) + [0,]
+        indices = list(range(len(lattice)))
+        indices.append(0)
 
     indices, values, isflat = _process_args_errors(indices, 0.0)
 
@@ -248,7 +249,8 @@ def write_flat_file(accelerator, filename):
 def write_flat_file_to_string(accelerator):
     """."""
     str_ = _trackcpp.String()
-    rd_ = _trackcpp.write_flat_file_wrapper(str_, accelerator.trackcpp_acc, False)
+    rd_ = _trackcpp.write_flat_file_wrapper(
+        str_, accelerator.trackcpp_acc, False)
     if rd_ > 0:
         raise LatticeError(_trackcpp.string_error_messages[rd_])
 
@@ -320,7 +322,8 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
                     _Element(elem))
             new_acc.append(e_out)
         elif ele.trackcpp_e.kicktable_idx != -1:
-            kicktable = _trackcpp.cvar.kicktable_list[elem.trackcpp_e.kicktable_idx]
+            kicktable = _trackcpp.cvar.kicktable_list[
+                elem.trackcpp_e.kicktable_idx]
             for _ in range(nr_segs):
                 el_ = _trackcpp.kickmap_wrapper(
                     ele.fam_name,
