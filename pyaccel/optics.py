@@ -1708,8 +1708,8 @@ def get_curlyh(beta, alpha, x, xl):
 def calc_tousheck_energy_acceptance(
         accelerator, energy_offsets=None, track=False, **kwargs):
     """."""
-    hmax = _lattice.get_attribute(accelerator, 'hmax')
-    hmin = _lattice.get_attribute(accelerator, 'hmin')
+    hmax = _lattice.get_attribute(accelerator, 'hmax', indices='closed')
+    hmin = _lattice.get_attribute(accelerator, 'hmin', indices='closed')
 
     vcham_sts = accelerator.vchamber_on
     rad_sts = accelerator.radiation_on
@@ -1719,7 +1719,7 @@ def calc_tousheck_energy_acceptance(
     accelerator.cavity_on = False
     accelerator.vchamber_on = False
 
-    twi0, *_ = calc_twiss(accelerator)
+    twi0, *_ = calc_twiss(accelerator, indices='closed')
 
     if energy_offsets is None:
         energy_offsets = _np.linspace(1e-6, 6e-2, 60)
@@ -1727,8 +1727,8 @@ def calc_tousheck_energy_acceptance(
     if _np.any(energy_offsets < 0):
         raise ValueError('delta must be a positive vector.')
 
-    curh_pos = _np.full((energy_offsets.size, len(accelerator)), _np.inf)
-    curh_neg = _np.full((energy_offsets.size, len(accelerator)), _np.inf)
+    curh_pos = _np.full((energy_offsets.size, len(twi0)), _np.inf)
+    curh_neg = _np.full((energy_offsets.size, len(twi0)), _np.inf)
 
     # Calculate physical aperture
     tune_pos = _np.full((2, energy_offsets.size), _np.nan)
@@ -1737,10 +1737,11 @@ def calc_tousheck_energy_acceptance(
     ap_phys_neg = _np.zeros(energy_offsets.size)
     beta_pos = _np.ones(energy_offsets.size)
     beta_neg = beta_pos.copy()
+
     # positive energies
     try:
         for idx, delta in enumerate(energy_offsets):
-            twi, *_ = calc_twiss(accelerator, energy_offset=delta)
+            twi, *_ = calc_twiss(accelerator, energy_offset=delta, indices='closed')
             if _np.any(_np.isnan(twi[0].betax)):
                 raise OpticsException('error')
             tune_pos[0, idx] = twi[-1].mux / 2 / _np.pi
@@ -1759,7 +1760,7 @@ def calc_tousheck_energy_acceptance(
     # negative energies
     try:
         for idx, delta in enumerate(energy_offsets):
-            twi, *_ = calc_twiss(accelerator, energy_offset=-delta)
+            twi, *_ = calc_twiss(accelerator, energy_offset=-delta, indices='closed')
             if _np.any(_np.isnan(twi[0].betax)):
                 raise OpticsException('error')
             tune_neg[0, idx] = twi[-1].mux / 2 / _np.pi

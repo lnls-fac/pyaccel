@@ -131,10 +131,12 @@ def find_indices(lattice, attribute_name, value, comparison=None):
 
 
 @_interactive
-def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
+def get_attribute(lattice, attribute_name, indices='open', m=None, n=None):
     """Return a list with requested lattice data."""
-    if indices is None:
+    if indices == 'open':
         indices = range(len(lattice))
+    elif indices == 'closed':
+        indices = list(range(len(lattice))) + [0,]
 
     indices, values, isflat = _process_args_errors(indices, 0.0)
 
