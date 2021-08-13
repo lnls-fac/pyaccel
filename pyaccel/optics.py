@@ -1778,13 +1778,13 @@ def calc_tousheck_energy_acceptance(
     ap_dyn_pos = _np.full(energy_offsets.shape, _np.inf)
     ap_dyn_neg = ap_dyn_pos.copy()
     if track:
-        nturns = kwargs.get('nturns_track', 131)
-        parallel = kwargs.get('parallel_track', True)
+        nturns = kwargs.get('track_nr_turns', 131)
+        parallel = kwargs.get('track_parallel', True)
         curh_track = kwargs.get(
-            'curh_track', _np.linspace(0, 4e-6, 30))
+            'track_curh', _np.linspace(0, 4e-6, 30))
         ener_pos = kwargs.get(
-            'delta_track_pos', _np.linspace(0.02, energy_offsets.max(), 20))
-        ener_neg = kwargs.get('delta_track_neg', -ener_pos)
+            'track_delta_pos', _np.linspace(0.02, energy_offsets.max(), 20))
+        ener_neg = kwargs.get('track_delta_neg', -ener_pos)
 
         # Find de 4D orbit to track around it:
         rin_pos = _np.full((6, ener_pos.size, curh_track.size), _np.nan)
