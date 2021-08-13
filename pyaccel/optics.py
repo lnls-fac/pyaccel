@@ -1661,21 +1661,20 @@ def calc_transverse_acceptance(
         raise OpticsException(
             'Mismatch between size of accelerator and size of twiss object')
 
-    betax = twiss.betax[:n_acc]
-    betay = twiss.betay[:n_acc]
-    co_x = twiss.rx[:n_acc]
-    co_y = twiss.ry[:n_acc]
+    betax = twiss.betax
+    betay = twiss.betay
+    co_x = twiss.rx
+    co_y = twiss.ry
 
     # physical apertures
-    hmax = _np.zeros(n_acc)
-    hmin = _np.zeros(n_acc)
-    vmax = _np.zeros(n_acc)
-    vmin = _np.zeros(n_acc)
+    hmax, hmin = _np.zeros(n_twi), _np.zeros(n_twi)
+    vmax, vmin = _np.zeros(n_twi), _np.zeros(n_twi)
     for idx, ele in enumerate(accelerator):
-        hmax[idx] = ele.hmax
-        hmin[idx] = ele.hmin
-        vmax[idx] = ele.vmax
-        vmin[idx] = ele.vmin
+        hmax[idx], hmin[idx] = ele.hmax, ele.hmin
+        vmax[idx], vmin[idx] = ele.vmax, ele.vmin
+    if n_twi > n_acc:
+        hmax[-1], hmin[-1] = hmax[0], hmin[0]
+        vmax[-1], vmin[-1] = vmax[0], vmin[0]
 
     # calcs acceptance with beta at entrance of elements
     betax_sqrt, betay_sqrt = _np.sqrt(betax), _np.sqrt(betay)
@@ -1693,7 +1692,6 @@ def calc_transverse_acceptance(
     accepy[accepy < 0] = 0
     accepx *= accepx
     accepy *= accepy
-
     return accepx, accepy, twiss
 
 
