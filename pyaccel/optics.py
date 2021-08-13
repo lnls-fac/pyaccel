@@ -1696,15 +1696,9 @@ def calc_transverse_acceptance(
 
 
 @_interactive
-def get_curlyh(beta, alpha, x, xl):
-    """."""
-    gamma = (1 + alpha*alpha) / beta
-    return beta*xl*xl + 2*alpha*x*xl + gamma*x*x
-
-
-@_interactive
 def calc_tousheck_energy_acceptance(
-        accelerator, energy_offsets=None, track=False, **kwargs):
+        accelerator, energy_offsets=None, track=False, check_tune=False,
+        **kwargs):
     """."""
     hmax = _lattice.get_attribute(accelerator, 'hmax', indices='closed')
     hmin = _lattice.get_attribute(accelerator, 'hmin', indices='closed')
@@ -1718,6 +1712,7 @@ def calc_tousheck_energy_acceptance(
     accelerator.vchamber_on = False
 
     twi0, *_ = calc_twiss(accelerator, indices='closed')
+    tune0 = _np.array([twi0[-1].mux, twi0[-1].muy]) / (2*_np.pi)
 
     if energy_offsets is None:
         energy_offsets = _np.linspace(1e-6, 6e-2, 60)
@@ -1725,11 +1720,9 @@ def calc_tousheck_energy_acceptance(
     if _np.any(energy_offsets < 0):
         raise ValueError('delta must be a positive vector.')
 
-    curh_pos = _np.full((energy_offsets.size, len(twi0)), _np.inf)
-    curh_neg = _np.full((energy_offsets.size, len(twi0)), _np.inf)
-
-    # Calculate physical aperture
+    # ############ Calculate physical aperture ############
     # positive energies
+    curh_pos = _np.full((energy_offsets.size, len(twi0)), _np.inf)
     tune_pos = _np.full((2, energy_offsets.size), _np.nan)
     ap_phys_pos = _np.zeros(energy_offsets.size)
     beta_pos = _np.ones(energy_offsets.size)
@@ -1739,8 +1732,8 @@ def calc_tousheck_energy_acceptance(
                 accelerator, energy_offset=delta, indices='closed')
             if _np.any(_np.isnan(twi[0].betax)):
                 raise OpticsException('error')
-            tune_pos[0, idx] = twi[-1].mux / 2 / _np.pi
-            tune_pos[1, idx] = twi[-1].muy / 2 / _np.pi
+            tune_pos[0, idx] = twi[-1].mux / (2*_np.pi)
+            tune_pos[1, idx] = twi[-1].muy / (2*_np.pi)
             beta_pos[idx] = twi[0].betax
             dcox = twi.rx - twi0.rx
             dcoxp = twi.px - twi0.px
@@ -1753,6 +1746,7 @@ def calc_tousheck_energy_acceptance(
         pass
 
     # negative energies
+    curh_neg = curh_pos.copy()
     tune_neg = tune_pos.copy()
     ap_phys_neg = ap_phys_pos.copy()
     beta_neg = beta_pos.copy()
@@ -1780,7 +1774,7 @@ def calc_tousheck_energy_acceptance(
     # symmetric:
     ap_phys = _np.minimum(ap_phys_pos, ap_phys_neg)
 
-    # Calculate Dynamic Aperture
+    # ############ Calculate Dynamic Aperture ############
     ap_dyn_pos = _np.full(energy_offsets.shape, _np.inf)
     ap_dyn_neg = ap_dyn_pos.copy()
     if track:
@@ -1855,33 +1849,64 @@ def calc_tousheck_energy_acceptance(
         ap_dyn_neg = curh_track[ind_dyn]
         ap_dyn_neg = _np.interp(energy_offsets, -ener_neg, ap_dyn_neg)
 
-    # Calculate Aperture and Acceptance
-    ap_dyn_pos = _np.minimum(ap_dyn_pos, ap_phys)
-    for idx in _np.arange(1, ap_dyn_pos.size):
-        ap_dyn_pos[idx] = _np.minimum(ap_dyn_pos[idx], ap_dyn_pos[idx-1])
-
-    ap_dyn_neg = _np.minimum(ap_dyn_neg, ap_phys)
-    for idx in _np.arange(1, ap_dyn_neg.size):
-        ap_dyn_neg[idx] = _np.minimum(ap_dyn_neg[idx], ap_dyn_neg[idx-1])
-
-    # return curh_pos, curh_neg
-    comp = curh_pos >= ap_dyn_pos[:, None]
-    idcs = _np.argmax(comp, axis=0)
-    boo = _np.take_along_axis(comp, _np.expand_dims(idcs, axis=0), axis=0)
-    idcs[~boo.ravel()] = ap_dyn_pos.size-1
-    accep_pos = energy_offsets[idcs]
-
-    comp = curh_neg >= ap_dyn_neg[:, None]
-    idcs = _np.argmax(comp, axis=0)
-    boo = _np.take_along_axis(comp, _np.expand_dims(idcs, axis=0), axis=0)
-    idcs[~boo.ravel()] = ap_dyn_neg.size-1
-    accep_neg = -energy_offsets[idcs]
-
     accelerator.vchamber_on = vcham_sts
     accelerator.radiation_on = rad_sts
     accelerator.cavity_on = cav_sts
 
+    # ############ Check tunes ############
+    # Make sure tune don't cross int and half-int resonances
+    # Must be symmetric due to syncrhotron oscillations
+    ap_tune = _np.full(energy_offsets.shape, _np.inf)
+    if check_tune:
+        tune0_int = _np.floor(tune0)
+        tune_pos -= tune0_int[:, None]
+        tune_neg -= tune0_int[:, None]
+        tune0 -= tune0_int
+
+        # make M*tune > b to check for quadrant crossing:
+        quadrant0 = _np.array(tune0 > 0.5, dtype=float)
+        M = _np.array([[1, 0], [0, 1], [-1, 0], [0, -1]], dtype=float)
+        b = _np.array([0, 0, -1/2, -1/2])
+        b += _np.r_[quadrant0/2, -quadrant0/2]
+
+        boo_pos = _np.dot(M, tune_pos) > b[:, None]
+        boo_neg = _np.dot(M, tune_neg) > b[:, None]
+        nok_pos = ~boo_pos.all(axis=0)
+        nok_neg = ~boo_neg.all(axis=0)
+
+        ap_tune[nok_pos] = 0
+        ap_tune[nok_neg] = 0
+
+    # ############ Calculate aperture ############
+    ap_pos = _np.minimum(ap_dyn_pos, ap_phys, ap_tune)
+    ap_neg = _np.minimum(ap_dyn_neg, ap_phys, ap_tune)
+    # make sure it is monotonic with energy:
+    for idx in _np.arange(1, ap_pos.size):
+        ap_pos[idx] = _np.minimum(ap_pos[idx], ap_pos[idx-1])
+    for idx in _np.arange(1, ap_neg.size):
+        ap_neg[idx] = _np.minimum(ap_neg[idx], ap_neg[idx-1])
+
+    # ############ Calculate energy acceptance along ring ############
+    comp = curh_pos >= ap_pos[:, None]
+    idcs = _np.argmax(comp, axis=0)
+    boo = _np.take_along_axis(comp, _np.expand_dims(idcs, axis=0), axis=0)
+    idcs[~boo.ravel()] = ap_pos.size-1
+    accep_pos = energy_offsets[idcs]
+
+    comp = curh_neg >= ap_neg[:, None]
+    idcs = _np.argmax(comp, axis=0)
+    boo = _np.take_along_axis(comp, _np.expand_dims(idcs, axis=0), axis=0)
+    idcs[~boo.ravel()] = ap_neg.size-1
+    accep_neg = -energy_offsets[idcs]
+
     return accep_neg, accep_pos
+
+
+@_interactive
+def get_curlyh(beta, alpha, x, xl):
+    """."""
+    gamma = (1 + alpha*alpha) / beta
+    return beta*xl*xl + 2*alpha*x*xl + gamma*x*x
 
 
 def _sandwich_matrix(mat1, mat2):
