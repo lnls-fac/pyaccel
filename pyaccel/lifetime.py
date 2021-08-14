@@ -12,6 +12,8 @@ from . import optics as _optics
 
 if _implib.util.find_spec('scipy'):
     import scipy.integrate as _integrate
+else:
+    _integrate = None
 
 
 class Lifetime:
@@ -33,11 +35,11 @@ class Lifetime:
         res = _optics.calc_transverse_acceptance(self._acc, self._eqpar.twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
-        self._curr_per_bun = 100/864
-        self._avg_pressure = 1e-9
+        self._curr_per_bun = 100/864  # [mA]
+        self._avg_pressure = 1e-9  # [mbar]
         self._coupling = 0.03
         self._atomic_number = 7
-        self._temperature = 300
+        self._temperature = 300  # [K]
         self._taux = self._tauy = self._taue = None
         self._emit0 = self._espread0 = self._bunlen = None
         self._accepx = self._accepy = self._accepen = None
@@ -57,12 +59,12 @@ class Lifetime:
 
     @property
     def equi_params(self):
-        """."""
+        """Equilibrium parameters."""
         return self._eqpar
 
     @property
     def curr_per_bunch(self):
-        """Return current per bunch, in mA."""
+        """Return current per bunch [mA]."""
         return self._curr_per_bun
 
     @curr_per_bunch.setter
@@ -78,7 +80,7 @@ class Lifetime:
 
     @property
     def avg_pressure(self):
-        """Average Pressure in mbar."""
+        """Average Pressure [mbar]."""
         return self._avg_pressure
 
     @avg_pressure.setter
@@ -105,7 +107,7 @@ class Lifetime:
 
     @property
     def temperature(self):
-        """Average Temperature of residual gas."""
+        """Average Temperature of residual gas [K]."""
         return self._temperature
 
     @temperature.setter
@@ -114,7 +116,7 @@ class Lifetime:
 
     @property
     def emit0(self):
-        """Transverse Emittance in m.rad."""
+        """Transverse Emittance [m.rad]."""
         if self._emit0 is not None:
             return self._emit0
         return self._eqpar.emit0
@@ -136,7 +138,7 @@ class Lifetime:
 
     @property
     def bunlen(self):
-        """Bunch length in m."""
+        """Bunch length [m]."""
         if self._bunlen is not None:
             return self._bunlen
         return self._eqpar.bunlen
@@ -147,7 +149,7 @@ class Lifetime:
 
     @property
     def taux(self):
-        """Horizontal damping Time in s."""
+        """Horizontal damping Time [s]."""
         if self._taux is not None:
             return self._taux
         return self._eqpar.taux
@@ -158,7 +160,7 @@ class Lifetime:
 
     @property
     def tauy(self):
-        """Vertical damping Time in s."""
+        """Vertical damping Time [s]."""
         if self._tauy is not None:
             return self._tauy
         return self._eqpar.tauy
@@ -169,7 +171,7 @@ class Lifetime:
 
     @property
     def taue(self):
-        """Longitudinal damping Time in s."""
+        """Longitudinal damping Time [s]."""
         if self._taue is not None:
             return self._taue
         return self._eqpar.taue
@@ -238,7 +240,7 @@ class Lifetime:
 
     @property
     def accepy(self):
-        """Horizontal acceptance."""
+        """Vertical acceptance."""
         if self._accepy is not None:
             return self._accepy
         dic = dict()
@@ -267,11 +269,11 @@ class Lifetime:
 
         parameters used in calculation:
 
-        emit0        = Natural emittance in m.rad
-        energy       = Bunch energy in [GeV]
+        emit0        = Natural emittance [m.rad]
+        energy       = Bunch energy [GeV]
         nr_part      = Number of electrons ber bunch
         espread      = relative energy spread,
-        bunlen       = bunch length in [m]
+        bunlen       = bunch length [m]
         coupling     = emittance coupling factor (emity = coupling*emitx)
         accepen      = relative energy acceptance of the machine.
 
@@ -353,7 +355,7 @@ class Lifetime:
 
     @property
     def lossrate_touschek(self):
-        """."""
+        """Return Touschek loss rate [1/s]."""
         data = self.touschek_data
         return data['avg_rate']
 
@@ -363,11 +365,11 @@ class Lifetime:
         Calculate beam loss rate due to elastic scattering from residual gas.
 
         Parameters used in calculations:
-        accepx, accepy = [horizontal, vertical] acceptance [m·rad]
+        accepx, accepy = horizontal and vertical acceptances [m·rad]
         avg_pressure   = Residual gas pressure [mbar]
         atomic number  = Residual gas atomic number (default: 7)
-        temperature    = [K] (default: 300)
-        energy         = Beam energy
+        temperature    = Residual gas temperature [K] (default: 300)
+        energy         = Beam energy [eV]
         twiss          = Twis parameters
 
         output:
@@ -417,7 +419,7 @@ class Lifetime:
 
     @property
     def lossrate_elastic(self):
-        """."""
+        """Return elastic loss rate [1/s]."""
         data = self.elastic_data
         return data['avg_rate']
 
@@ -462,7 +464,7 @@ class Lifetime:
 
     @property
     def lossrate_inelastic(self):
-        """."""
+        """Return inelastic loss rate [1/s]."""
         data = self.inelastic_data
         return data['avg_rate']
 
@@ -499,7 +501,7 @@ class Lifetime:
 
     @property
     def lossrate_quantumx(self):
-        """."""
+        """Return quantum loss rate in horizontal plane [1/s]."""
         data = self.quantumx_data
         return data['avg_rate']
 
@@ -536,7 +538,7 @@ class Lifetime:
 
     @property
     def lossrate_quantumy(self):
-        """."""
+        """Return quantum loss rate in vertical plane [1/s]."""
         data = self.quantumy_data
         return data['avg_rate']
 
@@ -573,13 +575,13 @@ class Lifetime:
 
     @property
     def lossrate_quantume(self):
-        """."""
+        """Return quantum loss rate in longitudinal plane [1/s]."""
         data = self.quantume_data
         return data['avg_rate']
 
     @property
     def lossrate_quantum(self):
-        """."""
+        """Return quantum loss rate [1/s]."""
         rate = self.lossrate_quantume
         rate += self.lossrate_quantumx
         rate += self.lossrate_quantumy
@@ -587,7 +589,7 @@ class Lifetime:
 
     @property
     def lossrate_total(self):
-        """."""
+        """Return total loss rate [1/s]."""
         rate = self.lossrate_elastic
         rate += self.lossrate_inelastic
         rate += self.lossrate_quantum
@@ -596,28 +598,33 @@ class Lifetime:
 
     @property
     def lifetime_touschek(self):
-        """."""
-        return 1 / self.lossrate_touschek
+        """Return Touschek lifetime [s]."""
+        lft = 1 / self.lossrate_touschek if self.lossrate_touschek > 0 else float('inf')
+        return lft
 
     @property
     def lifetime_elastic(self):
-        """."""
-        return 1 / self.lossrate_elastic
+        """Return elastic lifetime [s]."""
+        lft = 1 / self.lossrate_elastic if self.lossrate_elastic > 0 else float('inf')
+        return lft
 
     @property
     def lifetime_inelastic(self):
-        """."""
-        return 1 / self.lossrate_inelastic
+        """Return inelastic lifetime [s]."""
+        lft = 1 / self.lossrate_inelastic if self.lossrate_inelastic > 0 else float('inf')
+        return lft
 
     @property
     def lifetime_quantum(self):
-        """."""
-        return 1 / self.lossrate_quantum
+        """Return quandtum lifetime [s]."""
+        lft = 1 / self.lossrate_quantum if self.lossrate_quantum > 0 else float('inf')
+        return lft
 
     @property
     def lifetime_total(self):
-        """."""
-        return 1 / self.lossrate_total
+        """Return total lifetime [s]."""
+        lft = 1 / self.lossrate_total if self.lossrate_total > 0 else float('inf')
+        return lft
 
     @classmethod
     def get_touschek_integration_table(cls):
@@ -652,6 +659,8 @@ class Lifetime:
 
     @staticmethod
     def _calc_d_touschek_scipy(ksi):
+        if _integrate is None:
+            raise ImportError('scipy library not available')
         lim = 1000
         int1, _ = _integrate.quad(
             lambda x: _np.exp(-x)/x, ksi, _np.inf, limit=lim)
