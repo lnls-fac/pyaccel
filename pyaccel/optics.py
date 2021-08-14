@@ -1720,13 +1720,15 @@ def calc_tousheck_energy_acceptance(
     hmin = _lattice.get_attribute(accelerator, 'hmin', indices='closed')
     twi0, *_ = calc_twiss(accelerator, indices='closed')
     tune0 = _np.array([twi0[-1].mux, twi0[-1].muy]) / (2*_np.pi)
+    rx0 = twi0.rx
+    px0 = twi0.px
 
     # positive energies
     curh_pos, ap_phys_pos, tune_pos, beta_pos = _calc_phys_apert_for_tousheck(
-        accelerator, energy_offsets, twi0, hmax, hmin)
+        accelerator, energy_offsets, rx0, px0, hmax, hmin)
     # negative energies
     curh_neg, ap_phys_neg, tune_neg, beta_neg = _calc_phys_apert_for_tousheck(
-        accelerator, -energy_offsets, twi0, hmax, hmin)
+        accelerator, -energy_offsets, rx0, px0, hmax, hmin)
 
     # Considering synchrotron oscillations, negative energy deviations will
     # turn into positive ones and vice-versa, so the apperture must be
@@ -1818,8 +1820,8 @@ def get_curlyh(beta, alpha, x, xl):
 
 
 def _calc_phys_apert_for_tousheck(
-        accelerator, energy_offsets, twi0, hmax, hmin):
-    curh = _np.full((energy_offsets.size, len(twi0)), _np.inf)
+        accelerator, energy_offsets, rx0, px0, hmax, hmin):
+    curh = _np.full((energy_offsets.size, rx0.size), _np.inf)
     tune = _np.full((2, energy_offsets.size), _np.nan)
     ap_phys = _np.zeros(energy_offsets.size)
     beta = _np.ones(energy_offsets.size)
@@ -1832,13 +1834,15 @@ def _calc_phys_apert_for_tousheck(
             tune[0, idx] = twi[-1].mux / (2*_np.pi)
             tune[1, idx] = twi[-1].muy / (2*_np.pi)
             beta[idx] = twi[0].betax
-            dcox = twi.rx - twi0.rx
-            dcoxp = twi.px - twi0.px
-            curh[idx] = get_curlyh(twi.betax, twi.alphax, dcox, dcoxp)
+            rx = twi.rx
+            px = twi.px
+            betax = twi.betax
+            dcox = rx - rx0
+            dcoxp = px - px0
+            curh[idx] = get_curlyh(betax, twi.alphax, dcox, dcoxp)
 
-            apper_loc = _np.minimum(
-                (hmax - twi.rx)**2, (hmin + twi.rx)**2)
-            ap_phys[idx] = _np.min(apper_loc / twi.betax)
+            apper_loc = _np.minimum((hmax - rx)**2, (hmin + rx)**2)
+            ap_phys[idx] = _np.min(apper_loc / betax)
     except (OpticsException, _tracking.TrackingException):
         pass
     return curh, ap_phys, tune, beta
