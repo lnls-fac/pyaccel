@@ -599,32 +599,32 @@ class Lifetime:
     @property
     def lifetime_touschek(self):
         """Return Touschek lifetime [s]."""
-        lft = 1 / self.lossrate_touschek if self.lossrate_touschek > 0 else float('inf')
-        return lft
+        loss = self.lossrate_touschek
+        return 1 / loss if loss > 0 else float('inf')
 
     @property
     def lifetime_elastic(self):
         """Return elastic lifetime [s]."""
-        lft = 1 / self.lossrate_elastic if self.lossrate_elastic > 0 else float('inf')
-        return lft
+        loss = self.lossrate_elastic
+        return 1 / loss if loss > 0 else float('inf')
 
     @property
     def lifetime_inelastic(self):
         """Return inelastic lifetime [s]."""
-        lft = 1 / self.lossrate_inelastic if self.lossrate_inelastic > 0 else float('inf')
-        return lft
+        loss = self.lossrate_inelastic
+        return 1 / loss if loss > 0 else float('inf')
 
     @property
     def lifetime_quantum(self):
         """Return quandtum lifetime [s]."""
-        lft = 1 / self.lossrate_quantum if self.lossrate_quantum > 0 else float('inf')
-        return lft
+        loss = self.lossrate_quantum
+        return 1 / loss if loss > 0 else float('inf')
 
     @property
     def lifetime_total(self):
         """Return total lifetime [s]."""
-        lft = 1 / self.lossrate_total if self.lossrate_total > 0 else float('inf')
-        return lft
+        loss = self.lossrate_total
+        return 1 / loss if loss > 0 else float('inf')
 
     @classmethod
     def get_touschek_integration_table(cls):
