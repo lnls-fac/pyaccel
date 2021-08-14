@@ -1700,9 +1700,6 @@ def calc_tousheck_energy_acceptance(
         accelerator, energy_offsets=None, track=False, check_tune=False,
         **kwargs):
     """."""
-    hmax = _lattice.get_attribute(accelerator, 'hmax', indices='closed')
-    hmin = _lattice.get_attribute(accelerator, 'hmin', indices='closed')
-
     vcham_sts = accelerator.vchamber_on
     rad_sts = accelerator.radiation_on
     cav_sts = accelerator.cavity_on
@@ -1711,9 +1708,6 @@ def calc_tousheck_energy_acceptance(
     accelerator.cavity_on = False
     accelerator.vchamber_on = False
 
-    twi0, *_ = calc_twiss(accelerator, indices='closed')
-    tune0 = _np.array([twi0[-1].mux, twi0[-1].muy]) / (2*_np.pi)
-
     if energy_offsets is None:
         energy_offsets = _np.linspace(1e-6, 6e-2, 60)
 
@@ -1721,53 +1715,18 @@ def calc_tousheck_energy_acceptance(
         raise ValueError('delta must be a positive vector.')
 
     # ############ Calculate physical aperture ############
+
+    hmax = _lattice.get_attribute(accelerator, 'hmax', indices='closed')
+    hmin = _lattice.get_attribute(accelerator, 'hmin', indices='closed')
+    twi0, *_ = calc_twiss(accelerator, indices='closed')
+    tune0 = _np.array([twi0[-1].mux, twi0[-1].muy]) / (2*_np.pi)
+
     # positive energies
-    curh_pos = _np.full((energy_offsets.size, len(twi0)), _np.inf)
-    tune_pos = _np.full((2, energy_offsets.size), _np.nan)
-    ap_phys_pos = _np.zeros(energy_offsets.size)
-    beta_pos = _np.ones(energy_offsets.size)
-    try:
-        for idx, delta in enumerate(energy_offsets):
-            twi, *_ = calc_twiss(
-                accelerator, energy_offset=delta, indices='closed')
-            if _np.any(_np.isnan(twi[0].betax)):
-                raise OpticsException('error')
-            tune_pos[0, idx] = twi[-1].mux / (2*_np.pi)
-            tune_pos[1, idx] = twi[-1].muy / (2*_np.pi)
-            beta_pos[idx] = twi[0].betax
-            dcox = twi.rx - twi0.rx
-            dcoxp = twi.px - twi0.px
-            curh_pos[idx] = get_curlyh(twi.betax, twi.alphax, dcox, dcoxp)
-
-            apper_loc = _np.minimum(
-                (hmax - twi.rx)**2, (hmin + twi.rx)**2)
-            ap_phys_pos[idx] = _np.min(apper_loc / twi.betax)
-    except (OpticsException, _tracking.TrackingException):
-        pass
-
+    curh_pos, ap_phys_pos, tune_pos, beta_pos = _calc_phys_apert_for_tousheck(
+        accelerator, energy_offsets, twi0, hmax, hmin)
     # negative energies
-    curh_neg = curh_pos.copy()
-    tune_neg = tune_pos.copy()
-    ap_phys_neg = ap_phys_pos.copy()
-    beta_neg = beta_pos.copy()
-    try:
-        for idx, delta in enumerate(energy_offsets):
-            twi, *_ = calc_twiss(
-                accelerator, energy_offset=-delta, indices='closed')
-            if _np.any(_np.isnan(twi[0].betax)):
-                raise OpticsException('error')
-            tune_neg[0, idx] = twi[-1].mux / 2 / _np.pi
-            tune_neg[1, idx] = twi[-1].muy / 2 / _np.pi
-            beta_neg[idx] = twi[0].betax
-            dcox = twi.rx - twi0.rx
-            dcoxp = twi.px - twi0.px
-            curh_neg[idx] = get_curlyh(twi.betax, twi.alphax, dcox, dcoxp)
-
-            apper_loc = _np.minimum(
-                (hmax - twi.rx)**2, (hmin + twi.rx)**2)
-            ap_phys_neg[idx] = _np.min(apper_loc / twi.betax)
-    except (OpticsException, _tracking.TrackingException):
-        pass
+    curh_neg, ap_phys_neg, tune_neg, beta_neg = _calc_phys_apert_for_tousheck(
+        accelerator, -energy_offsets, twi0, hmax, hmin)
 
     # Considering synchrotron oscillations, negative energy deviations will
     # turn into positive ones and vice-versa, so the apperture must be
@@ -1910,6 +1869,34 @@ def get_curlyh(beta, alpha, x, xl):
     """."""
     gamma = (1 + alpha*alpha) / beta
     return beta*xl*xl + 2*alpha*x*xl + gamma*x*x
+
+
+def _calc_phys_apert_for_tousheck(
+        accelerator, energy_offsets, twi0, hmax, hmin):
+    curh = _np.full((energy_offsets.size, len(twi0)), _np.inf)
+    tune = _np.full((2, energy_offsets.size), _np.nan)
+    ap_phys = _np.zeros(energy_offsets.size)
+    beta = _np.ones(energy_offsets.size)
+    try:
+        for idx, delta in enumerate(energy_offsets):
+            twi, *_ = calc_twiss(
+                accelerator, energy_offset=delta, indices='closed')
+            if _np.any(_np.isnan(twi[0].betax)):
+                raise OpticsException('error')
+            tune[0, idx] = twi[-1].mux / (2*_np.pi)
+            tune[1, idx] = twi[-1].muy / (2*_np.pi)
+            beta[idx] = twi[0].betax
+            dcox = twi.rx - twi0.rx
+            dcoxp = twi.px - twi0.px
+            curh[idx] = get_curlyh(twi.betax, twi.alphax, dcox, dcoxp)
+
+            apper_loc = _np.minimum(
+                (hmax - twi.rx)**2, (hmin + twi.rx)**2)
+            ap_phys[idx] = _np.min(apper_loc / twi.betax)
+    except (OpticsException, _tracking.TrackingException):
+        pass
+
+    return curh, ap_phys, tune, beta
 
 
 def _sandwich_matrix(mat1, mat2):
