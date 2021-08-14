@@ -1013,9 +1013,10 @@ def _process_args_errors(indices, values):
 def _process_output(values, isflat):
     if isflat:
         values = flatten(values)
+    values = _np.array(values)
     if len(values) == 1:
         values = values[0]
-    return _np.array(values)
+    return values
 
 
 def _is_equal(val1, val2):
