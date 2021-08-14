@@ -1745,70 +1745,16 @@ def calc_tousheck_energy_acceptance(
             'track_delta_pos', _np.linspace(0.02, energy_offsets.max(), 20))
         ener_neg = kwargs.get('track_delta_neg', -ener_pos)
 
-        # Find de 4D orbit to track around it:
-        rin_pos = _np.full((6, ener_pos.size, curh_track.size), _np.nan)
-        try:
-            for idx, en in enumerate(ener_pos):
-                rin_pos[:4, idx, :] = _tracking.find_orbit4(
-                    accelerator, energy_offset=en).ravel()[:, None]
-        except _tracking.TrackingException:
-            pass
-        rin_pos = rin_pos.reshape(6, -1)
-
-        rin_neg = _np.full((6, ener_neg.size, curh_track.size), _np.nan)
-        try:
-            for idx, en in enumerate(ener_neg):
-                rin_neg[:4, idx, :] = _tracking.find_orbit4(
-                    accelerator, energy_offset=en).ravel()[:, None]
-        except _tracking.TrackingException:
-            pass
-        rin_neg = rin_neg.reshape(6, -1)
-
-        # Get beta at tracking energies to define initial tracking angle:
         beta_pos = _np.interp(ener_pos, energy_offsets, beta_pos)
-        beta_neg = _np.interp(-ener_neg, energy_offsets, beta_neg)
-
-        accelerator.cavity_on = True
-        accelerator.radiation_on = True
-        accelerator.vchamber_on = True
-        orb6d = _tracking.find_orbit6(accelerator)
-
-        # Track positive energies
-        curh0, ener = _np.meshgrid(curh_track, ener_pos)
-        xl = _np.sqrt(curh0/beta_pos[:, None])
-
-        rin_pos[1, :] += xl.ravel()
-        rin_pos[2, :] += 1e-6
-        rin_pos[4, :] = orb6d[4] + ener.ravel()
-        rin_pos[5, :] = orb6d[5]
-
-        _, _, lostturn_pos, *_ = _tracking.ring_pass(
-            accelerator, rin_pos, nturns, turn_by_turn=False,
+        ap_dyn_pos = _calc_dyn_apert_for_tousheck(
+            accelerator, ener_pos, curh_track, beta_pos, nturns,
             parallel=parallel)
-        lostturn_pos = _np.reshape(lostturn_pos, curh0.shape)
-        lost_pos = lostturn_pos != nturns
-
-        ind_dyn = _np.argmax(lost_pos, axis=1)
-        ap_dyn_pos = curh_track[ind_dyn]
         ap_dyn_pos = _np.interp(energy_offsets, ener_pos, ap_dyn_pos)
 
-        # Track negative energies:
-        curh0, ener = _np.meshgrid(curh_track, ener_neg)
-        xl = _np.sqrt(curh0/beta_neg[:, None])
-
-        rin_neg[1, :] += xl.ravel()
-        rin_neg[2, :] += 1e-6
-        rin_neg[4, :] = orb6d[4] + ener.ravel()
-        rin_neg[5, :] = orb6d[5]
-
-        _, _, lostturn_neg, *_ = _tracking.ring_pass(
-            accelerator, rin_neg, nturns, turn_by_turn=False,
+        beta_neg = _np.interp(-ener_neg, energy_offsets, beta_neg)
+        ap_dyn_neg = _calc_dyn_apert_for_tousheck(
+            accelerator, ener_neg, curh_track, beta_neg, nturns,
             parallel=parallel)
-        lostturn_neg = _np.reshape(lostturn_neg, curh0.shape)
-        lost_neg = lostturn_neg != nturns
-
-        ind_dyn = _np.argmax(lost_neg, axis=1)
-        ap_dyn_neg = curh_track[ind_dyn]
         ap_dyn_neg = _np.interp(energy_offsets, -ener_neg, ap_dyn_neg)
 
     accelerator.vchamber_on = vcham_sts
@@ -1816,7 +1762,7 @@ def calc_tousheck_energy_acceptance(
     accelerator.cavity_on = cav_sts
 
     # ############ Check tunes ############
-    # Make sure tune don't cross int and half-int resonances
+    # Make sure tunes don't cross int and half-int resonances
     # Must be symmetric due to syncrhotron oscillations
     ap_tune = _np.full(energy_offsets.shape, _np.inf)
     if check_tune:
@@ -1895,8 +1841,46 @@ def _calc_phys_apert_for_tousheck(
             ap_phys[idx] = _np.min(apper_loc / twi.betax)
     except (OpticsException, _tracking.TrackingException):
         pass
-
     return curh, ap_phys, tune, beta
+
+
+def _calc_dyn_apert_for_tousheck(
+        accelerator, energies, curh, beta, nturns, parallel=False):
+    accelerator.cavity_on = False
+    accelerator.radiation_on = False
+    accelerator.vchamber_on = False
+
+    rin = _np.full((6, energies.size, curh.size), _np.nan)
+    try:
+        for idx, en in enumerate(energies):
+            rin[:4, idx, :] = _tracking.find_orbit4(
+                accelerator, energy_offset=en).ravel()[:, None]
+    except _tracking.TrackingException:
+        pass
+    rin = rin.reshape(6, -1)
+
+    accelerator.cavity_on = True
+    accelerator.radiation_on = True
+    accelerator.vchamber_on = True
+    orb6d = _tracking.find_orbit6(accelerator)
+
+    # Track positive energies
+    curh0, ener = _np.meshgrid(curh, energies)
+    xl = _np.sqrt(curh0/beta[:, None])
+
+    rin[1, :] += xl.ravel()
+    rin[2, :] += 1e-6
+    rin[4, :] = orb6d[4] + ener.ravel()
+    rin[5, :] = orb6d[5]
+
+    _, _, lostturn, *_ = _tracking.ring_pass(
+        accelerator, rin, nturns, turn_by_turn=False, parallel=parallel)
+    lostturn = _np.reshape(lostturn, curh0.shape)
+    lost = lostturn != nturns
+
+    ind_dyn = _np.argmax(lost, axis=1)
+    ap_dyn = curh[ind_dyn]
+    return ap_dyn
 
 
 def _sandwich_matrix(mat1, mat2):
