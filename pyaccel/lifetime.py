@@ -277,7 +277,7 @@ class Lifetime:
         coupling     = emittance coupling factor (emity = coupling*emitx)
         accepen      = relative energy acceptance of the machine.
 
-        twiss = pyaccel.TwissList object or similar object with fields:
+        twiss = pyaccel.TwissArray object or similar object with fields:
                 spos, betax, betay, etax, etay, alphax, alphay, etapx, etapy
 
         output:

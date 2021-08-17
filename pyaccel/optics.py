@@ -18,19 +18,19 @@ class OpticsException(Exception):
     """."""
 
 
-class Twiss(_np.recarray):
+class Twiss(_np.record):
     """."""
-    ORDER = [
-        'spos',
-        'betax', 'alphax', 'mux', 'betay', 'alphay', 'muy',
-        'etax', 'etapx', 'etay', 'etapy',
-        'rx', 'px', 'ry', 'py', 'de', 'dl',
-        ]
+
+    DTYPE = '<f8'
+    ORDER = _mp.functions.get_namedtuple(
+        'Order', field_names=[
+            'spos',
+            'betax', 'alphax', 'mux', 'betay', 'alphay', 'muy',
+            'etax', 'etapx', 'etay', 'etapy',
+            'rx', 'px', 'ry', 'py', 'de', 'dl'])
 
     def __str__(self):
         """."""
-        if self.size > 1:
-            return super().__str__()
         rst = ''
         rst += 'spos          : '+'{0:+10.3e}'.format(self.spos)
         fmt = '{0:+10.3e}, {1:+10.3e}'
@@ -44,6 +44,105 @@ class Twiss(_np.recarray):
         rst += '\netay, etapy   : '+fmt.format(self.etay, self.etapy)
         return rst
 
+    @property
+    def co(self):
+        """."""
+        return _np.array([
+            self.rx, self.px, self.ry, self.py, self.de, self.dl])
+
+    @co.setter
+    def co(self, value):
+        """."""
+        self[Twiss.ORDER.rx], self[Twiss.ORDER.px] = value[0], value[1]
+        self[Twiss.ORDER.ry], self[Twiss.ORDER.py] = value[2], value[3]
+        self[Twiss.ORDER.de], self[Twiss.ORDER.dl] = value[4], value[5]
+
+    def make_dict(self):
+        """."""
+        cod = self.co[0]
+        beta = [self.betax, self.betay]
+        alpha = [self.alphax, self.alphay]
+        etax = [self.etax, self.etapx]
+        etay = [self.etay, self.etapy]
+        mus = [self.mux, self.muy]
+        return {
+            'co': cod, 'beta': beta, 'alpha': alpha,
+            'etax': etax, 'etay': etay, 'mu': mus}
+
+    @staticmethod
+    def make_new(*args, **kwrgs):
+        """Build a Twiss object."""
+        if args:
+            if isinstance(args[0], dict):
+                kwrgs = args[0]
+        twi = TwissArray(1)
+        cod = kwrgs.get('co', (0.0,)*6)
+        twi['rx'], twi['px'], twi['ry'], twi['py'], twi['de'], twi['dl'] = cod
+        twi['mux'], twi['muy'] = kwrgs.get('mu', (0.0, 0.0))
+        twi['betax'], twi['betay'] = kwrgs.get('beta', (0.0, 0.0))
+        twi['alphax'], twi['alphay'] = kwrgs.get('alpha', (0.0, 0.0))
+        twi['etax'], twi['etapx'] = kwrgs.get('etax', (0.0, 0.0))
+        twi['etay'], twi['etapy'] = kwrgs.get('etay', (0.0, 0.0))
+        return twi[0]
+
+    @classmethod
+    def from_trackcpp(cls, twi_):
+        """Create numpy array from _trackcpp.Twiss object.
+
+        Args:
+            twi_ (trackcpp.Twiss): original Twiss object to convert from
+
+        Returns:
+            numpy.ndarray: numpy array to serve as buffer for the new Twiss
+                object.
+
+        """
+        twi = TwissArray(1)
+        twi['spos'] = twi_.spos
+        twi['betax'] = twi_.betax
+        twi['alphax'] = twi_.alphax
+        twi['mux'] = twi_.mux
+        twi['betay'] = twi_.betay
+        twi['alphay'] = twi_.alphay
+        twi['muy'] = twi_.muy
+        twi['etax'] = twi_.etax[0]
+        twi['etapx'] = twi_.etax[1]
+        twi['etay'] = twi_.etay[0]
+        twi['etapy'] = twi_.etay[1]
+        twi['rx'] = twi_.co.rx
+        twi['px'] = twi_.co.px
+        twi['ry'] = twi_.co.ry
+        twi['py'] = twi_.co.py
+        twi['de'] = twi_.co.de
+        twi['dl'] = twi_.co.dl
+        return twi[0]
+
+    def to_trackcpp(self):
+        """."""
+        twi = _trackcpp.Twiss()
+        twi.spos = float(self.spos)
+        twi.betax = float(self.betax)
+        twi.alphax = float(self.alphax)
+        twi.mux = float(self.mux)
+        twi.betay = float(self.betay)
+        twi.alphay = float(self.alphay)
+        twi.muy = float(self.muy)
+        twi.etax[0] = float(self.etax)
+        twi.etax[1] = float(self.etapx)
+        twi.etay[0] = float(self.etay)
+        twi.etay[1] = float(self.etapy)
+        twi.co.rx = float(self.rx)
+        twi.co.px = float(self.px)
+        twi.co.ry = float(self.ry)
+        twi.co.py = float(self.py)
+        twi.co.de = float(self.de)
+        twi.co.dl = float(self.dl)
+        return twi
+
+
+class TwissArray(_np.ndarray):
+    """."""
+
     def __eq__(self, other):
         """."""
         return _np.all(super().__eq__(other))
@@ -54,38 +153,180 @@ class Twiss(_np.recarray):
         if isinstance(twiss, (int, _np.int)):
             length = twiss
             twiss = None
-        elif isinstance(twiss, Twiss):
+        elif isinstance(twiss, TwissArray):
             return twiss.copy() if copy else twiss
 
         if twiss is None:
-            arr = _np.zeros((length, len(cls.ORDER)), dtype=_np.float)
+            arr = _np.zeros((length, len(Twiss.ORDER)), dtype=Twiss.DTYPE)
         elif isinstance(twiss, _np.ndarray):
             arr = twiss.copy() if copy else twiss
         elif isinstance(twiss, _np.record):
-            arr = _np.ndarray((twiss.size, len(cls.ORDER)), buffer=twiss.data)
+            arr = _np.ndarray(
+                (twiss.size, len(Twiss.ORDER)), buffer=twiss.data)
             arr = arr.copy() if copy else arr
         elif isinstance(twiss, _trackcpp.Twiss):
-            arr = cls._from_trackcpp(twiss)
+            arr = Twiss.from_trackcpp(twiss)
         elif isinstance(twiss, _trackcpp.CppTwissVector):
-            arr = _np.zeros((twiss.size, len(cls.ORDER)), dtype=_np.float)
+            arr = _np.zeros((twiss.size, len(Twiss.ORDER)), dtype=Twiss.DTYPE)
             for i in range(len(twiss)):
-                arr[:, i] = cls._from_trackcpp(twiss[i])
+                arr[:, i] = Twiss.from_trackcpp(twiss[i])
 
+        fmts = [(fmt, Twiss.DTYPE) for fmt in Twiss.ORDER._fields]
         return super().__new__(
-            cls, arr.shape[0], formats=len(cls.ORDER)*[_np.float, ],
-            names=cls.ORDER, buf=arr.data)
+            cls, shape=(arr.shape[0], ), dtype=(Twiss, fmts), buffer=arr)
 
-    def __getitem__(self, indx):
-        """Get item from Twiss object.
+    @property
+    def spos(self):
+        """."""
+        return self['spos']
 
-        Args:
-            indx (int, slice, list, tuple): selected indices
+    @spos.setter
+    def spos(self, value):
+        self['spos'] = value
 
-        Returns:
-            Twiss: subset of original Twiss object.
+    @property
+    def betax(self):
+        """."""
+        return self['betax']
 
-        """
-        return super(Twiss, self).__getitem__(indx)
+    @betax.setter
+    def betax(self, value):
+        self['betax'] = value
+
+    @property
+    def alphax(self):
+        """."""
+        return self['alphax']
+
+    @alphax.setter
+    def alphax(self, value):
+        self['alphax'] = value
+
+    @property
+    def mux(self):
+        """."""
+        return self['mux']
+
+    @mux.setter
+    def mux(self, value):
+        self['mux'] = value
+
+    @property
+    def betay(self):
+        """."""
+        return self['betay']
+
+    @betay.setter
+    def betay(self, value):
+        self['betay'] = value
+
+    @property
+    def alphay(self):
+        """."""
+        return self['alphay']
+
+    @alphay.setter
+    def alphay(self, value):
+        self['alphay'] = value
+
+    @property
+    def muy(self):
+        """."""
+        return self['muy']
+
+    @muy.setter
+    def muy(self, value):
+        self['muy'] = value
+
+    @property
+    def etax(self):
+        """."""
+        return self['etax']
+
+    @etax.setter
+    def etax(self, value):
+        self['etax'] = value
+
+    @property
+    def etapx(self):
+        """."""
+        return self['etapx']
+
+    @etapx.setter
+    def etapx(self, value):
+        self['etapx'] = value
+
+    @property
+    def etay(self):
+        """."""
+        return self['etay']
+
+    @etay.setter
+    def etay(self, value):
+        self['etay'] = value
+
+    @property
+    def etapy(self):
+        """."""
+        return self['etapy']
+
+    @etapy.setter
+    def etapy(self, value):
+        self['etapy'] = value
+
+    @property
+    def rx(self):
+        """."""
+        return self['rx']
+
+    @rx.setter
+    def rx(self, value):
+        self['rx'] = value
+
+    @property
+    def px(self):
+        """."""
+        return self['px']
+
+    @px.setter
+    def px(self, value):
+        self['px'] = value
+
+    @property
+    def ry(self):
+        """."""
+        return self['ry']
+
+    @ry.setter
+    def ry(self, value):
+        self['ry'] = value
+
+    @property
+    def py(self):
+        """."""
+        return self['py']
+
+    @py.setter
+    def py(self, value):
+        self['py'] = value
+
+    @property
+    def de(self):
+        """."""
+        return self['de']
+
+    @de.setter
+    def de(self, value):
+        self['de'] = value
+
+    @property
+    def dl(self):
+        """."""
+        return self['dl']
+
+    @dl.setter
+    def dl(self, value):
+        self['dl'] = value
 
     @property
     def co(self):
@@ -100,34 +341,6 @@ class Twiss(_np.recarray):
         self.ry, self.py = value[2], value[3]
         self.de, self.dl = value[4], value[5]
 
-    def make_dict(self):
-        """."""
-        if self.size == 1:
-            cod = self.co[0]
-            beta = [self.betax, self.betay]
-            alpha = [self.alphax, self.alphay]
-            etax = [self.etax, self.etapx]
-            etay = [self.etay, self.etapy]
-            mus = [self.mux, self.muy]
-            return {
-                'co': cod, 'beta': beta, 'alpha': alpha,
-                'etax': etax, 'etay': etay, 'mu': mus}
-
-    @staticmethod
-    def make_new(*args, **kwrgs):
-        """Build a Twiss object."""
-        if args:
-            if isinstance(args[0], dict):
-                kwrgs = args[0]
-        twi = Twiss()
-        twi.co = kwrgs.get('co', (0.0,)*6)
-        twi.mux, twi.muy = kwrgs.get('mu', (0.0, 0.0))
-        twi.betax, twi.betay = kwrgs.get('beta', (0.0, 0.0))
-        twi.alphax, twi.alphay = kwrgs.get('alpha', (0.0, 0.0))
-        twi.etax, twi.etapx = kwrgs.get('etax', (0.0, 0.0))
-        twi.etay, twi.etapy = kwrgs.get('etay', (0.0, 0.0))
-        return twi
-
     def to_trackcpp(self):
         """Convert Twiss object to appropriate trackcpp object.
 
@@ -139,7 +352,7 @@ class Twiss(_np.recarray):
         """
         twi = _trackcpp.CppTwissVector()
         for twi_ in self:
-            twi.push_back(self._to_trackcpp(twi_))
+            twi.push_back(twi_.to_trackcpp())
 
         if self.size == 1:
             twi = twi.back()
@@ -150,7 +363,7 @@ class Twiss(_np.recarray):
         """."""
         if isinstance(twiss_list, (list, tuple)):
             for val in twiss_list:
-                if not isinstance(val, Twiss):
+                if not isinstance(val, (Twiss, TwissArray)):
                     raise OpticsException(
                         'can only compose lists of Twiss objects.')
         else:
@@ -161,70 +374,94 @@ class Twiss(_np.recarray):
             arrs.append(_np.ndarray(
                 (val.size, len(Twiss.ORDER)), buffer=val.data))
         arrs = _np.vstack(arrs)
-        return Twiss(arrs)
+        return TwissArray(arrs)
 
-    def _is_list_of_lists(self, value):
-        valid_types = (list, tuple)
-        if not isinstance(value, valid_types):
-            return False
-        for line in value:
-            if not isinstance(line, valid_types):
-                return False
-        return True
 
-    @classmethod
-    def _from_trackcpp(cls, twi_):
-        """Create numpy array from _trackcpp.Twiss object.
+@_interactive
+def calc_twiss(
+        accelerator=None, init_twiss=None, fixed_point=None,
+        indices='open', energy_offset=None):
+    """Return Twiss parameters of uncoupled dynamics.
 
-        Args:
-            twi_ (trackcpp.Twiss): original Twiss object to convert from
+    Args:
+        accelerator (Accelerator, optional): Defaults to None.
+        init_twiss (Twiss, optional): Twiss parameters at the start of first
+            element. Defaults to None.
+        fixed_point (numpy.ndarray, optional): 6D position at the start of
+            first element. Defaults to None.
+        indices (str, optional): 'open' or 'closed'. Defaults to 'open'.
+        energy_offset (float, optional): float denoting the energy deviation
+            (used only for periodic solutions). Defaults to None.
 
-        Returns:
-            numpy.ndarray: numpy array to serve as buffer for the new Twiss
-                object.
+    Raises:
+        pyaccel.tracking.TrackingException: When find_orbit fails to converge.
+        OpticsException: When trackcpp.calc_twiss fails,  or when accelerator
+            is not configured properly.
 
-        """
-        arr = _np.zeros((len(cls.ORDER), ), dtype=_np.float)
-        arr[0] = twi_.spos
-        arr[1] = twi_.betax
-        arr[2] = twi_.alphax
-        arr[3] = twi_.mux
-        arr[4] = twi_.betay
-        arr[5] = twi_.alphay
-        arr[6] = twi_.muy
-        arr[7] = twi_.etax[0]
-        arr[8] = twi_.etax[1]
-        arr[9] = twi_.etay[0]
-        arr[10] = twi_.etay[1]
-        arr[11] = twi_.co.rx
-        arr[12] = twi_.co.px
-        arr[13] = twi_.co.ry
-        arr[14] = twi_.co.py
-        arr[15] = twi_.co.de
-        arr[16] = twi_.co.dl
-        return arr
+    Returns:
+        Twiss: object (closed orbit data is in the objects vector)
+        numpy.ndarray: one-turn transfer matrix
 
-    @staticmethod
-    def _to_trackcpp(twi_):
-        twi = _trackcpp.Twiss()
-        twi.spos = float(twi_.spos)
-        twi.betax = float(twi_.betax)
-        twi.alphax = float(twi_.alphax)
-        twi.mux = float(twi_.mux)
-        twi.betay = float(twi_.betay)
-        twi.alphay = float(twi_.alphay)
-        twi.muy = float(twi_.muy)
-        twi.etax[0] = float(twi_.etax)
-        twi.etax[1] = float(twi_.etapx)
-        twi.etay[0] = float(twi_.etay)
-        twi.etay[1] = float(twi_.etapy)
-        twi.co.rx = float(twi_.rx)
-        twi.co.px = float(twi_.px)
-        twi.co.ry = float(twi_.ry)
-        twi.co.py = float(twi_.py)
-        twi.co.de = float(twi_.de)
-        twi.co.dl = float(twi_.dl)
-        return twi
+    """
+    indices = _tracking._process_indices(accelerator, indices)
+
+    _m66 = _trackcpp.Matrix()
+    twiss = _np.zeros((len(accelerator)+1, len(Twiss.ORDER)), dtype=_np.float)
+
+    if init_twiss is not None:
+        # as a transport line: uses init_twiss
+        _init_twiss = init_twiss.to_trackcpp()
+        if fixed_point is None:
+            _fixed_point = _init_twiss.co
+        else:
+            raise OpticsException(
+                'arguments init_twiss and fixed_point are mutually exclusive')
+    else:
+        # as a periodic system: try to find periodic solution
+        if accelerator.harmonic_number == 0:
+            raise OpticsException(
+                'Either harmonic number was not set or calc_twiss was'
+                'invoked for transport line without initial twiss')
+
+        if fixed_point is None:
+            _closed_orbit = _trackcpp.CppDoublePosVector()
+            _fixed_point_guess = _trackcpp.CppDoublePos()
+            if energy_offset is not None:
+                _fixed_point_guess.de = energy_offset
+
+            if not accelerator.cavity_on and not accelerator.radiation_on:
+                r = _trackcpp.track_findorbit4(
+                    accelerator.trackcpp_acc, _closed_orbit,
+                    _fixed_point_guess)
+            elif not accelerator.cavity_on and accelerator.radiation_on:
+                raise OpticsException(
+                    'The radiation is on but the cavity is off')
+            else:
+                r = _trackcpp.track_findorbit6(
+                    accelerator.trackcpp_acc, _closed_orbit,
+                    _fixed_point_guess)
+
+            if r > 0:
+                raise _tracking.TrackingException(
+                    _trackcpp.string_error_messages[r])
+            _fixed_point = _closed_orbit[0]
+
+        else:
+            _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
+            if energy_offset is not None:
+                _fixed_point.de = energy_offset
+
+        _init_twiss = _trackcpp.Twiss()
+
+    r = _trackcpp.calc_twiss_wrapper(
+        accelerator.trackcpp_acc, _fixed_point, _m66, twiss, _init_twiss)
+    if r > 0:
+        raise OpticsException(_trackcpp.string_error_messages[r])
+
+    twiss = TwissArray(twiss, copy=False)
+    m66 = _tracking._CppMatrix2Numpy(_m66)
+
+    return twiss[indices], m66
 
 
 class EquilibriumParametersIntegrals:
@@ -1101,93 +1338,6 @@ def calc_ohmienvelope(
     if not full:
         return envelopes[indices]
     return envelopes[indices], cum_mat[indices], bdiffs[indices], fixed_point
-
-
-@_interactive
-def calc_twiss(
-        accelerator=None, init_twiss=None, fixed_point=None,
-        indices='open', energy_offset=None):
-    """Return Twiss parameters of uncoupled dynamics.
-
-    Args:
-        accelerator (Accelerator, optional): Defaults to None.
-        init_twiss (Twiss, optional): Twiss parameters at the start of first
-            element. Defaults to None.
-        fixed_point (numpy.ndarray, optional): 6D position at the start of
-            first element. Defaults to None.
-        indices (str, optional): 'open' or 'closed'. Defaults to 'open'.
-        energy_offset (float, optional): float denoting the energy deviation
-            (used only for periodic solutions). Defaults to None.
-
-    Raises:
-        pyaccel.tracking.TrackingException: When find_orbit fails to converge.
-        OpticsException: When trackcpp.calc_twiss fails,  or when accelerator
-            is not configured properly.
-
-    Returns:
-        Twiss: object (closed orbit data is in the objects vector)
-        numpy.ndarray: one-turn transfer matrix
-
-    """
-    indices = _tracking._process_indices(accelerator, indices)
-
-    _m66 = _trackcpp.Matrix()
-    twiss = _np.zeros((len(accelerator)+1, len(Twiss.ORDER)), dtype=_np.float)
-
-    if init_twiss is not None:
-        # as a transport line: uses init_twiss
-        _init_twiss = init_twiss.to_trackcpp()
-        if fixed_point is None:
-            _fixed_point = _init_twiss.co
-        else:
-            raise OpticsException(
-                'arguments init_twiss and fixed_point are mutually exclusive')
-    else:
-        # as a periodic system: try to find periodic solution
-        if accelerator.harmonic_number == 0:
-            raise OpticsException(
-                'Either harmonic number was not set or calc_twiss was'
-                'invoked for transport line without initial twiss')
-
-        if fixed_point is None:
-            _closed_orbit = _trackcpp.CppDoublePosVector()
-            _fixed_point_guess = _trackcpp.CppDoublePos()
-            if energy_offset is not None:
-                _fixed_point_guess.de = energy_offset
-
-            if not accelerator.cavity_on and not accelerator.radiation_on:
-                r = _trackcpp.track_findorbit4(
-                    accelerator.trackcpp_acc, _closed_orbit,
-                    _fixed_point_guess)
-            elif not accelerator.cavity_on and accelerator.radiation_on:
-                raise OpticsException(
-                    'The radiation is on but the cavity is off')
-            else:
-                r = _trackcpp.track_findorbit6(
-                    accelerator.trackcpp_acc, _closed_orbit,
-                    _fixed_point_guess)
-
-            if r > 0:
-                raise _tracking.TrackingException(
-                    _trackcpp.string_error_messages[r])
-            _fixed_point = _closed_orbit[0]
-
-        else:
-            _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
-            if energy_offset is not None:
-                _fixed_point.de = energy_offset
-
-        _init_twiss = _trackcpp.Twiss()
-
-    r = _trackcpp.calc_twiss_wrapper(
-        accelerator.trackcpp_acc, _fixed_point, _m66, twiss, _init_twiss)
-    if r > 0:
-        raise OpticsException(_trackcpp.string_error_messages[r])
-
-    twiss = Twiss(twiss, copy=False)
-    m66 = _tracking._CppMatrix2Numpy(_m66)
-
-    return twiss[indices], m66
 
 
 @_interactive
