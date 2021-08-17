@@ -22,6 +22,9 @@ class Twiss(_np.record):
     """."""
 
     DTYPE = '<f8'
+    # NOTE: This ordering must be compatible with the one defined in file
+    # interface.cpp of repository trackccp, inside the definition of the method
+    # calc_twiss_wrapper.
     ORDER = _mp.functions.get_namedtuple(
         'Order', field_names=[
             'spos',
