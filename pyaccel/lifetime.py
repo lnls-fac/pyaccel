@@ -277,7 +277,7 @@ class Lifetime:
         coupling     = emittance coupling factor (emity = coupling*emitx)
         accepen      = relative energy acceptance of the machine.
 
-        twiss = pyaccel.TwissList object or similar object with fields:
+        twiss = pyaccel.TwissArray object or similar object with fields:
                 spos, betax, betay, etax, etay, alphax, alphay, etapx, etapy
 
         output:
@@ -600,31 +600,31 @@ class Lifetime:
     def lifetime_touschek(self):
         """Return Touschek lifetime [s]."""
         loss = self.lossrate_touschek
-        return 1 / loss if loss > 0 else float('inf')
+        return 1 / loss if loss > 0 else _np.inf
 
     @property
     def lifetime_elastic(self):
         """Return elastic lifetime [s]."""
         loss = self.lossrate_elastic
-        return 1 / loss if loss > 0 else float('inf')
+        return 1 / loss if loss > 0 else _np.inf
 
     @property
     def lifetime_inelastic(self):
         """Return inelastic lifetime [s]."""
         loss = self.lossrate_inelastic
-        return 1 / loss if loss > 0 else float('inf')
+        return 1 / loss if loss > 0 else _np.inf
 
     @property
     def lifetime_quantum(self):
         """Return quandtum lifetime [s]."""
         loss = self.lossrate_quantum
-        return 1 / loss if loss > 0 else float('inf')
+        return 1 / loss if loss > 0 else _np.inf
 
     @property
     def lifetime_total(self):
         """Return total lifetime [s]."""
         loss = self.lossrate_total
-        return 1 / loss if loss > 0 else float('inf')
+        return 1 / loss if loss > 0 else _np.inf
 
     @classmethod
     def get_touschek_integration_table(cls):
