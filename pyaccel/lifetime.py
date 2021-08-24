@@ -627,9 +627,12 @@ class Lifetime:
         return 1 / loss if loss > 0 else _np.inf
 
     @classmethod
-    def get_touschek_integration_table(cls):
+    def get_touschek_integration_table(cls, ksi_ini=None, ksi_end=None):
         """Return Touschek interpolation table."""
-        cls._load_touschek_integration_table()
+        if None in (ksi_ini, ksi_end):
+            cls._load_touschek_integration_table()
+        else:
+            cls._calc_d_touschek_table(ksi_ini, ksi_end)
         return cls._KSI_TABLE, cls._D_TABLE
 
     # ----- private methods -----

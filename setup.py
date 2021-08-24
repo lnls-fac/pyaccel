@@ -16,7 +16,7 @@ if StrictVersion(trackcpp.__version__) < StrictVersion(trackcpp_version):
         " (version installed is " + trackcpp.__version__ + ")")
     raise RuntimeError(msg)
 
-with open('VERSION','r') as _f:
+with open('VERSION', 'r') as _f:
     __version__ = _f.read().strip()
 
 setup(
@@ -33,6 +33,6 @@ setup(
         'Topic :: Scientific/Engineering'
     ],
     packages=['pyaccel'],
-    package_data={'pyaccel': ['VERSION']},
+    package_data={'pyaccel': ['VERSION', 'data/d_touschek.npz']},
     zip_safe=False
 )
