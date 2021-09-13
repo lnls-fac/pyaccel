@@ -32,6 +32,13 @@ class Twiss(_np.record):
             'etax', 'etapx', 'etay', 'etapy',
             'rx', 'px', 'ry', 'py', 'de', 'dl'])
 
+    def __setattr__(self, attr, val):
+        """."""
+        if attr == 'co':
+            self._set_co(val)
+        else:
+            super().__setattr__(attr, val)
+
     def __str__(self):
         """."""
         rst = ''
@@ -53,16 +60,9 @@ class Twiss(_np.record):
         return _np.array([
             self.rx, self.px, self.ry, self.py, self.de, self.dl])
 
-    @co.setter
-    def co(self, value):
-        """."""
-        self[Twiss.ORDER.rx], self[Twiss.ORDER.px] = value[0], value[1]
-        self[Twiss.ORDER.ry], self[Twiss.ORDER.py] = value[2], value[3]
-        self[Twiss.ORDER.de], self[Twiss.ORDER.dl] = value[4], value[5]
-
     def make_dict(self):
         """."""
-        cod = self.co[0]
+        cod = self.co
         beta = [self.betax, self.betay]
         alpha = [self.alphax, self.alphay]
         etax = [self.etax, self.etapx]
@@ -141,6 +141,19 @@ class Twiss(_np.record):
         twi.co.de = float(self.de)
         twi.co.dl = float(self.dl)
         return twi
+
+    def _set_co(self, value):
+        """."""
+        try:
+            leng = len(value)
+        except TypeError:
+            leng = 6
+            value = [value, ]*leng
+        if leng != 6:
+            raise ValueError('closed orbit must have 6 elements.')
+        self[Twiss.ORDER.rx], self[Twiss.ORDER.px] = value[0], value[1]
+        self[Twiss.ORDER.ry], self[Twiss.ORDER.py] = value[2], value[3]
+        self[Twiss.ORDER.de], self[Twiss.ORDER.dl] = value[4], value[5]
 
 
 class TwissArray(_np.ndarray):
