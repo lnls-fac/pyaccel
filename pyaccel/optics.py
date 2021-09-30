@@ -219,6 +219,11 @@ class TwissArray(_np.ndarray):
         self['alphax'] = value
 
     @property
+    def gammax(self):
+        """."""
+        return (1 + self['alphax']*self['alphax'])/self['betax']
+
+    @property
     def mux(self):
         """."""
         return self['mux']
@@ -244,6 +249,11 @@ class TwissArray(_np.ndarray):
     @alphay.setter
     def alphay(self, value):
         self['alphay'] = value
+
+    @property
+    def gammay(self):
+        """."""
+        return (1 + self['alphay']*self['alphay'])/self['betay']
 
     @property
     def muy(self):
@@ -478,6 +488,127 @@ def calc_twiss(
     m66 = _tracking._CppMatrix2Numpy(_m66)
 
     return twiss[indices], m66
+
+
+@_interactive
+def calc_edwards_teng(accelerator, energy_offset=0.0, indices='open'):
+    """Perform linear analysis of coupled lattices.
+
+    Notation is the same as in reference [3]
+
+    References:
+        [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
+        [2] D.Sagan, D.Rubin Phys.Rev.Spec.Top.-Accelerators and beams,
+            vol.2 (1999)
+        [3] C.J. Gardner, Some Useful Linear Coupling Approximations.
+            C-A/AP/#101 Brookhaven Nat. Lab. (July 2003)
+        [4] Y-Luo. C-A/AP/#185 Brookhaven Nat. Lab. (january 2005)
+
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): lattice model
+        energy_offset (float, optional): Energy Offset . Defaults to 0.0.
+        indices : may be a ((list, tuple, numpy.ndarray), optional):
+            list of element indices where closed orbit data is to be
+            returned or a string:
+                'open'  : return the closed orbit at the entrance of all
+                    elements.
+                'closed' : equal 'open' plus the orbit at the end of the last
+                    element.
+            If indices is None data will be returned only at the entrance
+            of the first element. Defaults to 'open'.
+
+    Returns:
+        dict: with keys:
+            spos (array, len(indices)x2x2) : longitudinal position [m]
+
+            beta1 (array, len(indices)) : beta of first eigen direction
+            beta2 (array, len(indices)) : beta of second eigen direction
+            alpha1 (array, len(indices)) : alpha of first eigen direction
+            alpha2 (array, len(indices)) : alpha of second eigen direction
+            gamma1 (array, len(indices)) : gamma of first eigen direction
+            gamma2 (array, len(indices)) : gamma of second eigen direction
+
+            nu1 (float): tune of the first eigen direction
+            nu2 (float): tune of the first eigen direction
+
+            A (array, len(indices)x2x2) : matrices A in [3]
+            B (array, len(indices)x2x2) : matrices B in [3]
+            W (array, len(indices)x2x2) : matrices W in [3]
+            d (float): d parameter in [3]
+
+            min_tunesep (float) : estimative of minimum tune separation,
+                Based on equation 85-87 of ref [3]:
+                Assuming
+                   mu1 = mux + minsep/2
+                   mu2 = muy - minsep/2
+                then, at mux = muy = mu0 ==> T = 0 ==> U = 2*sqrt(det(m+nbar))
+                However, we know that U = 2*cos(mu1) - 2*cos(mu2)
+                which yields, assuming mu0 ~ (mux + muy)/2
+                sin(minsep/2) = sqrt(det(m+nbar))/sin(mu0)/2
+            emit_ratio (float): estimative of invariant sharing ratio.
+                Based on equation 258 of ref [3] we know that
+                with weak coupling the invariant sharing is:
+                    emit_ratio = (1 - d**2) / d**2
+
+    """
+    def Trans(a):
+        return a.transpose(0, 2, 1)
+    # 2-by-2 symplectic matrix
+    S = _np.array([[0, 1], [-1, 0]])
+
+    spos = _lattice.find_spos(accelerator, indices=indices)
+    m44, cum_mat = _tracking.find_m44(
+        accelerator, energy_offset=energy_offset, indices=indices)
+
+    # Calculate one turn matrix for every index in indices
+    m44s = Trans(_np.linalg.solve(Trans(cum_mat), Trans(cum_mat @ m44)))
+    M = m44s[:, :2, :2]
+    N = m44s[:, 2:, 2:]
+    m = m44s[:, :2, 2:]
+    n = m44s[:, 2:, :2]
+
+    t = _np.trace(M - N, axis1=1, axis2=2)[0]  # The trace is invariant
+
+    mn = m + S@Trans(n)@S.T
+    detmn = _np.linalg.det(mn)[0]  # this determinant is invariant
+
+    u = t * _np.sqrt(1 + 4*detmn/(t*t))
+    dsqr = (1 + t/u)/2
+    d = _np.sqrt(dsqr)
+
+    Wperd = -mn/(dsqr*u)
+
+    W = -mn/(d*u)
+    A = M - n@Wperd
+    B = N + Wperd@n
+
+    mu1 = _np.arccos(_np.trace(A, axis1=1, axis2=2)/2)[0]
+    mu2 = _np.arccos(_np.trace(B, axis1=1, axis2=2)/2)[0]
+    beta1 = A[:, 0, 1]/_np.sin(mu1)
+    beta2 = B[:, 0, 1]/_np.sin(mu2)
+    gamma1 = -A[:, 1, 0]/_np.sin(mu1)
+    gamma2 = -B[:, 1, 0]/_np.sin(mu2)
+    alpha1 = (A[:, 0, 0] - _np.cos(mu1))/_np.sin(mu1)
+    alpha2 = (B[:, 0, 0] - _np.cos(mu2))/_np.sin(mu2)
+
+    # ###### Estimative of emittance ratio #######
+    emit_ratio = (1-dsqr)/dsqr
+
+    # ###### Estimate Minimum tune separation #####
+    mux = _np.arccos(_np.trace(M[0])/2)
+    muy = _np.arccos(_np.trace(N[0])/2)
+    mu0 = (mux + muy)/2
+    min_tunesep = 2*_np.arcsin(_np.sqrt(_np.abs(detmn))/_np.sin(mu0)/2)
+    min_tunesep /= 2*_np.pi
+
+    return {
+        'beta1': beta1, 'beta2': beta2,
+        'alpha1': alpha1, 'alpha2': alpha2,
+        'gamma1': gamma1, 'gamma2': gamma2,
+        'nu1': mu1/2/_np.pi, 'nu2': mu2/2/_np.pi,
+        'd': d, 'A': A, 'B': B, 'W': W, 'spos': spos,
+        'min_tunesep': min_tunesep, 'emit_ratio': emit_ratio,
+        }
 
 
 class EquilibriumParametersIntegrals:
