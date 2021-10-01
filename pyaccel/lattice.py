@@ -133,9 +133,12 @@ def find_indices(lattice, attribute_name, value, comparison=None):
 @_interactive
 def get_attribute(lattice, attribute_name, indices='open', m=None, n=None):
     """Return a list with requested lattice data."""
-    if indices == 'open' or indices is None:
+    if indices is None:
+        indices = 'open'
+
+    if isinstance(indices, str) and indices == 'open':
         indices = range(len(lattice))
-    elif indices == 'closed':
+    elif isinstance(indices, str) and indices == 'closed':
         indices = list(range(len(lattice)))
         indices.append(0)
 
@@ -982,8 +985,6 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
 
 # --- private functions ---
-
-
 def _process_args_errors(indices, values):
     types = (int, _np.int_)
     isflat = False
