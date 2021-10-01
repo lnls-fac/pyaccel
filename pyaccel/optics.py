@@ -1629,10 +1629,11 @@ def get_revolution_period(accelerator):
 
 
 @_interactive
-def get_traces(accelerator=None,
-               m1turn=None, closed_orbit=None, dim='6D',
-               energy_offset=0.0):
-    """Return traces of 6D one-turn transfer matrix"""
+def get_frac_tunes(
+        accelerator=None, m1turn=None, dim='6D', closed_orbit=None,
+        energy_offset=0.0, return_damping=False):
+    """Return fractional tunes of the accelerator"""
+
     if m1turn is None:
         if dim == '4D':
             m1turn = _tracking.find_m44(
@@ -1643,33 +1644,36 @@ def get_traces(accelerator=None,
                 accelerator, indices='m66', closed_orbit=closed_orbit)
         else:
             raise Exception('Set valid dimension: 4D or 6D')
-    trace_x = m1turn[0, 0] + m1turn[1, 1]
-    trace_y = m1turn[2, 2] + m1turn[3, 3]
-    trace_z = 2
+
+    traces = []
+    traces.append(m1turn[0, 0] + m1turn[1, 1])
+    traces.append(m1turn[2, 2] + m1turn[3, 3])
     if dim == '6D':
-        trace_z = m1turn[4, 4] + m1turn[5, 5]
-    return trace_x, trace_y, trace_z, m1turn, closed_orbit
+        traces.append(m1turn[4, 4] + m1turn[5, 5])
 
+    evals, _ = _np.linalg.eig(m1turn)
+    trc = (evals[::2] + evals[1::2]).real
+    dff = (evals[::2] - evals[1::2]).imag
 
-@_interactive
-def get_frac_tunes(accelerator=None, m1turn=None, dim='6D', closed_orbit=None,
-                   energy_offset=0.0, coupled=False):
-    """Return fractional tunes of the accelerator"""
+    trace = []
+    diff = []
+    for tr in traces:
+        idx = _np.argmin(_np.abs(trc-tr))
+        trace.append(trc[idx])
+        diff.append(dff[idx])
+        trc = _np.delete(trc, idx)
+        dff = _np.delete(dff, idx)
+    trc = _np.array(trace)
+    dff = _np.array(diff)
 
-    trace_x, trace_y, trace_z, m1turn, closed_orbit = get_traces(
-        accelerator, m1turn=m1turn, dim=dim, closed_orbit=closed_orbit,
-        energy_offset=energy_offset)
-    tune_x = _math.acos(trace_x/2.0)/2.0/_math.pi
-    tune_y = _math.acos(trace_y/2.0)/2.0/_math.pi
-    tune_z = _math.acos(trace_z/2.0)/2.0/_math.pi
-    if coupled:
-        tunes = _np.log(_np.linalg.eigvals(m1turn))/2.0/_math.pi/1j
-        tune_x = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_x)))]
-        tune_y = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_y)))]
-        tune_z = tunes[_np.argmin(abs(_np.sin(tunes.real)-_math.sin(tune_z)))]
-
-    return tune_x, tune_y, tune_z, trace_x, trace_y, trace_z, m1turn, \
-        closed_orbit
+    mus = _np.arctan2(dff, trc)
+    tunes = mus / 2 / _np.pi
+    if dim == '6D' and return_damping:
+        alphas = trc / _np.cos(mus) / 2
+        alphas = -_np.log(alphas) * get_revolution_frequency(accelerator)
+        return tunes, alphas
+    else:
+        return tunes
 
 
 @_interactive
