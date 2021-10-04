@@ -31,7 +31,7 @@ class Lifetime:
     def __init__(self, accelerator):
         """."""
         self._acc = accelerator
-        self._eqpar = _optics.EqParamsFromBeamEnvelope(accelerator)
+        self._eqpar = _optics.EqParamsFromBeamEnvelope(self._acc)
         self._twiss, *_ = _optics.calc_twiss(self._acc, indices='closed')
         res = _optics.calc_transverse_acceptance(self._acc, self._twiss)
         self._accepx_nom = _np.min(res[0])
@@ -52,6 +52,7 @@ class Lifetime:
     @accelerator.setter
     def accelerator(self, val):
         self._eqpar = _optics.EqParamsFromBeamEnvelope(val)
+        self._twiss, *_ = _optics.calc_twiss(val, indices='closed')
         res = _optics.calc_transverse_acceptance(val, self._twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
