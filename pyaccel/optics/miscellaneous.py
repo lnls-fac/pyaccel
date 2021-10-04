@@ -49,17 +49,17 @@ def get_revolution_period(accelerator):
 
 @_interactive
 def get_frac_tunes(
-        accelerator=None, m1turn=None, dim='6D', closed_orbit=None,
+        accelerator=None, m1turn=None, dim='6D', fixed_point=None,
         energy_offset=0.0, return_damping=False):
     """Return fractional tunes of the accelerator."""
     if m1turn is None:
         if dim == '4D':
             m1turn = _tracking.find_m44(
                 accelerator, indices='m44', energy_offset=energy_offset,
-                closed_orbit=closed_orbit)
+                fixed_point=fixed_point)
         elif dim == '6D':
             m1turn = _tracking.find_m66(
-                accelerator, indices='m66', closed_orbit=closed_orbit)
+                accelerator, indices='m66', fixed_point=fixed_point)
         else:
             raise Exception('Set valid dimension: 4D or 6D')
 
