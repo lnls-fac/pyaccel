@@ -37,11 +37,10 @@ class Lifetime:
         self._accepy_nom = _np.min(res[1])
         self._curr_per_bun = 100/864  # [mA]
         self._avg_pressure = 1e-9  # [mbar]
-        self._coupling = 0.03
         self._atomic_number = 7
         self._temperature = 300  # [K]
         self._taux = self._tauy = self._taue = None
-        self._emit0 = self._espread0 = self._bunlen = None
+        self._emitx = self._emity = self._espread0 = self._bunlen = None
         self._accepx = self._accepy = self._accepen = None
 
     @property
@@ -88,15 +87,6 @@ class Lifetime:
         self._avg_pressure = float(val)
 
     @property
-    def coupling(self):
-        """Emittances ratio."""
-        return self._coupling
-
-    @coupling.setter
-    def coupling(self, val):
-        self._coupling = float(val)
-
-    @property
     def atomic_number(self):
         """Atomic number of residual gas."""
         return self._atomic_number
@@ -115,15 +105,26 @@ class Lifetime:
         self._temperature = float(val)
 
     @property
-    def emit0(self):
-        """Transverse Emittance [m.rad]."""
-        if self._emit0 is not None:
-            return self._emit0
-        return self._eqpar.emit0
+    def emitx(self):
+        """Horizontal Emittance [m.rad]."""
+        if self._emitx is not None:
+            return self._emitx
+        return self._eqpar.emitx
 
-    @emit0.setter
-    def emit0(self, val):
-        self._emit0 = float(val)
+    @emitx.setter
+    def emitx(self, val):
+        self._emitx = float(val)
+
+    @property
+    def emity(self):
+        """Vertical Emittance [m.rad]."""
+        if self._emity is not None:
+            return self._emity
+        return self._eqpar.emity
+
+    @emity.setter
+    def emity(self, val):
+        self._emity = float(val)
 
     @property
     def espread0(self):
@@ -269,12 +270,12 @@ class Lifetime:
 
         parameters used in calculation:
 
-        emit0        = Natural emittance [m.rad]
+        emitx        = Horizontal emittance [m.rad]
+        emity        = Vertical emittance [m.rad]
         energy       = Bunch energy [GeV]
         nr_part      = Number of electrons ber bunch
         espread      = relative energy spread,
         bunlen       = bunch length [m]
-        coupling     = emittance coupling factor (emity = coupling*emitx)
         accepen      = relative energy acceptance of the machine.
 
         twiss = pyaccel.TwissArray object or similar object with fields:
@@ -292,8 +293,7 @@ class Lifetime:
         gamma = self._acc.gamma_factor
         en_accep = self.accepen
         twiss = self._eqpar.twiss
-        coup = self.coupling
-        emit0 = self.emit0
+        emitx, emity = self.emitx, self.emity
         espread = self.espread0
         bunlen = self.bunlen
         nr_part = self.particles_per_bunch
@@ -321,12 +321,12 @@ class Lifetime:
         etay = _np.interp(s_calc, twiss.spos[ind], twiss.etay[ind])
 
         # Volume do bunch
-        sigy = _np.sqrt(etay**2*espread**2 + betay*emit0*(coup/(1+coup)))
-        sigx = _np.sqrt(etax**2*espread**2 + betax*emit0*(1/(1+coup)))
+        sigy = _np.sqrt(etay**2*espread**2 + betay*emity)
+        sigx = _np.sqrt(etax**2*espread**2 + betax*emitx)
         vol = bunlen * sigx * sigy
 
         # Tamanho betatron horizontal do bunch
-        sigxb = emit0 * betax / (1+coup)
+        sigxb = emitx * betax
 
         fator = betax*etaxl + alphax*etax
         a_var = 1 / (4*espread**2) + (etax**2 + fator**2) / (4*sigxb)
@@ -474,8 +474,7 @@ class Lifetime:
 
         Positional arguments:
         accepx   = horizontal acceptance [m·rad]
-        coupling = emittances ratio
-        emit0    = transverse emittance [m·rad]
+        emitx    = horizontal emittance [m·rad]
         taux     = horizontal damping time [s]
 
         output:
@@ -486,14 +485,13 @@ class Lifetime:
             pos      = longitudinal position where loss rate was calculated [m]
         """
         accep_x = self.accepx
-        coupling = self.coupling
-        emit0 = self.emit0
+        emitx = self.emitx
         taux = self.taux
 
         spos = accep_x['spos']
         accep_x = accep_x['acc']
 
-        ksi_x = accep_x / (2*emit0) * (1+coupling)
+        ksi_x = accep_x / (2*emitx)
         rate = self._calc_quantum_loss_rate(ksi_x, taux)
 
         avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
@@ -511,8 +509,7 @@ class Lifetime:
 
         Positional arguments:
         accepy   = vertical acceptance [m·rad]
-        coupling = emittances ratio
-        emit0    = transverse emittance [m·rad]
+        emity    = vertical emittance [m·rad]
         tauy     = vertical damping time [s]
 
         output:
@@ -523,14 +520,13 @@ class Lifetime:
             pos      = longitudinal position where loss rate was calculated [m]
         """
         accep_y = self.accepy
-        coupling = self.coupling
-        emit0 = self.emit0
+        emity = self.emity
         tauy = self.tauy
 
         spos = accep_y['spos']
         accep_y = accep_y['acc']
 
-        ksi_y = accep_y / (2*emit0) * (1+coupling)/coupling
+        ksi_y = accep_y / (2*emity)
         rate = self._calc_quantum_loss_rate(ksi_y, tauy)
 
         avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
