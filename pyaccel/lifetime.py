@@ -32,7 +32,8 @@ class Lifetime:
         """."""
         self._acc = accelerator
         self._eqpar = _optics.EqParamsFromBeamEnvelope(accelerator)
-        res = _optics.calc_transverse_acceptance(self._acc, self._eqpar.twiss)
+        self._twiss, *_ = _optics.calc_twiss(self._acc, indices='closed')
+        res = _optics.calc_transverse_acceptance(self._acc, self._twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
         self._curr_per_bun = 100/864  # [mA]
@@ -51,7 +52,7 @@ class Lifetime:
     @accelerator.setter
     def accelerator(self, val):
         self._eqpar = _optics.EqParamsFromBeamEnvelope(val)
-        res = _optics.calc_transverse_acceptance(val, self._eqpar.twiss)
+        res = _optics.calc_transverse_acceptance(val, self._twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
         self._acc = val
@@ -60,6 +61,11 @@ class Lifetime:
     def equi_params(self):
         """Equilibrium parameters."""
         return self._eqpar
+
+    @property
+    def twiss(self):
+        """Twiss data."""
+        return self._twiss
 
     @property
     def curr_per_bunch(self):
@@ -188,7 +194,7 @@ class Lifetime:
             return self._accepen
         dic = dict()
         rf_accep = self._eqpar.rf_acceptance
-        dic['spos'] = self._eqpar.twiss.spos
+        dic['spos'] = self._twiss.spos
         dic['accp'] = dic['spos']*0 + rf_accep
         dic['accn'] = dic['spos']*0 - rf_accep
         return dic
@@ -203,11 +209,11 @@ class Lifetime:
             accp = val['accp']
             accn = val['accn']
         elif isinstance(val, (list, tuple, _np.ndarray)):
-            spos = self._eqpar.twiss.spos
+            spos = self._twiss.spos
             accp = spos*0.0 + val[1]
             accn = spos*0.0 + val[0]
         elif isinstance(val, (int, _np.int, float, _np.float)):
-            spos = self._eqpar.twiss.spos
+            spos = self._twiss.spos
             accp = spos*0.0 + val
             accn = spos*0.0 - val
         else:
@@ -220,7 +226,7 @@ class Lifetime:
         if self._accepx is not None:
             return self._accepx
         dic = dict()
-        dic['spos'] = self._eqpar.twiss.spos
+        dic['spos'] = self._twiss.spos
         dic['acc'] = dic['spos']*0 + self._accepx_nom
         return dic
 
@@ -233,7 +239,7 @@ class Lifetime:
             spos = val['spos']
             acc = val['acc']
         elif isinstance(val, (int, _np.int, float, _np.float)):
-            spos = self._eqpar.twiss.spos
+            spos = self._twiss.spos
             acc = spos*0.0 + val
         else:
             raise TypeError('Wrong value for energy acceptance')
@@ -245,7 +251,7 @@ class Lifetime:
         if self._accepy is not None:
             return self._accepy
         dic = dict()
-        dic['spos'] = self._eqpar.twiss.spos
+        dic['spos'] = self._twiss.spos
         dic['acc'] = dic['spos']*0 + self._accepy_nom
         return dic
 
@@ -258,7 +264,7 @@ class Lifetime:
             spos = val['spos']
             acc = val['acc']
         elif isinstance(val, (int, _np.int, float, _np.float)):
-            spos = self._eqpar.twiss.spos
+            spos = self._twiss.spos
             acc = spos*0.0 + val
         else:
             raise TypeError('Wrong value for energy acceptance')
@@ -292,7 +298,7 @@ class Lifetime:
         self._load_touschek_integration_table()
         gamma = self._acc.gamma_factor
         en_accep = self.accepen
-        twiss = self._eqpar.twiss
+        twiss = self._twiss
         emitx, emity = self.emitx, self.emity
         espread = self.espread0
         bunlen = self.bunlen
@@ -382,7 +388,7 @@ class Lifetime:
         accep_x = self.accepx
         accep_y = self.accepy
         pressure = self.avg_pressure
-        twiss = self._eqpar.twiss
+        twiss = self._twiss
         energy = self._acc.energy
         beta = self._acc.beta_factor
         atomic_number = self.atomic_number
