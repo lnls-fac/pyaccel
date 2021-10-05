@@ -2,6 +2,9 @@
 This module to performs linear analysis of coupled lattices.
 
 Notation is the same as in reference [3]
+In case some strange results appear in phase advances or beta functions,
+the reading of [2] is encouraged, since the authors discuss subtleties not
+addressed here for strong coupled motion.
 
 References:
     [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
@@ -27,7 +30,10 @@ from .miscellaneous import OpticsException as _OpticsException
 class EdwardsTeng(_np.record):
     """Edwards and Teng decomposition of the transfer matrices.
 
-    Notation is the same as in reference [3]
+    Notation is the same as in reference [3].
+    In case some strange results appear in phase advances or beta functions,
+    the reading of [2] is encouraged, since the authors discuss subtleties not
+    addressed here for strong coupled motion.
 
     References:
         [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
@@ -228,6 +234,9 @@ class EdwardsTengArray(_np.ndarray):
     """Array of Edwards and Teng objects.
 
     Notation is the same as in reference [3]
+    In case some strange results appear in phase advances or beta functions,
+    the reading of [2] is encouraged, since the authors discuss subtleties not
+    addressed here for strong coupled motion.
 
     References:
         [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
@@ -615,6 +624,9 @@ def calc_edwards_teng(
     """Perform linear analysis of coupled lattices.
 
     Notation is the same as in reference [3]
+    In case some strange results appear in phase advances or beta functions,
+    the reading of [2] is encouraged, since the authors discuss subtleties not
+    addressed here for strong coupled motion.
 
     References:
         [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
