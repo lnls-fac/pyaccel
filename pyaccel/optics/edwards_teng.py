@@ -7,12 +7,14 @@ the reading of [2] is encouraged, since the authors discuss subtleties not
 addressed here for strong coupled motion.
 
 References:
-    [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
-    [2] D.Sagan, D.Rubin Phys.Rev.Spec.Top.-Accelerators and beams,
-        vol.2 (1999)
+    [1] Edwards, D. A., & Teng, L. C. (1973). Parametrization of Linear
+        Coupled Motion in Periodic Systems. IEEE Transactions on Nuclear
+        Science, 20(3), 885–888. https://doi.org/10.1109/TNS.1973.4327279
+    [2] Sagan, D., & Rubin, D. (1999). Linear analysis of coupled
+        lattices. Physical Review Special Topics - Accelerators and Beams,
+        2(7), 22–26. https://doi.org/10.1103/physrevstab.2.074001
     [3] C.J. Gardner, Some Useful Linear Coupling Approximations.
         C-A/AP/#101 Brookhaven Nat. Lab. (July 2003)
-    [4] Y-Luo. C-A/AP/#185 Brookhaven Nat. Lab. (january 2005)
 
 """
 
@@ -36,12 +38,14 @@ class EdwardsTeng(_np.record):
     addressed here for strong coupled motion.
 
     References:
-        [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
-        [2] D.Sagan, D.Rubin Phys.Rev.Spec.Top.-Accelerators and beams,
-            vol.2 (1999)
+        [1] Edwards, D. A., & Teng, L. C. (1973). Parametrization of Linear
+            Coupled Motion in Periodic Systems. IEEE Transactions on Nuclear
+            Science, 20(3), 885–888. https://doi.org/10.1109/TNS.1973.4327279
+        [2] Sagan, D., & Rubin, D. (1999). Linear analysis of coupled
+            lattices. Physical Review Special Topics - Accelerators and Beams,
+            2(7), 22–26. https://doi.org/10.1103/physrevstab.2.074001
         [3] C.J. Gardner, Some Useful Linear Coupling Approximations.
             C-A/AP/#101 Brookhaven Nat. Lab. (July 2003)
-        [4] Y-Luo. C-A/AP/#185 Brookhaven Nat. Lab. (january 2005)
 
     Contains the decomposed parameters:
         spos (array, len(indices)x2x2) : longitudinal position [m]
@@ -239,12 +243,14 @@ class EdwardsTengArray(_np.ndarray):
     addressed here for strong coupled motion.
 
     References:
-        [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
-        [2] D.Sagan, D.Rubin Phys.Rev.Spec.Top.-Accelerators and beams,
-            vol.2 (1999)
+        [1] Edwards, D. A., & Teng, L. C. (1973). Parametrization of Linear
+            Coupled Motion in Periodic Systems. IEEE Transactions on Nuclear
+            Science, 20(3), 885–888. https://doi.org/10.1109/TNS.1973.4327279
+        [2] Sagan, D., & Rubin, D. (1999). Linear analysis of coupled
+            lattices. Physical Review Special Topics - Accelerators and Beams,
+            2(7), 22–26. https://doi.org/10.1103/physrevstab.2.074001
         [3] C.J. Gardner, Some Useful Linear Coupling Approximations.
             C-A/AP/#101 Brookhaven Nat. Lab. (July 2003)
-        [4] Y-Luo. C-A/AP/#185 Brookhaven Nat. Lab. (january 2005)
 
     Contains the decomposed parameters:
         spos (array, len(indices)x2x2) : longitudinal position [m]
@@ -629,12 +635,14 @@ def calc_edwards_teng(
     addressed here for strong coupled motion.
 
     References:
-        [1] D.Edwars,L.Teng IEEE Trans.Nucl.Sci. NS-20, No.3, p.885-888, 1973
-        [2] D.Sagan, D.Rubin Phys.Rev.Spec.Top.-Accelerators and beams,
-            vol.2 (1999)
+        [1] Edwards, D. A., & Teng, L. C. (1973). Parametrization of Linear
+            Coupled Motion in Periodic Systems. IEEE Transactions on Nuclear
+            Science, 20(3), 885–888. https://doi.org/10.1109/TNS.1973.4327279
+        [2] Sagan, D., & Rubin, D. (1999). Linear analysis of coupled
+            lattices. Physical Review Special Topics - Accelerators and Beams,
+            2(7), 22–26. https://doi.org/10.1103/physrevstab.2.074001
         [3] C.J. Gardner, Some Useful Linear Coupling Approximations.
             C-A/AP/#101 Brookhaven Nat. Lab. (July 2003)
-        [4] Y-Luo. C-A/AP/#185 Brookhaven Nat. Lab. (january 2005)
 
     Args:
         accelerator (pyaccel.accelerator.Accelerator): lattice model
@@ -791,6 +799,20 @@ def estimate_coupling_parameters(edteng_end):
     """Estimate minimum tune separation and emittance ratio.
 
     The estimative uses Edwards and Teng decomposition of the one turn matrix.
+
+    Notation is the same as in reference [3]
+    Reading of [2] is encouraged, since the authors discuss subtleties not
+    addressed here for strong coupled motion.
+
+    References:
+        [1] Edwards, D. A., & Teng, L. C. (1973). Parametrization of Linear
+            Coupled Motion in Periodic Systems. IEEE Transactions on Nuclear
+            Science, 20(3), 885–888. https://doi.org/10.1109/TNS.1973.4327279
+        [2] Sagan, D., & Rubin, D. (1999). Linear analysis of coupled
+            lattices. Physical Review Special Topics - Accelerators and Beams,
+            2(7), 22–26. https://doi.org/10.1103/physrevstab.2.074001
+        [3] C.J. Gardner, Some Useful Linear Coupling Approximations.
+            C-A/AP/#101 Brookhaven Nat. Lab. (July 2003)
 
     Args:
         edteng_end (pyaccel.optics.EdwardsTeng or
