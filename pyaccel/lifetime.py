@@ -17,7 +17,6 @@ else:
     _integrate = None
 
 
-
 class Lifetime:
     """Class which calculates the lifetime for a given accelerator."""
 
@@ -45,6 +44,7 @@ class Lifetime:
         self._taux = self._tauy = self._taue = None
         self._emitx = self._emity = self._espread0 = self._bunlen = None
         self._accepx = self._accepy = self._accepen = None
+        self.touschek_model = 'piwinski'
 
     @property
     def accelerator(self):
@@ -274,7 +274,7 @@ class Lifetime:
         self._accepy = _dcopy(dict(spos=spos, acc=acc))
 
     @property
-    def touschek_data(self, model='piwinski'):
+    def touschek_data(self):
         """Calculate loss rate due to Touschek beam lifetime.
 
         parameters used in calculation:
@@ -334,8 +334,8 @@ class Lifetime:
         etayl = _np.interp(s_calc, twiss.spos[ind], twiss.etapy[ind])
 
         # Tamanhos betatron do bunch
-        sigxb = emitx * betax
-        sigyb = emity * betay
+        sigxb2 = emitx * betax
+        sigyb2 = emity * betay
 
         # Volume do bunch
         sigy = _np.sqrt(etay**2*espread**2 + betay*emity)
@@ -343,11 +343,11 @@ class Lifetime:
         vol = bunlen * sigx * sigy
         const = (_cst.electron_radius**2 * _cst.light_speed) / (8*_np.pi)
 
-        if model == 'flat_beam':
+        if self.touschek_model == 'flat_beam':
             fator = betax*etaxl + alphax*etax
-            a_var = 1 / (4*espread**2) + (etax**2 + fator**2) / (4*sigxb)
-            b_var = betax*fator / (2*sigxb)
-            c_var = betax**2 / (4*sigxb) - b_var**2 / (4*a_var)
+            a_var = 1 / (4*espread**2) + (etax**2 + fator**2) / (4*sigxb2)
+            b_var = betax*fator / (2*sigxb2)
+            c_var = betax**2 / (4*sigxb2) - b_var**2 / (4*a_var)
 
             # Limite de integração inferior
             ksip = (2*_np.sqrt(c_var)/gamma * d_accp)**2
@@ -362,11 +362,10 @@ class Lifetime:
             # Tempo de vida touschek inverso
             ratep = const * nr_part/gamma**2 / d_accp**3 * d_pos / vol
             raten = const * nr_part/gamma**2 / d_accn**3 * d_neg / vol
-        elif model == 'piwinski':
+            rate = (ratep+raten)/2
+        elif self.touschek_model == 'piwinski':
             etaxtil2 = (alphax*etax + betax*etaxl)**2
             etaytil2 = (alphay*etay + betay*etayl)**2
-            sigxb2 = sigxb*sigxb
-            sigyb2 = sigyb*sigyb
             espread2 = espread*espread
 
             val1 = 1/espread2
@@ -383,15 +382,15 @@ class Lifetime:
             b1_ /= (2*betagamma2)
 
             ch_ = (sigx*sigy)**2 - (espread2*etax*etay)**2
-            cb2 = (betax*betay)**2*sigh2/(betagamma2*sigxb2*sigyb2)**2
+            cb2 = sigh2/(betagamma2*emitx*emity)**2
             cb2 *= ch_/espread2
             b2_ = b1_**2 - cb2
             for idx in range(npoints):
-                # print(b1_[idx]**2, b2_[idx], (c0**2*c3)[idx])
                 if b2_[idx] < 0:
                     if abs(b2_[idx]/b1_[idx]**2 < 1e-7):
                         print(f'B2^2 < 0 at {idx:04d}')
                     else:
+                        print(f'Setting B2 to zero at {idx:04d}')
                         b2_[idx] = 0
             b2_ = _np.sqrt(b2_)
 
@@ -399,15 +398,11 @@ class Lifetime:
             taum_n = (beta*d_accn)**2
 
             rate = []
-
             for idx in range(npoints):
-                # print(f'b1: {b1_[idx]:f}')
-                # print(f'b2: {b2_[idx]:f}')
-                f_int_p = self.f_integral_1(taum_p[idx], b1_[idx], b2_[idx])
-                f_int_n = self.f_integral_1(taum_n[idx], b1_[idx], b2_[idx])
+                f_int_p = self.f_integral_2(taum_p[idx], b1_[idx], b2_[idx])
+                f_int_n = self.f_integral_2(taum_n[idx], b1_[idx], b2_[idx])
                 rate_const = const * nr_part/gamma**2/bunlen
                 rate_const /= _np.sqrt(ch_[idx])
-                print(f_int_p, f_int_n)
                 ratep = rate_const * f_int_p/taum_p[idx]
                 raten = rate_const * f_int_n/taum_n[idx]
                 rate.append((ratep + raten)/2)
@@ -427,7 +422,7 @@ class Lifetime:
         arg *= _np.sqrt(ratio*taum)
         bessel = _np.exp(-b1_*tau)*_special.i0(b2_*tau)
         res = arg * bessel
-        if _np.isnan(res):
+        if _np.isnan(res).any() or _np.isinf(res).any():
             bessel = _np.exp(-(b1_-b2_)*tau)/_np.sqrt(2*_np.pi*tau*b2_)
             res = arg * bessel
         return res
@@ -443,7 +438,7 @@ class Lifetime:
         arg *= _np.sqrt(1+tau)
         bessel = _np.exp(-b1_*tau)*_special.i0(b2_*tau)
         res = arg * bessel
-        if _np.isnan(res):
+        if _np.isnan(res).any() or _np.isinf(res).any():
             bessel = _np.exp(-(b1_-b2_)*tau)/_np.sqrt(2*_np.pi*tau*b2_)
             res = arg * bessel
         return res
