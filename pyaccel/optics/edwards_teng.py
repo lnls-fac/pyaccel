@@ -815,37 +815,53 @@ def estimate_coupling_parameters(edteng_end):
             C-A/AP/#101 Brookhaven Nat. Lab. (July 2003)
 
     Args:
-        edteng_end (pyaccel.optics.EdwardsTeng or
-            pyaccel.optics.EdwardsTengArray): Decoposition parameters at
-            the end of the last element of the ring.
+        edteng_end (pyaccel.optics.EdwardsTengArray): EdwardsTeng parameters
+            around the ring.
 
     Returns:
         min_tunesep (float) : estimative of minimum tune separation,
             Based on equation 85-87 of ref [3]:
-            Assuming
-                mu1 = mux + minsep/2
-                mu2 = muy - minsep/2
-            then, at mux = muy = mu0 ==> T = 0 ==> U = 2*sqrt(det(m+nbar))
-            However, we know that U = 2*cos(mu1) - 2*cos(mu2)
-            which yields, assuming mu0 ~ (mu1 + mu2)/2
-            sin(minsep/2) = sqrt(det(m+nbar))/sin(mu0)/2
-        emit_ratio (float): estimative of invariant sharing ratio.
-            Based on equation 258 of ref [3] we know that with weak
-            coupling the invariant sharing is:
-                emit_ratio = (1 - d**2) / d**2
+            Assuming we are at the sum resonance, then T = 0.
+            So we can write:
+                mu1 = mu0 - minsep/2
+                mu2 = mu0 + minsep/2
+            where mu0 = (mu1 + mu2) / 2, and
+                U = 2*sqrt(det(m+nbar))
+            However, we know that
+                U = 2*cos(mu1) - 2*cos(mu2)
+                U = 2*cos(mu0-minsep/2) - 2*cos(mu0+minsep/2)
+                U = 4*sin(mu0) * sin(minsep/2)
+            which yields,
+                sin(minsep/2) = sqrt(det(m+nbar))/sin(mu0)/2
+        ratio (numpy.ndarray): estimative of invariant sharing ratio.
+            Based on equation 216, 217 and 237 of ref [3].
+            The ratio is not invariant along the ring.
+            So the whole vector is returned.
+            An average of this value could be used to estimate the ratio.
 
     """
-    if isinstance(edteng_end, EdwardsTengArray):
-        edteng_end = edteng_end[-1]
-
     edt = edteng_end
+
     # ###### Estimative of emittance ratio #######
-    dsqr = edt.d ** 2
-    emit_ratio = (1-dsqr)/dsqr
+
+    # Equations 216 and 217 of ref [3]
+    D2 = edt.beta2*edt.W_22**2 + 2*edt.alpha2*edt.W_22*edt.W_12
+    D1 = edt.beta1*edt.W_11**2 - 2*edt.alpha1*edt.W_11*edt.W_12
+    D2 += edt.gamma2*edt.W_12**2
+    D1 += edt.gamma1*edt.W_12**2
+
+    # Equation 237 of ref [3]
+    ratio = 1/edt.d**2 * _np.sqrt(D1*D2/edt.beta1/edt.beta2)
+
+    # # This second formula is based on equation 258 of ref [3] which is
+    # # approximately valid for weak coupling:
+    # dsqr = edt.d ** 2
+    # ratio = (1-dsqr)/dsqr
 
     # ###### Estimate Minimum tune separation #####
-
     # from equations 85, 86 and 89 of ref [3]:
+    edt = edt[-1]
+    dsqr = edt.d * edt.d
     U = 2*(_np.cos(edt.mu1) - _np.cos(edt.mu2))
     det_m_plus_nbar = U*U*dsqr*(1-dsqr)
 
@@ -854,7 +870,7 @@ def estimate_coupling_parameters(edteng_end):
         _np.sqrt(_np.abs(det_m_plus_nbar))/_np.sin(mu0)/2)
     min_tunesep /= 2*_np.pi
 
-    return min_tunesep, emit_ratio
+    return min_tunesep, ratio
 
 
 # 2-by-2 symplectic matrix
