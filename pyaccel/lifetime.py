@@ -10,10 +10,12 @@ from mathphys import constants as _cst, units as _u, \
 
 from . import optics as _optics
 
+import scipy.special as _special
 if _implib.util.find_spec('scipy'):
     import scipy.integrate as _integrate
 else:
     _integrate = None
+
 
 
 class Lifetime:
@@ -272,7 +274,7 @@ class Lifetime:
         self._accepy = _dcopy(dict(spos=spos, acc=acc))
 
     @property
-    def touschek_data(self):
+    def touschek_data(self, model='piwinski'):
         """Calculate loss rate due to Touschek beam lifetime.
 
         parameters used in calculation:
@@ -298,6 +300,7 @@ class Lifetime:
         """
         self._load_touschek_integration_table()
         gamma = self._acc.gamma_factor
+        beta = self._acc.beta_factor
         en_accep = self.accepen
         twiss = self._twiss
         emitx, emity = self.emitx, self.emity
@@ -324,41 +327,147 @@ class Lifetime:
         alphax = _np.interp(s_calc, twiss.spos[ind], twiss.alphax[ind])
         etax = _np.interp(s_calc, twiss.spos[ind], twiss.etax[ind])
         etaxl = _np.interp(s_calc, twiss.spos[ind], twiss.etapx[ind])
+
         betay = _np.interp(s_calc, twiss.spos[ind], twiss.betay[ind])
+        alphay = _np.interp(s_calc, twiss.spos[ind], twiss.alphay[ind])
         etay = _np.interp(s_calc, twiss.spos[ind], twiss.etay[ind])
+        etayl = _np.interp(s_calc, twiss.spos[ind], twiss.etapy[ind])
+
+        # Tamanhos betatron do bunch
+        sigxb = emitx * betax
+        sigyb = emity * betay
 
         # Volume do bunch
         sigy = _np.sqrt(etay**2*espread**2 + betay*emity)
         sigx = _np.sqrt(etax**2*espread**2 + betax*emitx)
         vol = bunlen * sigx * sigy
-
-        # Tamanho betatron horizontal do bunch
-        sigxb = emitx * betax
-
-        fator = betax*etaxl + alphax*etax
-        a_var = 1 / (4*espread**2) + (etax**2 + fator**2) / (4*sigxb)
-        b_var = betax*fator / (2*sigxb)
-        c_var = betax**2 / (4*sigxb) - b_var**2 / (4*a_var)
-
-        # Limite de integração inferior
-        ksip = (2*_np.sqrt(c_var)/gamma * d_accp)**2
-        ksin = (2*_np.sqrt(c_var)/gamma * d_accn)**2
-
-        # Interpola d_touschek
-        d_pos = _np.interp(
-            ksip, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
-        d_neg = _np.interp(
-            ksin, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
-
-        # Tempo de vida touschek inverso
         const = (_cst.electron_radius**2 * _cst.light_speed) / (8*_np.pi)
-        ratep = const * nr_part/gamma**2 / d_accp**3 * d_pos / vol
-        raten = const * nr_part/gamma**2 / d_accn**3 * d_neg / vol
-        rate = (ratep + raten) / 2
 
+        if model == 'flat_beam':
+            fator = betax*etaxl + alphax*etax
+            a_var = 1 / (4*espread**2) + (etax**2 + fator**2) / (4*sigxb)
+            b_var = betax*fator / (2*sigxb)
+            c_var = betax**2 / (4*sigxb) - b_var**2 / (4*a_var)
+
+            # Limite de integração inferior
+            ksip = (2*_np.sqrt(c_var)/gamma * d_accp)**2
+            ksin = (2*_np.sqrt(c_var)/gamma * d_accn)**2
+
+            # Interpola d_touschek
+            d_pos = _np.interp(
+                ksip, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
+            d_neg = _np.interp(
+                ksin, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
+
+            # Tempo de vida touschek inverso
+            ratep = const * nr_part/gamma**2 / d_accp**3 * d_pos / vol
+            raten = const * nr_part/gamma**2 / d_accn**3 * d_neg / vol
+        elif model == 'piwinski':
+            etaxtil2 = (alphax*etax + betax*etaxl)**2
+            etaytil2 = (alphay*etay + betay*etayl)**2
+            sigxb2 = sigxb*sigxb
+            sigyb2 = sigyb*sigyb
+            espread2 = espread*espread
+
+            val1 = 1/espread2
+            val2 = (etax*etax + etaxtil2)/(sigxb2)
+            val3 = (etay*etay + etaytil2)/(sigyb2)
+            sigh2 = 1/(val1 + val2 + val3)
+
+            betagamma2 = (beta*gamma)**2
+
+            cx_ = betax**2/sigxb2
+            cy_ = betay**2/sigyb2
+            b1_ = cx_*(1-sigh2*etaxtil2/sigxb2)
+            b1_ += cy_*(1-sigh2*etaytil2/sigyb2)
+            b1_ /= (2*betagamma2)
+
+            ch_ = (sigx*sigy)**2 - (espread2*etax*etay)**2
+            cb2 = (betax*betay)**2*sigh2/(betagamma2*sigxb2*sigyb2)**2
+            cb2 *= ch_/espread2
+            b2_ = b1_**2 - cb2
+            for idx in range(npoints):
+                # print(b1_[idx]**2, b2_[idx], (c0**2*c3)[idx])
+                if b2_[idx] < 0:
+                    if abs(b2_[idx]/b1_[idx]**2 < 1e-7):
+                        print(f'B2^2 < 0 at {idx:04d}')
+                    else:
+                        b2_[idx] = 0
+            b2_ = _np.sqrt(b2_)
+
+            taum_p = (beta*d_accp)**2
+            taum_n = (beta*d_accn)**2
+
+            rate = []
+
+            for idx in range(npoints):
+                # print(f'b1: {b1_[idx]:f}')
+                # print(f'b2: {b2_[idx]:f}')
+                f_int_p = self.f_integral_1(taum_p[idx], b1_[idx], b2_[idx])
+                f_int_n = self.f_integral_1(taum_n[idx], b1_[idx], b2_[idx])
+                rate_const = const * nr_part/gamma**2/bunlen
+                rate_const /= _np.sqrt(ch_[idx])
+                print(f_int_p, f_int_n)
+                ratep = rate_const * f_int_p/taum_p[idx]
+                raten = rate_const * f_int_n/taum_n[idx]
+                rate.append((ratep + raten)/2)
+
+        rate = _np.array(rate)
         # Tempo de vida touschek inverso médio
         avg_rate = _np.trapz(rate, x=s_calc) / (s_calc[-1] - s_calc[0])
         return dict(rate=rate, avg_rate=avg_rate, volume=vol, pos=s_calc)
+
+    @staticmethod
+    def f_function_arg_1(tau, taum, b1_, b2_):
+        """."""
+        ratio = tau/taum/(1+tau)
+        arg = (2+1/tau)**2 * (ratio - 1)
+        arg += 1 - _np.sqrt(1/ratio)
+        arg -= 1/2/tau*(4 + 1/tau) * _np.log(ratio)
+        arg *= _np.sqrt(ratio*taum)
+        bessel = _np.exp(-b1_*tau)*_special.i0(b2_*tau)
+        res = arg * bessel
+        if _np.isnan(res):
+            bessel = _np.exp(-(b1_-b2_)*tau)/_np.sqrt(2*_np.pi*tau*b2_)
+            res = arg * bessel
+        return res
+
+    @staticmethod
+    def f_function_arg_2(tau, taum, b1_, b2_):
+        """."""
+        tau = _np.tan(tau)**2
+        ratio = tau/taum/(1+tau)
+        arg = (2*tau+1)**2 * (ratio - 1)/tau
+        arg += tau - _np.sqrt(tau*taum*(1+tau))
+        arg -= (2+1/(2*tau))*_np.log(ratio)
+        arg *= _np.sqrt(1+tau)
+        bessel = _np.exp(-b1_*tau)*_special.i0(b2_*tau)
+        res = arg * bessel
+        if _np.isnan(res):
+            bessel = _np.exp(-(b1_-b2_)*tau)/_np.sqrt(2*_np.pi*tau*b2_)
+            res = arg * bessel
+        return res
+
+    @staticmethod
+    def f_integral_1(taum, b1_, b2_):
+        """."""
+        lim = 1000
+        f_int, _ = _integrate.quad(
+            func=Lifetime.f_function_arg_1, a=taum, b=_np.inf,
+            args=(taum, b1_, b2_), limit=lim)
+        f_int *= _np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
+        return f_int
+
+    @staticmethod
+    def f_integral_2(taum, b1_, b2_):
+        """."""
+        lim = 1000
+        kappam = _np.arctan(_np.sqrt(taum))
+        f_int, _ = _integrate.quad(
+            func=Lifetime.f_function_arg_2, a=kappam, b=_np.pi/2,
+            args=(taum, b1_, b2_), limit=lim)
+        f_int *= 2*_np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
+        return f_int
 
     @property
     def lossrate_touschek(self):
