@@ -31,6 +31,7 @@ class EqParamsFromBeamEnvelope:
         self._envelope = _np.zeros((len(self._acc)+1, 6, 6), dtype=float)
         self._alpha = 0.0
         self._emits = _np.zeros(3)
+        self.emitx_proj, self.emity_proj = 0.0, 0.0
         self._alphas = _np.zeros(3)
         self._damping_numbers = _np.zeros(3)
         self._tunes = _np.zeros(3)
@@ -308,7 +309,7 @@ class EqParamsFromBeamEnvelope:
         # Look at section  D.2 of the Ohmi paper to understand this part of the
         # code on how to get the emmitances:
         evals, evecs = _np.linalg.eig(m66)
-        # evecsh = evecs.swapaxes(-1, -2).conj()
+        evecsh = evecs.swapaxes(-1, -2).conj()
         evecsi = _np.linalg.inv(evecs)
         evecsih = evecsi.swapaxes(-1, -2).conj()
         env0r = evecsi @ self._envelope[0] @ evecsih
@@ -337,18 +338,18 @@ class EqParamsFromBeamEnvelope:
         self._tunes = mus[idx] / 2 / _np.pi
         self._emits = emits[idx]
 
-        # idcs = _np.r_[2*idx, 2*idx+1]
-        # sig = env0r[:, idcs][idcs, :][:4, :4]
-        # trans_evecs = evecs[:, idcs][idcs, :][:4, :4]
-        # trans_evecsi = evecsi[:, idcs][idcs, :][:4, :4]
+        idcs = _np.zeros((6, ), dtype=int)
+        idcs[::2] = 2*idx
+        idcs[1::2] = 2*idx + 1
+        sig = env0r[:, idcs][idcs, :][:4, :4]
+        trans_evecs = evecs[:, idcs][idcs, :][:4, :4]
+        trans_evecsh = evecsh[:, idcs][idcs, :][:4, :4]
 
-        # print(evecs @ evecsi)
-
-        # trans_evecsh = evecsh[:, idcs][idcs, :][:4, :4]
-        # sig = trans_evecs @ sig @ trans_evecsh
-        # emity = _np.sqrt(_np.linalg.det(sig[:2, :2]).real)
-        # emitx = _np.sqrt(_np.linalg.det(sig[2:4, 2:4]).real)
-        # print(emitx, emity)
+        sig = trans_evecs @ sig @ trans_evecsh
+        emit1 = _np.sqrt(_np.linalg.det(sig[:2, :2]).real)
+        emit2 = _np.sqrt(_np.linalg.det(sig[2:4, 2:4]).real)
+        self.emitx_proj = _np.maximum(emit1, emit2)
+        self.emity_proj = _np.minimum(emit1, emit2)
 
         # we know the damping numbers must sum to 4
         fac = _np.sum(self._alphas) / 4
