@@ -470,18 +470,18 @@ class Lifetime:
     def f_integral_2_simps(taum, b1_, b2_):
         """."""
         kappam = _np.arctan(_np.sqrt(taum))
-        npts = int(3*70)
+        npts = int(3*100)
         dtau = (_np.pi/2-kappam)/npts
         tau = _np.linspace(kappam, _np.pi/2, npts+1)
         func = Lifetime.f_function_arg_2(tau, taum, b1_, b2_)
 
         # Simpson's 3/8 Rule - N must be mod(N, 3) = 0
-        val1 = func[0:-1:3] + func[3::3]
-        val2 = 3*(func[1::3] + func[2::3])
-        f_int = 3*dtau/8 * _np.sum(val1 + val2)
+        val1 = func[0::3] + func[3::3]
+        val2 = func[1::3] + func[2::3]
+        f_int = 3*dtau/8*_np.sum(val1 + 3*val2)
 
         # Simpson's 1/3 Rule - N must be mod(N, 2) = 0
-        # f_int = _np.sum(func[0:-1:2]+4*func[1::2] + func[2::2])
+        # f_int = _np.sum(func[0::2]+4*func[1::2]+func[2::2])
         # f_int *= dtau/3
         f_int *= 2*_np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
         return f_int
