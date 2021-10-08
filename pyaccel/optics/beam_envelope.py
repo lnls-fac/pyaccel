@@ -15,11 +15,23 @@ from .miscellaneous import get_rf_voltage as _get_rf_voltage, \
 
 
 class EqParamsFromBeamEnvelope:
-    """."""
+    """Calculate equilibrium beam parameters from beam envelope matrix.
 
-    LONG = 2
-    HORI = 1
-    VERT = 0
+    It employs Ohmi formalism to do so:
+        Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+    Other useful reference is:
+        Chao, A. W. (1979). Evaluation of beam distribution parameters in
+        an electron storage ring. Journal of Applied Physics, 50(1), 595.
+        https://doi.org/10.1016/0029-554X(81)90006-9
+
+    The normal modes properties are defined so that in the limit of zero
+    coupling:
+        Mode 1 --> Horizontal plane
+        Mode 2 --> Vertical plane
+        Mode 3 --> Longitudinal plane
+
+    """
 
     def __init__(self, accelerator, energy_offset=0.0):
         """."""
@@ -119,114 +131,196 @@ class EqParamsFromBeamEnvelope:
         return self._bdiff.copy()
 
     @property
-    def tunex(self):
-        """."""
-        return self._tunes[self.HORI]
+    def tune1(self):
+        """Tune of mode 1.
+
+        In the limit of zero coupling, this is the horizontal tune.
+
+        """
+        return self._tunes[0]
 
     @property
-    def tuney(self):
-        """."""
-        return self._tunes[self.VERT]
+    def tune2(self):
+        """Tune of mode 2.
+
+        In the limit of zero coupling, this is the vertical tune.
+
+        """
+        return self._tunes[1]
 
     @property
-    def synctune(self):
-        """."""
-        return self._tunes[self.LONG]
+    def tune3(self):
+        """Tune of mode 3.
+
+        In the limit of zero coupling, this is the longitudinal tune.
+
+        """
+        return self._tunes[2]
 
     @property
-    def alphax(self):
-        """."""
-        return self._alphas[self.HORI]
+    def alpha1(self):
+        """Stationary damping rate of mode 1.
+
+        In the limit of zero coupling, this is the horizontal damping rate.
+
+        """
+        return self._alphas[0]
 
     @property
-    def alphay(self):
-        """."""
-        return self._alphas[self.VERT]
+    def alpha2(self):
+        """Stationary damping rate of mode 2.
+
+        In the limit of zero coupling, this is the vertical damping rate.
+
+        """
+        return self._alphas[1]
 
     @property
-    def alphae(self):
-        """."""
-        return self._alphas[self.LONG]
+    def alpha3(self):
+        """Stationary damping rate of mode 3.
+
+        In the limit of zero coupling, this is the longitudinal damping rate.
+
+        """
+        return self._alphas[2]
 
     @property
-    def taux(self):
-        """."""
-        return 1/self.alphax
+    def tau1(self):
+        """Stationary damping time of mode 1.
+
+        In the limit of zero coupling, this is the horizontal damping time.
+
+        """
+        return 1/self.alpha1
 
     @property
-    def tauy(self):
-        """."""
-        return 1/self.alphay
+    def tau2(self):
+        """Stationary damping time of mode 2.
+
+        In the limit of zero coupling, this is the vertical damping time.
+
+        """
+        return 1/self.alpha2
 
     @property
-    def taue(self):
-        """."""
-        return 1/self.alphae
+    def tau3(self):
+        """Stationary damping time of mode 3.
+
+        In the limit of zero coupling, this is the longitudinal damping time.
+
+        """
+        return 1/self.alpha3
 
     @property
-    def Jx(self):
-        """."""
-        return self._damping_numbers[self.HORI]
+    def J1(self):
+        """Stationary damping number of mode 1.
+
+        In the limit of zero coupling, this is the horizontal damping number.
+
+        """
+        return self._damping_numbers[0]
 
     @property
-    def Jy(self):
-        """."""
-        return self._damping_numbers[self.VERT]
+    def J2(self):
+        """Stationary damping number of mode 2.
+
+        In the limit of zero coupling, this is the vertical damping number.
+
+        """
+        return self._damping_numbers[1]
 
     @property
-    def Je(self):
-        """."""
-        return self._damping_numbers[self.LONG]
+    def J3(self):
+        """Stationary damping number of mode 3.
+
+        In the limit of zero coupling, this is the longitudinal damping number.
+
+        """
+        return self._damping_numbers[2]
+
+    @property
+    def emit1(self):
+        """Stationary emittance of mode 1.
+
+        In the limit of zero coupling, this is the horizontal emittance.
+
+        """
+        return self._emits[0]
+
+    @property
+    def emit2(self):
+        """Stationary emittance of mode 2.
+
+        In the limit of zero coupling, this is the vertical emittance.
+
+        """
+        return self._emits[1]
+
+    @property
+    def emit3(self):
+        """Stationary emittance of mode 3.
+
+        In the limit of zero coupling, this is the longitudinal emittance.
+
+        """
+        return self._emits[2]
 
     @property
     def espread0(self):
-        """."""
+        """Stationary energy spread."""
         return _np.sqrt(self._envelope[0, 4, 4])
 
     @property
     def bunlen(self):
-        """."""
+        """Stationary bunch length."""
         return _np.sqrt(self._envelope[0, 5, 5])
 
     @property
-    def emitl(self):
-        """."""
-        return self._emits[2]
-
-    @property
-    def emitx(self):
-        """."""
-        return self._emits[1]
-
-    @property
-    def emity(self):
-        """."""
-        return self._emits[0]
-
-    @property
-    def emit0(self):
-        """."""
-        return _np.sum(self._emits[:-1])
-
-    @property
     def sigma_rx(self):
-        """."""
+        """Stationary horizontal size."""
         return _np.sqrt(self._envelope[:, 0, 0])
 
     @property
     def sigma_px(self):
-        """."""
+        """Stationary horizontal divergence."""
         return _np.sqrt(self._envelope[:, 1, 1])
 
     @property
     def sigma_ry(self):
-        """."""
+        """Stationary vertical size."""
         return _np.sqrt(self._envelope[:, 2, 2])
 
     @property
     def sigma_py(self):
-        """."""
+        """Stationary vertical divergence."""
         return _np.sqrt(self._envelope[:, 3, 3])
+
+    @property
+    def tilt_xyplane(self):
+        """Stationary tilt angle of the beam major axis in relation to X.
+
+        Calculated via equation 25 of
+            Chao, A. W. (1979). Evaluation of beam distribution parameters in
+            an electron storage ring. Journal of Applied Physics, 50(1), 595.
+            https://doi.org/10.1016/0029-554X(81)90006-9
+
+        The equation reads:
+            tilt = 1/2 * arctan(2*<xy>/(<x^2>-<y^2>))
+        Besides this base equation, we also took into consideration the
+        possibility of angles larger than pi/4 os smaller than -pi/4.
+
+        """
+        xx = self._envelope[:, 0, 0]
+        yy = self._envelope[:, 2, 2]
+        xy = self._envelope[:, 0, 2]
+        dxy = xx - yy
+        angles = _np.zeros(xx.size, dtype=float)
+        idx = _np.isclose(dxy, 0.0, atol=1e-16)
+        angles[idx] = _np.pi/4 * _np.sign(xy[idx])
+        angles[~idx] = _np.arctan(2*xy[~idx]/_np.abs(dxy[~idx])) / 2
+        idx = dxy < 0
+        angles[idx] = _np.pi/2 * _np.sign(xy[idx]) - angles[idx]
+        return angles
 
     @property
     def U0(self):
@@ -305,24 +399,33 @@ class EqParamsFromBeamEnvelope:
                 self._acc, full=True, energy_offset=self._energy_offset)
 
         m66 = self._cumul_mat[-1]
+        # # To calculate the emittances along the whole ring uncomment the
+        # # line below:
+        # m66 = _np.linalg.solve(
+        #     self._cumul_mat.transpose(0, 2, 1),
+        #     (self._cumul_mat @ m66).transpose(0, 2, 1)).transpose(0, 2, 1)
 
         # Look at section  D.2 of the Ohmi paper to understand this part of the
         # code on how to get the emmitances:
+
+        # The function numpy.linalg.eig returns the evecs matrix such that:
+        #    evecs^-1 @ m66 @ evecs = np.diag(evals)
         evals, evecs = _np.linalg.eig(m66)
-        evecsh = evecs.swapaxes(-1, -2).conj()
+        # Notice that the transformation generated by matrix evecs is the
+        # inverse of equation 62 of the Ohmi paper.
+        # So we need to calculate the inverse of evecs:
         evecsi = _np.linalg.inv(evecs)
         evecsih = evecsi.swapaxes(-1, -2).conj()
+
+        # Then, using equation 64, we have:
         env0r = evecsi @ self._envelope[0] @ evecsih
-        emits = _np.diagonal(env0r, axis1=-1, axis2=-2).real[::2].copy()
-        emits /= _np.linalg.norm(evecsi, axis=-1)[::2]
-        # # To calculate the emittances along the whole ring use this code:
-        # m66i = self._cumul_mat @ m66 @ _np.linalg.inv(self._cumul_mat)
-        # _, evecs = np.linalg.eig(m66i)
-        # evecsi = np.linalg.inv(evecs)
-        # evecsih = evecsi.swapaxes(-1, -2).conj()
-        # env0r = evecsi @ self._envelope @ evecsih
-        # emits = np.diagonal(env0r, axis1=-1, axis2=-2).real[:, ::2] * 1e12
-        # emits /= np.linalg.norm(evecsi, axis=-1)[:, ::2]
+        emits = _np.diagonal(
+            env0r, axis1=-1, axis2=-2).real.take([0, 2, 4], axis=-1)
+
+        # NOTE: I don't understand why I have to divide the resulting
+        # emittances by the norms of evecsi[i, :]:
+        norm_evecsi = _np.linalg.norm(evecsi, axis=-1)
+        emits /= norm_evecsi.take([0, 2, 4], axis=-1)
 
         # get tunes and damping rates from one turn matrix
         trc = (evals[::2] + evals[1::2]).real
@@ -331,25 +434,18 @@ class EqParamsFromBeamEnvelope:
         alphas = trc / _np.cos(mus) / 2
         alphas = -_np.log(alphas) * _get_revolution_frequency(self._acc)
 
-        # The longitudinal emittance is the largest one, then comes the
-        # horizontal and latter the vertical:
+        # We have conventioned that in the limit of zero coupling mode 1 is
+        # related to the horizontal plane, mode 2 is related to the vertical
+        # plane and mode 3 is related to the longitunidal plane.
+        # Since we know that in this limit the longitudinal emittance is
+        # always the largest, the horizontal emittance is the second largest
+        # and the vertical is the smallest, we order them in ascending order
+        # and then define the modes ordering according the this convention:
         idx = _np.argsort(emits)
+        idx = idx[[1, 0, 2]]  # from [V, H, L] to [H, V, L]
         self._alphas = alphas[idx]
         self._tunes = mus[idx] / 2 / _np.pi
         self._emits = emits[idx]
-
-        idcs = _np.zeros((6, ), dtype=int)
-        idcs[::2] = 2*idx
-        idcs[1::2] = 2*idx + 1
-        sig = env0r[:, idcs][idcs, :][:4, :4]
-        trans_evecs = evecs[:, idcs][idcs, :][:4, :4]
-        trans_evecsh = evecsh[:, idcs][idcs, :][:4, :4]
-
-        sig = trans_evecs @ sig @ trans_evecsh
-        emit1 = _np.sqrt(_np.linalg.det(sig[:2, :2]).real)
-        emit2 = _np.sqrt(_np.linalg.det(sig[2:4, 2:4]).real)
-        self.emitx_proj = _np.maximum(emit1, emit2)
-        self.emity_proj = _np.minimum(emit1, emit2)
 
         # we know the damping numbers must sum to 4
         fac = _np.sum(self._alphas) / 4
