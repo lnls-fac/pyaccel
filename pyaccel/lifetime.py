@@ -364,6 +364,9 @@ class Lifetime:
             raten = const * nr_part/gamma**2 / d_accn**3 * d_neg / vol
             rate = (ratep+raten)/2
         elif self.touschek_model == 'piwinski':
+            track_data_p = _np.zeros((npoints, 4))
+            track_data_n = _np.zeros((npoints, 4))
+
             etaxtil2 = (alphax*etax + betax*etaxl)**2
             etaytil2 = (alphay*etay + betay*etayl)**2
             espread2 = espread*espread
@@ -398,11 +401,22 @@ class Lifetime:
             taum_n = (beta*d_accn)**2
 
             rate = []
+            track_data_p[:, 0] = taum_p
+            track_data_p[:, 1] = b1_
+            track_data_p[:, 2] = b2_
+
+            track_data_n[:, 0] = taum_n
+            track_data_n[:, 1] = b1_
+            track_data_n[:, 2] = b2_
             for idx in range(npoints):
                 f_int_p = self.f_integral_2_simps(
                     taum_p[idx], b1_[idx], b2_[idx])
                 f_int_n = self.f_integral_2_simps(
                     taum_n[idx], b1_[idx], b2_[idx])
+
+                track_data_p[idx, 3] = f_int_p
+                track_data_n[idx, 3] = f_int_n
+
                 rate_const = const * nr_part/gamma**2/bunlen
                 rate_const /= _np.sqrt(ch_[idx])
                 ratep = rate_const * f_int_p/taum_p[idx]
@@ -412,7 +426,11 @@ class Lifetime:
         rate = _np.array(rate)
         # Tempo de vida touschek inverso médio
         avg_rate = _np.trapz(rate, x=s_calc) / (s_calc[-1] - s_calc[0])
-        return dict(rate=rate, avg_rate=avg_rate, volume=vol, pos=s_calc)
+        dit = dict(
+            rate=rate, avg_rate=avg_rate,
+            volume=vol, pos=s_calc,
+            track_data_n=track_data_n, track_data_p=track_data_p)
+        return dit
 
     @staticmethod
     def f_function_arg_1(tau, taum, b1_, b2_):
@@ -430,6 +448,16 @@ class Lifetime:
         return res
 
     @staticmethod
+    def f_integral_1(taum, b1_, b2_):
+        """."""
+        lim = 1000
+        f_int, _ = _integrate.quad(
+            func=Lifetime.f_function_arg_1, a=taum, b=_np.inf,
+            args=(taum, b1_, b2_), limit=lim)
+        f_int *= _np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
+        return f_int
+
+    @staticmethod
     def f_function_arg_2(tau, taum, b1_, b2_):
         """."""
         tau = _np.tan(tau)**2
@@ -444,16 +472,6 @@ class Lifetime:
             bessel = _np.exp(-(b1_-b2_)*tau)/_np.sqrt(2*_np.pi*tau*b2_)
             res = arg * bessel
         return res
-
-    @staticmethod
-    def f_integral_1(taum, b1_, b2_):
-        """."""
-        lim = 1000
-        f_int, _ = _integrate.quad(
-            func=Lifetime.f_function_arg_1, a=taum, b=_np.inf,
-            args=(taum, b1_, b2_), limit=lim)
-        f_int *= _np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
-        return f_int
 
     @staticmethod
     def f_integral_2(taum, b1_, b2_):
@@ -476,7 +494,7 @@ class Lifetime:
         func = Lifetime.f_function_arg_2(tau, taum, b1_, b2_)
 
         # Simpson's 3/8 Rule - N must be mod(N, 3) = 0
-        val1 = func[0::3] + func[3::3]
+        val1 = func[0:-1:3] + func[3::3]
         val2 = func[1::3] + func[2::3]
         f_int = 3*dtau/8*_np.sum(val1 + 3*val2)
 
