@@ -417,7 +417,7 @@ def calc_beamenvelope(
             accelerator.cavity_on = True
 
         _, cum_mat = _tracking.find_m66(
-            accelerator, indices='closed', closed_orbit=fixed_point)
+            accelerator, indices='closed', fixed_point=fixed_point)
 
         if init_env is None:
             accelerator.radiation_on = rad_stt

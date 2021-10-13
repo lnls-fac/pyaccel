@@ -1,6 +1,7 @@
 """Optics package."""
 from .twiss import Twiss, TwissArray, calc_twiss
-from .edwards_teng import calc_edwards_teng
+from .edwards_teng import EdwardsTeng, EdwardsTengArray, calc_edwards_teng, \
+    estimate_coupling_parameters
 from .beam_envelope import EqParamsFromBeamEnvelope, calc_beamenvelope
 from .acceptances import calc_transverse_acceptance, \
     calc_tousheck_energy_acceptance
