@@ -81,7 +81,6 @@ class EqParamsFromBeamEnvelope:
         rst += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
         rst += fmte.format('\nmode 1 emittance [nm.rad]', self.emit1*1e9)
         rst += fmte.format('\nmode 2 emittance [pm.rad]', self.emit2*1e12)
-        rst += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
         rst += fmte.format('\nnatural espread [%]', self.espread0*100)
         rst += fmte.format('\nbunch length [mm]', self.bunlen*1000)
         rst += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
@@ -255,11 +254,6 @@ class EqParamsFromBeamEnvelope:
         return self._emits[1]
 
     @property
-    def emit0(self):
-        """Stationary natural emittance."""
-        return self._emits[0]+self._emits[1]
-
-    @property
     def emit3(self):
         """Stationary emittance of mode 3.
 
@@ -388,7 +382,7 @@ class EqParamsFromBeamEnvelope:
             'tau1', 'tau2', 'tau3',
             'tune1', 'tune2', 'tune3',
             'espread0',
-            'emit1', 'emit2', 'emit0',
+            'emit1', 'emit2',
             'bunlen',
             'U0', 'overvoltage', 'syncphase',
             'alpha', 'etac', 'rf_acceptance',
