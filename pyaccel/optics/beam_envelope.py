@@ -43,7 +43,6 @@ class EqParamsFromBeamEnvelope:
         self._envelope = _np.zeros((len(self._acc)+1, 6, 6), dtype=float)
         self._alpha = 0.0
         self._emits = _np.zeros(3)
-        self.emitx_proj, self.emity_proj = 0.0, 0.0
         self._alphas = _np.zeros(3)
         self._damping_numbers = _np.zeros(3)
         self._tunes = _np.zeros(3)
@@ -60,19 +59,19 @@ class EqParamsFromBeamEnvelope:
         rst += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
         rst += fmte.format('\nEnergy Deviation [%]', self.energy_offset*100)
 
-        ints = 'Jx,Jy,Je'.split(',')
+        ints = 'J1,J2,J3'.split(',')
         rst += '\n' + fmti.format(', '.join(ints))
         rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
-        ints = 'taux,tauy,taue'.split(',')
+        ints = 'tau1,tau2,tau2'.split(',')
         rst += '\n' + fmti.format(', '.join(ints) + ' [ms]')
         rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
 
-        ints = 'alphax,alphay,alphae'.split(',')
+        ints = 'alpha1,alpha2,alpha3'.split(',')
         rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
         rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
-        ints = 'tunex,tuney'.split(',')
+        ints = 'tune1,tune2,tune3'.split(',')
         rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
         rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
@@ -80,9 +79,8 @@ class EqParamsFromBeamEnvelope:
         rst += fmte.format('\nenergy loss [keV]', self.U0/1000)
         rst += fmte.format('\novervoltage', self.overvoltage)
         rst += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
-        rst += fmte.format('\nsync tune', self.synctune)
-        rst += fmte.format('\nhorizontal emittance [nm.rad]', self.emitx*1e9)
-        rst += fmte.format('\nvertical emittance [pm.rad]', self.emity*1e12)
+        rst += fmte.format('\nmode 1 emittance [nm.rad]', self.emit1*1e9)
+        rst += fmte.format('\nmode 2 emittance [pm.rad]', self.emit2*1e12)
         rst += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
         rst += fmte.format('\nnatural espread [%]', self.espread0*100)
         rst += fmte.format('\nbunch length [mm]', self.bunlen*1000)
@@ -257,6 +255,11 @@ class EqParamsFromBeamEnvelope:
         return self._emits[1]
 
     @property
+    def emit0(self):
+        """Stationary natural emittance."""
+        return self._emits[0]+self._emits[1]
+
+    @property
     def emit3(self):
         """Stationary emittance of mode 3.
 
@@ -349,7 +352,7 @@ class EqParamsFromBeamEnvelope:
         # It is possible to infer the slippage factor via the relation between
         # the energy spread and the bunch length
         etac = self.bunlen / self.espread0 / vel
-        etac *= 2*_math.pi * self.synctune * rev_freq
+        etac *= 2*_math.pi * self.tune3 * rev_freq
 
         # Assume momentum compaction is positive and we are above transition:
         etac *= -1
@@ -380,13 +383,14 @@ class EqParamsFromBeamEnvelope:
     def as_dict(self):
         """."""
         pars = {
-            'Jx', 'Jy', 'Je',
-            'alphax', 'alphay', 'alphae',
-            'taux', 'tauy', 'taue',
+            'J1', 'J2', 'J3',
+            'alpha1', 'alpha2', 'alpha3',
+            'tau1', 'tau2', 'tau3',
+            'tune1', 'tune2', 'tune3',
             'espread0',
-            'emitx', 'emity', 'emit0',
+            'emit1', 'emit2', 'emit0',
             'bunlen',
-            'U0', 'overvoltage', 'syncphase', 'synctune',
+            'U0', 'overvoltage', 'syncphase',
             'alpha', 'etac', 'rf_acceptance',
             }
         dic = {par: getattr(self, par) for par in pars}
