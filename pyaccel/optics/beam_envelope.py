@@ -63,7 +63,7 @@ class EqParamsFromBeamEnvelope:
         rst += '\n' + fmti.format(', '.join(ints))
         rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
-        ints = 'tau1,tau2,tau2'.split(',')
+        ints = 'tau1,tau2,tau3'.split(',')
         rst += '\n' + fmti.format(', '.join(ints) + ' [ms]')
         rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
 
