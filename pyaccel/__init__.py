@@ -4,7 +4,6 @@ from . import elements
 from . import accelerator
 from . import lattice
 from . import tracking
-from . import optics
 from . import graphics
 from . import lifetime
 from . import naff

@@ -4,6 +4,7 @@ import os as _os
 import importlib as _implib
 from copy import deepcopy as _dcopy
 import numpy as _np
+from collections import namedtuple as _namedtuple
 
 from mathphys import constants as _cst, units as _u, \
     beam_optics as _beam
@@ -29,22 +30,82 @@ class Lifetime:
     _KSI_TABLE = None
     _D_TABLE = None
 
-    def __init__(self, accelerator):
+    OPTICS = _namedtuple('Optics', ['EdwardsTeng', 'Twiss'])(0, 1)
+    EQPARAMS = _namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])(0, 1)
+
+    def __init__(self, accelerator, type_eqparams=None, type_optics=None):
         """."""
         self._acc = accelerator
-        self._eqpar = _optics.EqParamsFromBeamEnvelope(self._acc)
-        self._twiss, *_ = _optics.calc_twiss(self._acc, indices='closed')
-        res = _optics.calc_transverse_acceptance(self._acc, self._twiss)
+
+        self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
+        self._type_optics = Lifetime.OPTICS.EdwardsTeng
+        self.type_eqparams = type_eqparams
+        self.type_optics = type_optics
+
+        if self.type_eqparams == self.EQPARAMS.BeamEnvelope:
+            self._eqparams_func = _optics.EqParamsFromBeamEnvelope
+        elif self.type_eqparams == self.EQPARAMS.RadIntegrals:
+            self._eqparams_func = _optics.EqParamsFromRadIntegrals
+
+        if self.type_optics == self.OPTICS.EdwardsTeng:
+            self._optics_func = _optics.calc_edwards_teng
+        elif self._type_optics == self.OPTICS.Twiss:
+            self._optics_func = _optics.calc_twiss
+
+        self._eqpar = self._eqparams_func(self._acc)
+        self._optics_data, *_ = self._optics_func(self._acc, indices='closed')
+        _twiss = self._optics_data
+        if self.type_optics != self.OPTICS.Twiss:
+            _twiss, *_ = _optics.calc_twiss(self._acc, indices='closed')
+        res = _optics.calc_transverse_acceptance(self._acc, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
         self._curr_per_bun = 100/864  # [mA]
         self._avg_pressure = 1e-9  # [mbar]
         self._atomic_number = 7
         self._temperature = 300  # [K]
-        self._taux = self._tauy = self._taue = None
-        self._emitx = self._emity = self._espread0 = self._bunlen = None
+        self._tau1 = self._tau2 = self._tau3 = None
+        self._emit1 = self._emit2 = self._espread0 = self._bunlen = None
         self._accepx = self._accepy = self._accepen = None
         self.touschek_model = 'piwinski'
+
+    @property
+    def type_eqparams_str(self):
+        """."""
+        return Lifetime.EQPARAMS._fields[self._type_eqparams]
+
+    @property
+    def type_eqparams(self):
+        """."""
+        return self._type_eqparams
+
+    @type_eqparams.setter
+    def type_eqparams(self, value):
+        if value is None:
+            return
+        if isinstance(value, str):
+            self._type_eqparams = int(value in Lifetime.EQPARAMS._fields[1])
+        elif int(value) in Lifetime.EQPARAMS:
+            self._type_eqparams = int(value)
+
+    @property
+    def type_optics_str(self):
+        """."""
+        return Lifetime.OPTICS._fields[self._type_optics]
+
+    @property
+    def type_optics(self):
+        """."""
+        return self._type_optics
+
+    @type_optics.setter
+    def type_optics(self, value):
+        if value is None:
+            return
+        if isinstance(value, str):
+            self._type_optics = int(value in Lifetime.OPTICS._fields[1])
+        elif int(value) in Lifetime.OPTICS:
+            self._type_optics = int(value)
 
     @property
     def accelerator(self):
@@ -53,9 +114,12 @@ class Lifetime:
 
     @accelerator.setter
     def accelerator(self, val):
-        self._eqpar = _optics.EqParamsFromBeamEnvelope(val)
-        self._twiss, *_ = _optics.calc_twiss(val, indices='closed')
-        res = _optics.calc_transverse_acceptance(val, self._twiss)
+        self._eqpar = self._eqparams_func(val)
+        self._optics_data, *_ = self._optics_func(val, indices='closed')
+        _twiss = self._optics_data
+        if self.type_optics != self.OPTICS.Twiss:
+            _twiss, *_ = _optics.calc_twiss(val, indices='closed')
+        res = _optics.calc_transverse_acceptance(val, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
         self._acc = val
@@ -66,9 +130,9 @@ class Lifetime:
         return self._eqpar
 
     @property
-    def twiss(self):
-        """Twiss data."""
-        return self._twiss
+    def optics_data(self):
+        """Optics data."""
+        return self._optics_data
 
     @property
     def curr_per_bunch(self):
@@ -114,26 +178,30 @@ class Lifetime:
         self._temperature = float(val)
 
     @property
-    def emitx(self):
-        """Horizontal Emittance [m.rad]."""
-        if self._emitx is not None:
-            return self._emitx
-        return self._eqpar.emitx
+    def emit1(self):
+        """Stationary emittance of mode 1 [m.rad]."""
+        if self._emit1 is not None:
+            return self._emit1
+        attr = 'emitx' if \
+            self.type_eqparams == self.EQPARAMS.RadIntegrals else 'emit1'
+        return getattr(self._eqpar, attr)
 
-    @emitx.setter
-    def emitx(self, val):
-        self._emitx = float(val)
+    @emit1.setter
+    def emit1(self, val):
+        self._emit1 = float(val)
 
     @property
-    def emity(self):
-        """Vertical Emittance [m.rad]."""
-        if self._emity is not None:
-            return self._emity
-        return self._eqpar.emity
+    def emit2(self):
+        """Stationary emittance of mode 2 [m.rad]."""
+        if self._emit2 is not None:
+            return self._emit2
+        attr = 'emity' if \
+            self.type_eqparams == self.EQPARAMS.RadIntegrals else 'emit2'
+        return getattr(self._eqpar, attr)
 
-    @emity.setter
-    def emity(self, val):
-        self._emity = float(val)
+    @emit2.setter
+    def emit2(self, val):
+        self._emit2 = float(val)
 
     @property
     def espread0(self):
@@ -158,37 +226,43 @@ class Lifetime:
         self._bunlen = float(val)
 
     @property
-    def taux(self):
-        """Horizontal damping Time [s]."""
-        if self._taux is not None:
-            return self._taux
-        return self._eqpar.taux
+    def tau1(self):
+        """Mode 1 damping Time [s]."""
+        if self._tau1 is not None:
+            return self._tau1
+        attr = 'taux' if \
+            self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau1'
+        return getattr(self._eqpar, attr)
 
-    @taux.setter
-    def taux(self, val):
-        self._taux = float(val)
-
-    @property
-    def tauy(self):
-        """Vertical damping Time [s]."""
-        if self._tauy is not None:
-            return self._tauy
-        return self._eqpar.tauy
-
-    @tauy.setter
-    def tauy(self, val):
-        self._tauy = float(val)
+    @tau1.setter
+    def tau1(self, val):
+        self._tau1 = float(val)
 
     @property
-    def taue(self):
-        """Longitudinal damping Time [s]."""
-        if self._taue is not None:
-            return self._taue
-        return self._eqpar.taue
+    def tau2(self):
+        """Mode 2 damping Time [s]."""
+        if self._tau2 is not None:
+            return self._tau2
+        attr = 'tauy' if \
+            self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau2'
+        return getattr(self._eqpar, attr)
 
-    @taue.setter
-    def taue(self, val):
-        self._taue = float(val)
+    @tau2.setter
+    def tau2(self, val):
+        self._tau2 = float(val)
+
+    @property
+    def tau3(self):
+        """Mode 3 damping Time [s]."""
+        if self._tau3 is not None:
+            return self._tau3
+        attr = 'taue' if \
+            self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau3'
+        return getattr(self._eqpar, attr)
+
+    @tau3.setter
+    def tau3(self, val):
+        self._tau3 = float(val)
 
     @property
     def accepen(self):
@@ -197,7 +271,7 @@ class Lifetime:
             return self._accepen
         dic = dict()
         rf_accep = self._eqpar.rf_acceptance
-        dic['spos'] = self._twiss.spos
+        dic['spos'] = self._optics_data.spos
         dic['accp'] = dic['spos']*0 + rf_accep
         dic['accn'] = dic['spos']*0 - rf_accep
         return dic
@@ -212,11 +286,11 @@ class Lifetime:
             accp = val['accp']
             accn = val['accn']
         elif isinstance(val, (list, tuple, _np.ndarray)):
-            spos = self._twiss.spos
+            spos = self._optics_data.spos
             accp = spos*0.0 + val[1]
             accn = spos*0.0 + val[0]
         elif isinstance(val, (int, _np.int, float, _np.float)):
-            spos = self._twiss.spos
+            spos = self._optics_data.spos
             accp = spos*0.0 + val
             accn = spos*0.0 - val
         else:
@@ -229,7 +303,7 @@ class Lifetime:
         if self._accepx is not None:
             return self._accepx
         dic = dict()
-        dic['spos'] = self._twiss.spos
+        dic['spos'] = self._optics_data.spos
         dic['acc'] = dic['spos']*0 + self._accepx_nom
         return dic
 
@@ -242,7 +316,7 @@ class Lifetime:
             spos = val['spos']
             acc = val['acc']
         elif isinstance(val, (int, _np.int, float, _np.float)):
-            spos = self._twiss.spos
+            spos = self._optics_data.spos
             acc = spos*0.0 + val
         else:
             raise TypeError('Wrong value for energy acceptance')
@@ -254,7 +328,7 @@ class Lifetime:
         if self._accepy is not None:
             return self._accepy
         dic = dict()
-        dic['spos'] = self._twiss.spos
+        dic['spos'] = self._optics_data.spos
         dic['acc'] = dic['spos']*0 + self._accepy_nom
         return dic
 
@@ -267,7 +341,7 @@ class Lifetime:
             spos = val['spos']
             acc = val['acc']
         elif isinstance(val, (int, _np.int, float, _np.float)):
-            spos = self._twiss.spos
+            spos = self._optics_data.spos
             acc = spos*0.0 + val
         else:
             raise TypeError('Wrong value for energy acceptance')
@@ -279,16 +353,21 @@ class Lifetime:
 
         parameters used in calculation:
 
-        emitx        = Horizontal emittance [m.rad]
-        emity        = Vertical emittance [m.rad]
+        emit1        = Mode 1 emittance [m.rad]
+        emit2        = Mode 2 emittance [m.rad]
         energy       = Bunch energy [GeV]
         nr_part      = Number of electrons ber bunch
         espread      = relative energy spread,
         bunlen       = bunch length [m]
         accepen      = relative energy acceptance of the machine.
 
-        twiss = pyaccel.TwissArray object or similar object with fields:
+        optics = pyaccel.TwissArray object or similar object with fields:
                 spos, betax, betay, etax, etay, alphax, alphay, etapx, etapy
+
+                or
+
+                pyaccel.EdwardsTengArray object or similar object with fields:
+                spos, beta1, beta2, eta1, eta2, alpha1, alpha2, etap1, etap2
 
         output:
 
@@ -302,13 +381,13 @@ class Lifetime:
         gamma = self._acc.gamma_factor
         beta = self._acc.beta_factor
         en_accep = self.accepen
-        twiss = self._twiss
-        emitx, emity = self.emitx, self.emity
+        optics = self._optics_data
+        emit1, emit2 = self.emit1, self.emit2
         espread = self.espread0
         bunlen = self.bunlen
         nr_part = self.particles_per_bunch
 
-        _, ind = _np.unique(twiss.spos, return_index=True)
+        _, ind = _np.unique(optics.spos, return_index=True)
         spos = en_accep['spos']
         accp = en_accep['accp']
         accn = en_accep['accn']
@@ -521,7 +600,7 @@ class Lifetime:
         atomic number  = Residual gas atomic number (default: 7)
         temperature    = Residual gas temperature [K] (default: 300)
         energy         = Beam energy [eV]
-        twiss          = Twis parameters
+        optics         = Linear optics parameters
 
         output:
 
@@ -533,29 +612,32 @@ class Lifetime:
         accep_x = self.accepx
         accep_y = self.accepy
         pressure = self.avg_pressure
-        twiss = self._twiss
+        optics = self._optics_data
         energy = self._acc.energy
         beta = self._acc.beta_factor
         atomic_number = self.atomic_number
         temperature = self.temperature
 
-        betax, betay = twiss.betax, twiss.betay
+        if self.type_optics == self.OPTICS.Twiss:
+            beta1, beta2 = optics.betax, optics.betay
+        else:
+            beta1, beta2 = optics.beta1, optics.beta2
         energy_joule = energy / _u.joule_2_eV
 
-        spos = twiss.spos
+        spos = optics.spos
         _, idx = _np.unique(accep_x['spos'], return_index=True)
         _, idy = _np.unique(accep_y['spos'], return_index=True)
         accep_x = _np.interp(spos, accep_x['spos'][idx], accep_x['acc'][idx])
         accep_y = _np.interp(spos, accep_y['spos'][idy], accep_y['acc'][idy])
 
-        thetax = _np.sqrt(accep_x/betax)
-        thetay = _np.sqrt(accep_y/betay)
+        thetax = _np.sqrt(accep_x/beta1)
+        thetay = _np.sqrt(accep_y/beta2)
         ratio = thetay / thetax
 
         f_x = 2*_np.arctan(ratio) + _np.sin(2*_np.arctan(ratio))
-        f_x *= pressure * self._MBAR_2_PASCAL * betax / accep_x
+        f_x *= pressure * self._MBAR_2_PASCAL * beta1 / accep_x
         f_y = _np.pi - 2*_np.arctan(ratio) + _np.sin(2*_np.arctan(ratio))
-        f_y *= pressure * self._MBAR_2_PASCAL * betay / accep_y
+        f_y *= pressure * self._MBAR_2_PASCAL * beta2 / accep_y
 
         # Constant
         rate = _cst.light_speed * _cst.elementary_charge**4
@@ -625,8 +707,8 @@ class Lifetime:
 
         Positional arguments:
         accepx   = horizontal acceptance [m·rad]
-        emitx    = horizontal emittance [m·rad]
-        taux     = horizontal damping time [s]
+        emit1    = Mode 1 emittance [m·rad]
+        tau1     = Mode 1 damping time [s]
 
         output:
 
@@ -636,14 +718,14 @@ class Lifetime:
             pos      = longitudinal position where loss rate was calculated [m]
         """
         accep_x = self.accepx
-        emitx = self.emitx
-        taux = self.taux
+        emit1 = self.emit1
+        tau1 = self.tau1
 
         spos = accep_x['spos']
         accep_x = accep_x['acc']
 
-        ksi_x = accep_x / (2*emitx)
-        rate = self._calc_quantum_loss_rate(ksi_x, taux)
+        ksi_x = accep_x / (2*emit1)
+        rate = self._calc_quantum_loss_rate(ksi_x, tau1)
 
         avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
         return dict(rate=rate, avg_rate=avg_rate, pos=spos)
@@ -660,7 +742,7 @@ class Lifetime:
 
         Positional arguments:
         accepy   = vertical acceptance [m·rad]
-        emity    = vertical emittance [m·rad]
+        emit2    = mode 2 emittance [m·rad]
         tauy     = vertical damping time [s]
 
         output:
@@ -671,13 +753,13 @@ class Lifetime:
             pos      = longitudinal position where loss rate was calculated [m]
         """
         accep_y = self.accepy
-        emity = self.emity
+        emit2 = self.emit2
         tauy = self.tauy
 
         spos = accep_y['spos']
         accep_y = accep_y['acc']
 
-        ksi_y = accep_y / (2*emity)
+        ksi_y = accep_y / (2*emit2)
         rate = self._calc_quantum_loss_rate(ksi_y, tauy)
 
         avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
