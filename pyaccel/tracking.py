@@ -543,7 +543,7 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
 @_interactive
 def find_orbit(
-        accelerator, energy_offset=0.0, indices=None, fixed_point_guess=None):
+        accelerator, energy_offset=None, indices=None, fixed_point_guess=None):
     """Calculate 6D closed orbit of accelerator and return it.
 
     Automatically identifies if find_orbit4 or find_orbit6 must be used based
@@ -576,6 +576,7 @@ def find_orbit(
 
     """
     if not accelerator.cavity_on and not accelerator.radiation_on:
+        energy_offset = energy_offset or 0.0
         orb = find_orbit4(
             accelerator, indices=indices, energy_offset=energy_offset,
             fixed_point_guess=fixed_point_guess)
@@ -591,7 +592,7 @@ def find_orbit(
 
 
 @_interactive
-def find_m66(accelerator, indices='m66', closed_orbit=None):
+def find_m66(accelerator, indices='m66', fixed_point=None):
     """Calculate 6D transfer matrices of elements in an accelerator.
 
     Keyword arguments:
@@ -604,11 +605,13 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
                         element.
                'm66'  : the cumul_trans_matrices is not returned.
               If indices is None the cumul_trans_matrices is not returned.
-    closed_orbit
+    fixed_point (numpy.ndarray, (6, )): phase space position at the start of
+        the lattice where the matrices will be calculated around.
 
     Return values:
     m66
     cumul_trans_matrices -- values at the start of each lattice element
+
     """
     if isinstance(indices, str) and indices == 'm66':
         indices = None
@@ -622,7 +625,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
     else:
         trackcpp_idx.push_back(len(accelerator))
 
-    if closed_orbit is None:
+    if fixed_point is None:
         # Closed orbit is calculated by trackcpp
         fixed_point_guess = _trackcpp.CppDoublePos()
         _closed_orbit = _trackcpp.CppDoublePosVector()
@@ -631,8 +634,9 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
         if ret > 0:
             raise TrackingException(_trackcpp.string_error_messages[ret])
     else:
-        _closed_orbit = _process_array(closed_orbit, dim='6d')
-        _closed_orbit = _Numpy2CppDoublePosVector(_closed_orbit)
+        _fixed_point = _Numpy2CppDoublePos(fixed_point)
+        _closed_orbit = _trackcpp.CppDoublePosVector()
+        _closed_orbit.push_back(_fixed_point)
 
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 6, 6), dtype=float)
     m66 = _np.zeros((6, 6), dtype=float)
@@ -649,7 +653,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
 
 
 @_interactive
-def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
+def find_m44(accelerator, indices='m44', energy_offset=0.0, fixed_point=None):
     """Calculate 4D transfer matrices of elements in an accelerator.
 
     Keyword arguments:
@@ -662,8 +666,9 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
                         element.
                'm44'  : the cumul_trans_matrices is not returned.
               If indices is None the cumul_trans_matrices is not returned.
-    energy_offset
-    closed_orbit
+    energy_offset (float, ): energy offset
+    fixed_point (numpy.ndarray, (4, )): phase space position at the start of
+        the lattice where the matrices will be calculated around.
 
     Return values:
     m44
@@ -681,7 +686,7 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
     else:
         trackcpp_idx.push_back(len(accelerator))
 
-    if closed_orbit is None:
+    if fixed_point is None:
         # calcs closed orbit if it was not passed.
         fixed_point_guess = _trackcpp.CppDoublePos()
         fixed_point_guess.de = energy_offset
@@ -692,9 +697,9 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
         if ret > 0:
             raise TrackingException(_trackcpp.string_error_messages[ret])
     else:
-        _closed_orbit = _process_array(closed_orbit, dim='4d')
-        _closed_orbit = _4Numpy2CppDoublePosVector(
-            _closed_orbit, de=energy_offset)
+        _fixed_point = _4Numpy2CppDoublePos(fixed_point, de=energy_offset)
+        _closed_orbit = _trackcpp.CppDoublePosVector()
+        _closed_orbit.push_back(_fixed_point)
 
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 4, 4), dtype=float)
     m44 = _np.zeros((4, 4), dtype=float)
