@@ -29,7 +29,7 @@ class Lifetime:
     _KSI_TABLE = None
     _D_TABLE = None
 
-    OPTICS = _namedtuple('Optics', ['EdwardsTengs', 'Twiss'])(0, 1)
+    OPTICS = _namedtuple('Optics', ['EdwardsTeng', 'Twiss'])(0, 1)
     EQPARAMS = _namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])(0, 1)
 
     def __init__(self, accelerator, type_eqparams=None, type_optics=None):
@@ -37,7 +37,7 @@ class Lifetime:
         self._acc = accelerator
 
         self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
-        self._type_optics = Lifetime.OPTICS.EdwardsTengs
+        self._type_optics = Lifetime.OPTICS.EdwardsTeng
         self.type_eqparams = type_eqparams
         self.type_optics = type_optics
 
@@ -46,7 +46,7 @@ class Lifetime:
         elif self.type_eqparams == self.EQPARAMS.RadIntegrals:
             self._eqparams_func = _optics.EqParamsFromRadIntegrals
 
-        if self.type_optics == self.OPTICS.EdwardsTengs:
+        if self.type_optics == self.OPTICS.EdwardsTeng:
             self._optics_func = _optics.calc_edwards_teng
         elif self._type_optics == self.OPTICS.Twiss:
             self._optics_func = _optics.calc_twiss
