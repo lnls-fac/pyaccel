@@ -32,15 +32,20 @@ class Lifetime:
 
     OPTICS = _namedtuple('Optics', ['EdwardsTeng', 'Twiss'])(0, 1)
     EQPARAMS = _namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])(0, 1)
+    TOUSCHEKMODEL = _namedtuple(
+        'TouschekModel', ['Piwinski', 'FlatBeam'])(0, 1)
 
-    def __init__(self, accelerator, type_eqparams=None, type_optics=None):
+    def __init__(self, accelerator, touschek_model=None,
+                 type_eqparams=None, type_optics=None):
         """."""
         self._acc = accelerator
 
         self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
         self._type_optics = Lifetime.OPTICS.EdwardsTeng
+        self._touschek_model = Lifetime.TOUSCHEKMODEL.Piwinski
         self.type_eqparams = type_eqparams
         self.type_optics = type_optics
+        self.touschek_model = touschek_model
 
         if self.type_eqparams == self.EQPARAMS.BeamEnvelope:
             self._eqparams_func = _optics.EqParamsFromBeamEnvelope
@@ -60,6 +65,9 @@ class Lifetime:
         res = _optics.calc_transverse_acceptance(self._acc, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
+        accepn, accepp = _optics.calc_tousheck_energy_acceptance(self._acc)
+        self._accepen_pos = accepp
+        self._accepen_neg = accepn
         self._curr_per_bun = 100/864  # [mA]
         self._avg_pressure = 1e-9  # [mbar]
         self._atomic_number = 7
@@ -67,7 +75,6 @@ class Lifetime:
         self._tau1 = self._tau2 = self._tau3 = None
         self._emit1 = self._emit2 = self._espread0 = self._bunlen = None
         self._accepx = self._accepy = self._accepen = None
-        self.touschek_model = 'piwinski'
 
     @property
     def type_eqparams_str(self):
@@ -108,6 +115,26 @@ class Lifetime:
             self._type_optics = int(value)
 
     @property
+    def touschek_model_str(self):
+        """."""
+        return Lifetime.TOUSCHEKMODEL._fields[self._touschek_model]
+
+    @property
+    def touschek_model(self):
+        """."""
+        return self._touschek_model
+
+    @touschek_model.setter
+    def touschek_model(self, value):
+        if value is None:
+            return
+        if isinstance(value, str):
+            self._touschek_model = int(
+                value in Lifetime.TOUSCHEKMODEL._fields[1])
+        elif int(value) in Lifetime.TOUSCHEKMODEL:
+            self._touschek_model = int(value)
+
+    @property
     def accelerator(self):
         """."""
         return self._acc
@@ -122,6 +149,9 @@ class Lifetime:
         res = _optics.calc_transverse_acceptance(val, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
+        accepn, accepp = _optics.calc_tousheck_energy_acceptance(val)
+        self._accepen_pos = accepp
+        self._accepen_neg = accepn
         self._acc = val
 
     @property
@@ -272,8 +302,8 @@ class Lifetime:
         dic = dict()
         rf_accep = self._eqpar.rf_acceptance
         dic['spos'] = self._optics_data.spos
-        dic['accp'] = dic['spos']*0 + rf_accep
-        dic['accn'] = dic['spos']*0 - rf_accep
+        dic['accp'] = _np.minimum(self._accepen_pos, +rf_accep)
+        dic['accn'] = _np.maximum(self._accepen_neg, -rf_accep)
         return dic
 
     @accepen.setter
