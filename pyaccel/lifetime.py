@@ -528,7 +528,7 @@ class Lifetime:
         arg += 1 - _np.sqrt(1/ratio)
         arg -= 1/2/tau*(4 + 1/tau) * _np.log(ratio)
         arg *= _np.sqrt(ratio*taum)
-        bessel = _np.exp(-(b1_-b2_)*tau)*_special.i0(b2_*tau)
+        bessel = _np.exp(-(b1_-b2_)*tau)*_special.i0e(b2_*tau)
         return arg * bessel
 
     @staticmethod
@@ -542,9 +542,10 @@ class Lifetime:
         return f_int
 
     @staticmethod
-    def f_function_arg_2(tau, taum, b1_, b2_):
+    def f_function_arg_2(kappa, kappam, b1_, b2_):
         """."""
-        tau = _np.tan(tau)**2
+        tau = _np.tan(kappa)**2
+        taum = _np.tan(kappam)**2
         ratio = tau/taum/(1+tau)
         arg = (2*tau+1)**2 * (ratio - 1)/tau
         arg += tau - _np.sqrt(tau*taum*(1+tau))
@@ -560,7 +561,7 @@ class Lifetime:
         kappam = _np.arctan(_np.sqrt(taum))
         f_int, _ = _integrate.quad(
             func=Lifetime.f_function_arg_2, a=kappam, b=_np.pi/2,
-            args=(taum, b1_, b2_), limit=lim)
+            args=(kappam, b1_, b2_), limit=lim)
         f_int *= 2*_np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
         return f_int
 
@@ -569,14 +570,14 @@ class Lifetime:
         """."""
         kappam = _np.arctan(_np.sqrt(taum))
         npts = int(3*100)
-        dtau = (_np.pi/2-kappam)/npts
-        tau = _np.linspace(kappam, _np.pi/2, npts+1)
-        func = Lifetime.f_function_arg_2(tau, taum, b1_, b2_)
+        dkappa = (_np.pi/2-kappam)/npts
+        kappa = _np.linspace(kappam, _np.pi/2, npts+1)
+        func = Lifetime.f_function_arg_2(kappa, kappam, b1_, b2_)
 
         # Simpson's 3/8 Rule - N must be mod(N, 3) = 0
         val1 = func[0:-1:3] + func[3::3]
         val2 = func[1::3] + func[2::3]
-        f_int = 3*dtau/8*_np.sum(val1 + 3*val2)
+        f_int = 3*dkappa/8*_np.sum(val1 + 3*val2)
 
         # Simpson's 1/3 Rule - N must be mod(N, 2) = 0
         # f_int = _np.sum(func[0::2]+4*func[1::2]+func[2::2])
