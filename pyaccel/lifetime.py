@@ -487,24 +487,21 @@ class Lifetime:
             eta1til2 = (alpha1*eta1 + beta1*eta1l)**2
             eta2til2 = (alpha2*eta2 + beta2*eta2l)**2
             espread2 = espread*espread
+            betagamma2 = (beta*gamma)**2
 
             val1 = 1/espread2
             val2 = (eta1*eta1 + eta1til2)/(sig1b2)
             val3 = (eta2*eta2 + eta2til2)/(sig2b2)
             sigh2 = 1/(val1 + val2 + val3)
 
-            betagamma2 = (beta*gamma)**2
-
-            c1_ = beta1**2/sig1b2
-            c2_ = beta2**2/sig2b2
-            b1_ = c1_*(1-sigh2*eta1til2/sig1b2)
-            b1_ += c2_*(1-sigh2*eta2til2/sig2b2)
-            b1_ /= (2*betagamma2)
-
+            c1_ = beta1**2/sig1b2*(1-sigh2*eta1til2/sig1b2)
+            c2_ = beta2**2/sig2b2*(1-sigh2*eta2til2/sig2b2)
             ch_ = (sig1*sig2)**2 - (espread2*eta1*eta2)**2
-            cb2 = sigh2/(betagamma2*emit1*emit2)**2
-            cb2 *= ch_/espread2
-            b2_ = b1_**2 - cb2
+
+            b1_ = (c1_ + c2_)/(2*betagamma2)
+            b2_ = (c1_ - c2_)**2/4
+            b2_ += eta1til2*eta2til2*(sigh2/emit1/emit2)**2
+            b2_ /= (betagamma2**2)
             b2_ = _np.sqrt(b2_)
 
             taum_p = (beta*d_accp)**2
