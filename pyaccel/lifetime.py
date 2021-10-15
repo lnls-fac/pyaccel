@@ -392,7 +392,7 @@ class Lifetime:
         accp = en_accep['accp']
         accn = en_accep['accn']
 
-        # calcular o tempo de vida a cada 10 cm do anel:
+        # calculate lifetime for each 10cm of the ring
         npoints = int((spos[-1] - spos[0])/0.1)
         s_calc = _np.linspace(spos[0], spos[-1], npoints)
         d_accp = _np.interp(s_calc, spos, accp)
@@ -402,31 +402,43 @@ class Lifetime:
         d_accp[d_accp == 0] = 1e-4
         d_accn[d_accn == 0] = 1e-4
 
-        betax = _np.interp(s_calc, twiss.spos[ind], twiss.betax[ind])
-        alphax = _np.interp(s_calc, twiss.spos[ind], twiss.alphax[ind])
-        etax = _np.interp(s_calc, twiss.spos[ind], twiss.etax[ind])
-        etaxl = _np.interp(s_calc, twiss.spos[ind], twiss.etapx[ind])
+        twi_names = [
+            'betax', 'alphax', 'etax', 'etapx',
+            'betay', 'alphay', 'etay', 'etapy']
+        edteng_names = [
+            'beta1', 'alpha1', 'eta1', 'etap1',
+            'beta2', 'alpha2', 'eta2', 'etap2']
+        names = twi_names if \
+            self.type_optics == self.OPTICS.Twiss else edteng_names
 
-        betay = _np.interp(s_calc, twiss.spos[ind], twiss.betay[ind])
-        alphay = _np.interp(s_calc, twiss.spos[ind], twiss.alphay[ind])
-        etay = _np.interp(s_calc, twiss.spos[ind], twiss.etay[ind])
-        etayl = _np.interp(s_calc, twiss.spos[ind], twiss.etapy[ind])
+        s_ind = optics.spos[ind]
+        beta1 = _np.interp(s_calc, s_ind, getattr(optics, names[0])[ind])
+        alpha1 = _np.interp(s_calc, s_ind, getattr(optics, names[1])[ind])
+        eta1 = _np.interp(s_calc, s_ind, getattr(optics, names[2])[ind])
+        eta1l = _np.interp(s_calc, s_ind, getattr(optics, names[3])[ind])
+
+        beta2 = _np.interp(s_calc, s_ind, getattr(optics, names[4])[ind])
+        alpha2 = _np.interp(s_calc, s_ind, getattr(optics, names[5])[ind])
+        eta2 = _np.interp(s_calc, s_ind, getattr(optics, names[6])[ind])
+        eta2l = _np.interp(s_calc, s_ind, getattr(optics, names[7])[ind])
 
         # Tamanhos betatron do bunch
-        sigxb2 = emitx * betax
-        sigyb2 = emity * betay
+        sig1b2 = emit1 * beta1
+        sig2b2 = emit2 * beta2
 
         # Volume do bunch
-        sigy = _np.sqrt(etay**2*espread**2 + betay*emity)
-        sigx = _np.sqrt(etax**2*espread**2 + betax*emitx)
-        vol = bunlen * sigx * sigy
+        sig2 = _np.sqrt(eta2**2*espread**2 + beta2*emit2)
+        sig1 = _np.sqrt(eta1**2*espread**2 + beta1*emit1)
+        vol = bunlen * sig1 * sig2
         const = (_cst.electron_radius**2 * _cst.light_speed) / (8*_np.pi)
 
+        track_data_p = _np.zeros((npoints, 4))
+        track_data_n = _np.zeros((npoints, 4))
         if self.touschek_model == 'flat_beam':
-            fator = betax*etaxl + alphax*etax
-            a_var = 1 / (4*espread**2) + (etax**2 + fator**2) / (4*sigxb2)
-            b_var = betax*fator / (2*sigxb2)
-            c_var = betax**2 / (4*sigxb2) - b_var**2 / (4*a_var)
+            fator = beta1*eta1l + alpha1*eta1
+            a_var = 1 / (4*espread**2) + (eta1**2 + fator**2) / (4*sig1b2)
+            b_var = beta1*fator / (2*sig1b2)
+            c_var = beta1**2 / (4*sig1b2) - b_var**2 / (4*a_var)
 
             # Limite de integração inferior
             ksip = (2*_np.sqrt(c_var)/gamma * d_accp)**2
@@ -443,28 +455,25 @@ class Lifetime:
             raten = const * nr_part/gamma**2 / d_accn**3 * d_neg / vol
             rate = (ratep+raten)/2
         elif self.touschek_model == 'piwinski':
-            track_data_p = _np.zeros((npoints, 4))
-            track_data_n = _np.zeros((npoints, 4))
-
-            etaxtil2 = (alphax*etax + betax*etaxl)**2
-            etaytil2 = (alphay*etay + betay*etayl)**2
+            eta1til2 = (alpha1*eta1 + beta1*eta1l)**2
+            eta2til2 = (alpha2*eta2 + beta2*eta2l)**2
             espread2 = espread*espread
 
             val1 = 1/espread2
-            val2 = (etax*etax + etaxtil2)/(sigxb2)
-            val3 = (etay*etay + etaytil2)/(sigyb2)
+            val2 = (eta1*eta1 + eta1til2)/(sig1b2)
+            val3 = (eta2*eta2 + eta2til2)/(sig2b2)
             sigh2 = 1/(val1 + val2 + val3)
 
             betagamma2 = (beta*gamma)**2
 
-            cx_ = betax**2/sigxb2
-            cy_ = betay**2/sigyb2
-            b1_ = cx_*(1-sigh2*etaxtil2/sigxb2)
-            b1_ += cy_*(1-sigh2*etaytil2/sigyb2)
+            c1_ = beta1**2/sig1b2
+            c2_ = beta2**2/sig2b2
+            b1_ = c1_*(1-sigh2*eta1til2/sig1b2)
+            b1_ += c2_*(1-sigh2*eta2til2/sig2b2)
             b1_ /= (2*betagamma2)
 
-            ch_ = (sigx*sigy)**2 - (espread2*etax*etay)**2
-            cb2 = sigh2/(betagamma2*emitx*emity)**2
+            ch_ = (sig1*sig2)**2 - (espread2*eta1*eta2)**2
+            cb2 = sigh2/(betagamma2*emit1*emit2)**2
             cb2 *= ch_/espread2
             b2_ = b1_**2 - cb2
             for idx in range(npoints):
