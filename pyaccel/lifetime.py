@@ -528,12 +528,8 @@ class Lifetime:
         arg += 1 - _np.sqrt(1/ratio)
         arg -= 1/2/tau*(4 + 1/tau) * _np.log(ratio)
         arg *= _np.sqrt(ratio*taum)
-        bessel = _np.exp(-b1_*tau)*_special.i0(b2_*tau)
-        res = arg * bessel
-        if _np.isnan(res).any() or _np.isinf(res).any():
-            bessel = _np.exp(-(b1_-b2_)*tau)/_np.sqrt(2*_np.pi*tau*b2_)
-            res = arg * bessel
-        return res
+        bessel = _np.exp(-(b1_-b2_)*tau)*_special.i0(b2_*tau)
+        return arg * bessel
 
     @staticmethod
     def f_integral_1(taum, b1_, b2_):
@@ -554,12 +550,8 @@ class Lifetime:
         arg += tau - _np.sqrt(tau*taum*(1+tau))
         arg -= (2+1/(2*tau))*_np.log(ratio)
         arg *= _np.sqrt(1+tau)
-        bessel = _np.exp(-b1_*tau)*_special.i0(b2_*tau)
-        res = arg * bessel
-        if _np.isnan(res).any() or _np.isinf(res).any():
-            bessel = _np.exp(-(b1_-b2_)*tau)/_np.sqrt(2*_np.pi*tau*b2_)
-            res = arg * bessel
-        return res
+        bessel = _np.exp(-(b1_-b2_)*tau)*_special.i0e(b2_*tau)
+        return arg * bessel
 
     @staticmethod
     def f_integral_2(taum, b1_, b2_):
