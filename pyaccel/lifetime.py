@@ -381,6 +381,21 @@ class Lifetime:
     def touschek_data(self):
         """Calculate loss rate due to Touschek beam lifetime.
 
+        If touschek_model = 'FlatBeam', the calculation follows the formulas
+            presented in Ref. [1], where the vertical betatron beam size and
+            vertical dispersion are not taken into account
+        If touschek_model = 'Piwinski', the calculation follows the formulas
+            presented in Ref. [2], Eqs. 32-42. This formalism describes the
+            most general case with respect to the horizontal and vertical
+            betatron oscillation, the horizontal and vertical dispersion, and
+            the derivatives of the amplitude functions and dispersions.
+
+        References:
+            [1] Duff, J. Le. (1988). Single and multiple Touschek effects. In
+                CERN Acccelerator School: Accelerator Physics (pp. 114–130).
+            [2] Piwinski, A. (1999). The Touschek Effect in Strong Focusing
+                Storage Rings. November. http://arxiv.org/abs/physics/9903034
+
         parameters used in calculation:
 
         emit1        = Mode 1 emittance [m.rad]
@@ -406,6 +421,8 @@ class Lifetime:
             avg_rate = average loss rate along the ring [1/s]
             pos      = longitudinal position where loss rate was calculated [m]
             volume   = volume of the beam along the ring [m^3]
+            touschek_coeffs = dict with coefficients for corresponding
+                formalism
         """
         self._load_touschek_integration_table()
         gamma = self._acc.gamma_factor
@@ -478,6 +495,14 @@ class Lifetime:
                 ksip, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
             d_neg = _np.interp(
                 ksin, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
+
+            touschek_coeffs['a_var'] = a_var
+            touschek_coeffs['b_var'] = b_var
+            touschek_coeffs['c_var'] = c_var
+            touschek_coeffs['ksip'] = ksip
+            touschek_coeffs['ksin'] = ksin
+            touschek_coeffs['d_pos'] = d_pos
+            touschek_coeffs['d_neg'] = d_neg
 
             # Touschek rate
             ratep = const * nr_part/gamma**2 / d_accp**3 * d_pos / vol
