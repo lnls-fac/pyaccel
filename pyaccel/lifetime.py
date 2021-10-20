@@ -65,7 +65,7 @@ class Lifetime:
         res = _optics.calc_transverse_acceptance(self._acc, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
-        accepn, accepp = _optics.calc_tousheck_energy_acceptance(self._acc)
+        accepn, accepp = _optics.calc_touschek_energy_acceptance(self._acc)
         self._accepen_pos = accepp
         self._accepen_neg = accepn
         self._curr_per_bun = 100/864  # [mA]
@@ -149,7 +149,7 @@ class Lifetime:
         res = _optics.calc_transverse_acceptance(val, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
-        accepn, accepp = _optics.calc_tousheck_energy_acceptance(val)
+        accepn, accepp = _optics.calc_touschek_energy_acceptance(val)
         self._accepen_pos = accepp
         self._accepen_neg = accepn
         self._acc = val
