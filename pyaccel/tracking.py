@@ -49,8 +49,8 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
     Output:
         particles = numpy.array.shape == (6, n_part)
     """
-    # avoiding notation confusion
-    if type(twi) is EdwardsTeng:
+
+    if isinstance(twi,EdwardsTeng):
         beta1 = twi.beta1
         beta2 = twi.beta2
         eta1 = twi.eta1
