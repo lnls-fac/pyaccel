@@ -22,6 +22,7 @@ import mathphys as _mp
 from . import accelerator as _accelerator
 from . import utils as _utils
 from .utils import interactive as _interactive
+from .optics.edwards_teng import EdwardsTeng
 
 
 LOST_PLANES = (None, 'x', 'y', 'z')
@@ -48,6 +49,26 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
     Output:
         particles = numpy.array.shape == (6, n_part)
     """
+    # avoiding notation confusion
+    if type(twi) is EdwardsTeng:
+        beta1 = twi.beta1
+        beta2 = twi.beta2
+        eta1 = twi.eta1
+        eta2 = twi.eta2
+        etap1 = twi.etap1
+        etap2 = twi.etap2
+        alpha1 = twi.alpha1
+        alpha2 =  twi.alpha2
+    else:
+        beta1 = twi.betax
+        beta2 = twi.betay
+        eta1 = twi.etax
+        eta2 = twi.etay
+        etap1 = twi.etapx
+        etap2 = twi.etapy
+        alpha1 = twi.alphax
+        alpha2 =  twi.alphay
+
     # generate longitudinal phase space
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='norm', cutoff=cutoff)
@@ -57,27 +78,27 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
     # generate transverse phase space
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='exp', cutoff=cutoff*cutoff/2)
-    ampx = _np.sqrt(emitx * 2*parts[:n_part])
-    ampy = _np.sqrt(emity * 2*parts[n_part:])
+    amp1 = _np.sqrt(emitx * 2*parts[:n_part])
+    amp2 = _np.sqrt(emity * 2*parts[n_part:])
 
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='unif', cutoff=cutoff)
-    phx = _np.pi * parts[:n_part]
-    phy = _np.pi * parts[n_part:]
+    ph1 = _np.pi * parts[:n_part]
+    ph2 = _np.pi * parts[n_part:]
 
-    p_x = ampx*_np.sqrt(twi.betax)
-    p_y = ampy*_np.sqrt(twi.betay)
-    p_x *= _np.cos(phx)
-    p_y *= _np.cos(phy)
-    p_x += twi.etax * p_en
-    p_y += twi.etay * p_en
-    p_xp = -ampx/_np.sqrt(twi.betax)
-    p_yp = -ampy/_np.sqrt(twi.betay)
-    p_xp *= twi.alphax*_np.cos(phx) + _np.sin(phx)
-    p_yp *= twi.alphay*_np.cos(phy) + _np.sin(phy)
-    p_xp += twi.etapx * p_en
-    p_yp += twi.etapy * p_en
-    return _np.array((p_x, p_xp, p_y, p_yp, p_en, p_s))
+    p_1 = amp1*_np.sqrt(beta1)
+    p_2 = amp2*_np.sqrt(beta2)
+    p_1 *= _np.cos(ph1)
+    p_2 *= _np.cos(ph2)
+    p_1 += eta1 * p_en
+    p_2 += eta2 * p_en
+    p_1p = -amp1/_np.sqrt(beta1)
+    p_2p = -amp2/_np.sqrt(beta2)
+    p_1p *= alpha1*_np.cos(ph1) + _np.sin(ph1)
+    p_2p *= alpha2*_np.cos(ph2) + _np.sin(ph2)
+    p_1p += etap1 * p_en
+    p_2p += etap2 * p_en
+    return _np.array((p_1, p_1p, p_2, p_2p, p_en, p_s))
 
 
 @_interactive
