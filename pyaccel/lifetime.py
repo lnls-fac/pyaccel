@@ -531,8 +531,8 @@ class Lifetime:
             taum_p = (beta*d_accp)**2
             taum_n = (beta*d_accn)**2
 
-            f_int_p = self.f_integral_2_simps(taum_p, b1_, b2_)
-            f_int_n = self.f_integral_2_simps(taum_n, b1_, b2_)
+            f_int_p = self.f_integral_simps(taum_p, b1_, b2_)
+            f_int_n = self.f_integral_simps(taum_n, b1_, b2_)
 
             touschek_coeffs['b1'] = b1_
             touschek_coeffs['b2'] = b2_
@@ -557,29 +557,18 @@ class Lifetime:
         return dit
 
     @staticmethod
-    def f_function_arg_1(tau, taum, b1_, b2_):
-        """."""
-        ratio = tau/taum/(1+tau)
-        arg = (2+1/tau)**2 * (ratio - 1)
-        arg += 1 - _np.sqrt(1/ratio)
-        arg -= 1/2/tau*(4 + 1/tau) * _np.log(ratio)
-        arg *= _np.sqrt(ratio*taum)
-        bessel = _np.exp(-(b1_-b2_)*tau)*_special.i0e(b2_*tau)
-        return arg * bessel
+    def f_function_arg(kappa, kappam, b1_, b2_):
+        """Integrand in the F(taum, B1, B2) expression.
 
-    @staticmethod
-    def f_integral_1(taum, b1_, b2_):
-        """."""
-        lim = 1000
-        f_int, _ = _integrate.quad(
-            func=Lifetime.f_function_arg_1, a=taum, b=_np.inf,
-            args=(taum, b1_, b2_), limit=lim)
-        f_int *= _np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
-        return f_int
+        Argument of the integral of F(taum, B1, B2) function of Eq. (42) from
+        Ref. [2] of touschek_data property documentation.
 
-    @staticmethod
-    def f_function_arg_2(kappa, kappam, b1_, b2_):
-        """."""
+        In order to improve the numerical integration speed, the
+        transformation tau = tan(kappa)^2 and taum = tan(kappam)^2 is made
+        resulting in the expression right below Eq. (42) in Ref. [2] (equation
+        without number). This argument is integrated from kappam to pi/2 in
+        the method f_integral_simps of this class.
+        """
         tau = (_np.tan(kappa)**2)[:, None]
         taum = (_np.tan(kappam)**2)[None, :]
         ratio = tau/taum/(1+tau)
@@ -591,24 +580,18 @@ class Lifetime:
         return arg * bessel
 
     @staticmethod
-    def f_integral_2(taum, b1_, b2_):
-        """."""
-        lim = 1000
-        kappam = _np.arctan(_np.sqrt(taum))
-        f_int, _ = _integrate.quad(
-            func=Lifetime.f_function_arg_2, a=kappam, b=_np.pi/2,
-            args=(kappam, b1_, b2_), limit=lim)
-        f_int *= 2*_np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
-        return f_int
+    def f_integral_simps(taum, b1_, b2_):
+        """F(taum, B1, B2) function.
 
-    @staticmethod
-    def f_integral_2_simps(taum, b1_, b2_):
-        """."""
+        The expression used for F can be found right below Eq. (42) from Ref.
+        [2] of touschek_data property documentation. The numerical integration
+        from kappam to pi/2 is performed with the Simpson's 3/8 Rule.
+        """
         kappam = _np.arctan(_np.sqrt(taum))
         npts = int(3*100)
         dkappa = (_np.pi/2-kappam)/npts
         kappa = _np.linspace(kappam, _np.pi/2, npts+1)
-        func = Lifetime.f_function_arg_2(kappa, kappam, b1_, b2_)
+        func = Lifetime.f_function_arg(kappa, kappam, b1_, b2_)
 
         # Simpson's 3/8 Rule - N must be mod(N, 3) = 0
         val1 = func[0:-1:3, :] + func[3::3, :]
