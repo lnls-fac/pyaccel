@@ -4,7 +4,7 @@ import os as _os
 import importlib as _implib
 from copy import deepcopy as _dcopy
 import numpy as _np
-from collections import namedtuple as _namedtuple
+from mathphys.functions import get_namedtuple as _get_namedtuple
 
 from mathphys import constants as _cst, units as _u, \
     beam_optics as _beam
@@ -30,10 +30,9 @@ class Lifetime:
     _KSI_TABLE = None
     _D_TABLE = None
 
-    OPTICS = _namedtuple('Optics', ['EdwardsTeng', 'Twiss'])(0, 1)
-    EQPARAMS = _namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])(0, 1)
-    TOUSCHEKMODEL = _namedtuple(
-        'TouschekModel', ['Piwinski', 'FlatBeam'])(0, 1)
+    OPTICS = _get_namedtuple('Optics', ['EdwardsTeng', 'Twiss'])
+    EQPARAMS = _get_namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])
+    TOUSCHEKMODEL = _get_namedtuple('TouschekModel', ['Piwinski', 'FlatBeam'])
 
     def __init__(self, accelerator, touschek_model=None,
                  type_eqparams=None, type_optics=None):
