@@ -11,11 +11,12 @@ from mathphys import constants as _cst, units as _u, \
 
 from . import optics as _optics
 
-import scipy.special as _special
 if _implib.util.find_spec('scipy'):
     import scipy.integrate as _integrate
+    import scipy.special as _special
 else:
     _integrate = None
+    _special = None
 
 
 class Lifetime:
