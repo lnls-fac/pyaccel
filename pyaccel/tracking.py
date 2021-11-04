@@ -22,7 +22,7 @@ import mathphys as _mp
 from . import accelerator as _accelerator
 from . import utils as _utils
 from .utils import interactive as _interactive
-from .optics.edwards_teng import EdwardsTeng
+from .optics.twiss import Twiss
 
 
 LOST_PLANES = (None, 'x', 'y', 'z')
@@ -33,9 +33,9 @@ class TrackingException(Exception):
 
 
 @_interactive
-def generate_bunch(emit1, emit2, sigmae, sigmas, twi, n_part, cutoff=3):
+def generate_bunch(emit1, emit2, sigmae, sigmas, optics, n_part, cutoff=3):
     """
-    Create centered bunch with the desired equilibrium and twiss params.
+    Create centered bunch with the desired equilibrium and opticsss params.
 
     Inputs:
         emit1 = first mode emittance, corresponds to horizontal emmitance at
@@ -44,32 +44,33 @@ def generate_bunch(emit1, emit2, sigmae, sigmas, twi, n_part, cutoff=3):
          the limit of zero coupling;
         sigmae = energy dispersion;
         sigmas = bunch length;
-        twi = TwissObject at the desired location
-        n_part = number of particles
-        cutoff = number of sigmas to cut the distribution (in bunch size)
+        optics = Optical functions at desired location, it should be a Twiss
+         or EdwardsTeng object;
+        n_part = number of particles;
+        cutoff = number of sigmas to cut the distribution (in bunch size).
 
     Output:
         particles = numpy.array.shape == (6, n_part)
     """
 
-    if isinstance(twi, EdwardsTeng):
-        beta1 = twi.beta1
-        beta2 = twi.beta2
-        eta1 = twi.eta1
-        eta2 = twi.eta2
-        etap1 = twi.etap1
-        etap2 = twi.etap2
-        alpha1 = twi.alpha1
-        alpha2 = twi.alpha2
+    if isinstance(optics, Twiss):
+        beta1 = optics.betax
+        beta2 = optics.betay
+        eta1 = optics.etax
+        eta2 = optics.etay
+        etap1 = optics.etapx
+        etap2 = optics.etapy
+        alpha1 = optics.alphax
+        alpha2 = optics.alphay
     else:
-        beta1 = twi.betax
-        beta2 = twi.betay
-        eta1 = twi.etax
-        eta2 = twi.etay
-        etap1 = twi.etapx
-        etap2 = twi.etapy
-        alpha1 = twi.alphax
-        alpha2 = twi.alphay
+        beta1 = optics.beta1
+        beta2 = optics.beta2
+        eta1 = optics.eta1
+        eta2 = optics.eta2
+        etap1 = optics.etap1
+        etap2 = optics.etap2
+        alpha1 = optics.alpha1
+        alpha2 = optics.alpha2
 
     # generate longitudinal phase space
     parts = _mp.functions.generate_random_numbers(
