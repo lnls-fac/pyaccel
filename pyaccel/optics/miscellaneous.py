@@ -145,3 +145,10 @@ def get_curlyh(beta, alpha, x, xl):
     """."""
     gamma = (1 + alpha*alpha) / beta
     return beta*xl*xl + 2*alpha*x*xl + gamma*x*x
+
+@_interactive
+def get_emittances_from_coupling(emit0, coupling):
+    """XY emittances from emitance coupling and natural emittance."""
+    emitx = emit0 * (coupling / (1 + coupling))
+    emity = emit0 * (1 / (1 + coupling))
+    return emitx, emity
