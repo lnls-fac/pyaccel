@@ -33,13 +33,15 @@ class TrackingException(Exception):
 
 
 @_interactive
-def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
+def generate_bunch(emit1, emit2, sigmae, sigmas, twi, n_part, cutoff=3):
     """
     Create centered bunch with the desired equilibrium and twiss params.
 
     Inputs:
-        emitx = horizontal emittance;
-        emity = vertical emittance;
+        emit1 = first mode emittance, corresponds to horizontal emmitance at
+         the limit of zero coupling;
+        emit2 = second mode emittance, corresponds to vertical emmitance at
+         the limit of zero coupling;
         sigmae = energy dispersion;
         sigmas = bunch length;
         twi = TwissObject at the desired location
@@ -50,7 +52,7 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
         particles = numpy.array.shape == (6, n_part)
     """
 
-    if isinstance(twi,EdwardsTeng):
+    if isinstance(twi, EdwardsTeng):
         beta1 = twi.beta1
         beta2 = twi.beta2
         eta1 = twi.eta1
@@ -58,7 +60,7 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
         etap1 = twi.etap1
         etap2 = twi.etap2
         alpha1 = twi.alpha1
-        alpha2 =  twi.alpha2
+        alpha2 = twi.alpha2
     else:
         beta1 = twi.betax
         beta2 = twi.betay
@@ -67,7 +69,7 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
         etap1 = twi.etapx
         etap2 = twi.etapy
         alpha1 = twi.alphax
-        alpha2 =  twi.alphay
+        alpha2 = twi.alphay
 
     # generate longitudinal phase space
     parts = _mp.functions.generate_random_numbers(
@@ -78,8 +80,8 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
     # generate transverse phase space
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='exp', cutoff=cutoff*cutoff/2)
-    amp1 = _np.sqrt(emitx * 2*parts[:n_part])
-    amp2 = _np.sqrt(emity * 2*parts[n_part:])
+    amp1 = _np.sqrt(emit1 * 2*parts[:n_part])
+    amp2 = _np.sqrt(emit2 * 2*parts[n_part:])
 
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='unif', cutoff=cutoff)
