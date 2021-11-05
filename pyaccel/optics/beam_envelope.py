@@ -541,10 +541,16 @@ def calc_beamenvelope(
         bcumi = _np.linalg.solve(m66, bdiffs[-1])
         # Envelope matrix at the ring entrance
         init_env = _scylin.solve_sylvester(m66i, m66t, bcumi)
+        # Assert init_env is symmetric
+        init_env += init_env.T
+        init_env /= 2
 
     envelopes = _np.zeros((len(accelerator)+1, 6, 6), dtype=float)
     for i in range(envelopes.shape[0]):
         envelopes[i] = _sandwich_matrix(cum_mat[i], init_env) + bdiffs[i]
+    # Assert envelopes are symmetric
+    envelopes += envelopes.transpose(0, 2, 1)
+    envelopes /= 2
 
     accelerator.radiation_on = rad_stt
     accelerator.cavity_on = cav_stt
