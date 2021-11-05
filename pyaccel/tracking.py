@@ -22,7 +22,8 @@ import mathphys as _mp
 from . import accelerator as _accelerator
 from . import utils as _utils
 from .utils import interactive as _interactive
-from .optics.twiss import Twiss
+from .optics.twiss import Twiss as _Twiss
+from .optics.edwards_teng import EdwardsTeng as _EdwardsTeng
 
 
 LOST_PLANES = (None, 'x', 'y', 'z')
@@ -35,12 +36,12 @@ class TrackingException(Exception):
 @_interactive
 def generate_bunch(emit1, emit2, sigmae, sigmas, optics, n_part, cutoff=3):
     """
-    Create centered bunch with the desired equilibrium and opticsss params.
+    Create centered bunch with the desired equilibrium and optics params.
 
     Inputs:
-        emit1 = first mode emittance, corresponds to horizontal emmitance at
+        emit1 = first mode emittance, corresponds to horizontal emittance at
          the limit of zero coupling;
-        emit2 = second mode emittance, corresponds to vertical emmitance at
+        emit2 = second mode emittance, corresponds to vertical emittance at
          the limit of zero coupling;
         sigmae = energy dispersion;
         sigmas = bunch length;
@@ -53,24 +54,18 @@ def generate_bunch(emit1, emit2, sigmae, sigmas, optics, n_part, cutoff=3):
         particles = numpy.array.shape == (6, n_part)
     """
 
-    if isinstance(optics, Twiss):
-        beta1 = optics.betax
-        beta2 = optics.betay
-        eta1 = optics.etax
-        eta2 = optics.etay
-        etap1 = optics.etapx
-        etap2 = optics.etapy
-        alpha1 = optics.alphax
-        alpha2 = optics.alphay
+    if isinstance(optics, _Twiss):
+        beta1, beta2 = optics.betax, optics.betay
+        alpha1, alpha2 = optics.alphax, optics.alphay
+        eta1, eta2 = optics.etax, optics.etay
+        etap1, etap2 = optics.etapx, optics.etapy
+    elif isinstance(optics, _EdwardsTeng):
+        beta1, beta2 = optics.beta1, optics.beta2
+        alpha1, alpha2 = optics.alpha1, optics.alpha2
+        eta1, eta2 = optics.eta1, optics.eta2
+        etap1, etap2 = optics.etap1, optics.etap2
     else:
-        beta1 = optics.beta1
-        beta2 = optics.beta2
-        eta1 = optics.eta1
-        eta2 = optics.eta2
-        etap1 = optics.etap1
-        etap2 = optics.etap2
-        alpha1 = optics.alpha1
-        alpha2 = optics.alpha2
+        raise TypeError('optics arg must be a Twiss or EdwardsTeng object.')
 
     # generate longitudinal phase space
     parts = _mp.functions.generate_random_numbers(
