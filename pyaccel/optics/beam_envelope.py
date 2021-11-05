@@ -499,24 +499,19 @@ def calc_beamenvelope(
     """
     indices = _tracking._process_indices(accelerator, indices)
 
+    rad_stt = accelerator.radiation_on
+    cav_stt = accelerator.cavity_on
+    accelerator.radiation_on = True
+    accelerator.cavity_on = True
+
     if fixed_point is None:
         fixed_point = _tracking.find_orbit(
             accelerator, energy_offset=energy_offset)
 
     cum_mat = cumul_trans_matrices
     if cum_mat is None or cum_mat.shape[0] != len(accelerator)+1:
-        if init_env is None:
-            rad_stt = accelerator.radiation_on
-            cav_stt = accelerator.cavity_on
-            accelerator.radiation_on = True
-            accelerator.cavity_on = True
-
         _, cum_mat = _tracking.find_m66(
             accelerator, indices='closed', fixed_point=fixed_point)
-
-        if init_env is None:
-            accelerator.radiation_on = rad_stt
-            accelerator.cavity_on = cav_stt
 
     # perform: M(i, i) = M(0, i+1) @ M(0, i)^-1
     mat_ele = _np.linalg.solve(
@@ -550,6 +545,9 @@ def calc_beamenvelope(
     envelopes = _np.zeros((len(accelerator)+1, 6, 6), dtype=float)
     for i in range(envelopes.shape[0]):
         envelopes[i] = _sandwich_matrix(cum_mat[i], init_env) + bdiffs[i]
+
+    accelerator.radiation_on = rad_stt
+    accelerator.cavity_on = cav_stt
 
     if not full:
         return envelopes[indices]
