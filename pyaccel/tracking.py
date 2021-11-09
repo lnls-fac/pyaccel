@@ -96,7 +96,17 @@ def generate_bunch(emit1, emit2, sigmae, sigmas, optics, n_part, cutoff=3):
     p_2p *= alpha2*_np.cos(ph2) + _np.sin(ph2)
     p_1p += etap1 * p_en
     p_2p += etap2 * p_en
-    return _np.array((p_1, p_1p, p_2, p_2p, p_en, p_s))
+
+    # bunch at normal modes coordinates:
+    bunch_nm = _np.array((p_1, p_1p, p_2, p_2p, p_en, p_s))
+
+    if isinstance(optics, _EdwardsTeng):
+        # bunch at (x, x', y, y', de, dl) coordinates:
+        bunch = optics.from_normal_modes(bunch_nm)
+    else:
+        bunch = bunch_nm
+
+    return bunch
 
 
 @_interactive
