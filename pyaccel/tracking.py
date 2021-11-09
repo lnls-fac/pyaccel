@@ -34,25 +34,70 @@ class TrackingException(Exception):
 
 
 @_interactive
-def generate_bunch(emit1, emit2, sigmae, sigmas, optics, n_part, cutoff=3):
-    """
-    Create centered bunch with the desired equilibrium and optics params.
+def generate_bunch(
+        n_part, envelope=None, emit1=None, emit2=None, sigmae=None,
+        sigmas=None, optics=None, cutoff=3):
+    """Create centered bunch with the desired equilibrium and optics params.
 
-    Inputs:
-        emit1 = first mode emittance, corresponds to horizontal emittance at
-         the limit of zero coupling;
-        emit2 = second mode emittance, corresponds to vertical emittance at
-         the limit of zero coupling;
-        sigmae = energy dispersion;
-        sigmas = bunch length;
-        optics = Optical functions at desired location, it should be a Twiss
-         or EdwardsTeng object;
-        n_part = number of particles;
-        cutoff = number of sigmas to cut the distribution (in bunch size).
+    Args:
+        n_part (int): number of particles;
+        envelope (numpy.array, optional): 6x6 matrix with beam second moments.
+            when provided, preceeds the usage of the equilibrium parameters.
+            Otherwise they are mandatory. Defaults to None.
+        emit1 (float, optional): first mode emittance, corresponds to
+            horizontal emittance at the limit of zero coupling.
+            Not used when envelope is provided, mandatory otherwise.
+            Defaults to None.
+        emit2 (float, optional): second mode emittance, corresponds to
+            vertical emittance at the limit of zero coupling.
+            Not used when envelope is provided, mandatory otherwise.
+            Defaults to None.
+        sigmae (float, optional): energy dispersion. Not used when envelope is
+            provided, mandatory otherwise. Defaults to None.
+        sigmas (float, optional): bunch length. Not used when envelope is
+            provided, mandatory otherwise. Defaults to None.
+        optics (pyaccel.optics.Twiss or pyaccel.optics.EdwardsTeng, optional):
+            Optical functions at desired location. Not used when envelope is
+            provided, mandatory otherwise. Defaults to None.
+        cutoff (int, optional): number of sigmas to cut the distribution.
+            Defaults to 3.
 
-    Output:
-        particles = numpy.array.shape == (6, n_part)
+    Raises:
+        TypeError: raised if optics is not a pyaccel.optics.Twiss or
+            pyaccel.optics.EdwardsTeng object.
+        ValueError: raised when envelope is not provided and not all
+            equilibrium parameters are defined.
+
+    Returns:
+        numpy.ndarray: 6 x n_part array where each column is a particle.
+
     """
+    if envelope is not None:
+        # The method used below was based on the algorithm described here:
+        #    https://en.wikipedia.org/wiki/Multivariate_normal_distribution
+        # in section: "4.1 Drawing_values_from_the_distribution"
+        #
+        # Create 6D vectors whose components follow the normal
+        # distribution, such that:
+        # np.cov(znor) == <znor @ znor.T> == np.eye(6)
+        znor = _mp.functions.generate_random_numbers(
+            6*n_part, dist_type='norm', cutoff=cutoff).reshape(6, -1)
+        # The Cholesky decomposition finds a matrix env_chol such that:
+        # env_chol @ env_chol.T == envelope
+        env_chol = _np.linalg.cholesky(envelope)
+        # This way we can find bunch througth:
+        bunch = env_chol @ znor
+        # where one can see that:
+        # np.cov(bunch) == <bunch @ bunch.T> ==
+        #     env_chol @ <znor @ znor.T> @ env_chol.T ==
+        #     env_chol @ np.eye(6) @ env_chol.T ==
+        #     env_chol @ env_chol.T == envelope
+        return bunch
+
+    if None in (emit1, emit2, sigmae, sigmas, optics):
+        raise ValueError(
+            'When envelope is not provided, emit1, emit2, sigmae, sigmas ' +
+            'and optics are mandatory arguments.')
 
     if isinstance(optics, _Twiss):
         beta1, beta2 = optics.betax, optics.betay
