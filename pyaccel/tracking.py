@@ -22,6 +22,8 @@ import mathphys as _mp
 from . import accelerator as _accelerator
 from . import utils as _utils
 from .utils import interactive as _interactive
+from .optics.twiss import Twiss as _Twiss
+from .optics.edwards_teng import EdwardsTeng as _EdwardsTeng
 
 
 LOST_PLANES = (None, 'x', 'y', 'z')
@@ -32,22 +34,39 @@ class TrackingException(Exception):
 
 
 @_interactive
-def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
+def generate_bunch(emit1, emit2, sigmae, sigmas, optics, n_part, cutoff=3):
     """
-    Create centered bunch with the desired equilibrium and twiss params.
+    Create centered bunch with the desired equilibrium and optics params.
 
     Inputs:
-        emitx = horizontal emittance;
-        emity = vertical emittance;
+        emit1 = first mode emittance, corresponds to horizontal emittance at
+         the limit of zero coupling;
+        emit2 = second mode emittance, corresponds to vertical emittance at
+         the limit of zero coupling;
         sigmae = energy dispersion;
         sigmas = bunch length;
-        twi = TwissObject at the desired location
-        n_part = number of particles
-        cutoff = number of sigmas to cut the distribution (in bunch size)
+        optics = Optical functions at desired location, it should be a Twiss
+         or EdwardsTeng object;
+        n_part = number of particles;
+        cutoff = number of sigmas to cut the distribution (in bunch size).
 
     Output:
         particles = numpy.array.shape == (6, n_part)
     """
+
+    if isinstance(optics, _Twiss):
+        beta1, beta2 = optics.betax, optics.betay
+        alpha1, alpha2 = optics.alphax, optics.alphay
+        eta1, eta2 = optics.etax, optics.etay
+        etap1, etap2 = optics.etapx, optics.etapy
+    elif isinstance(optics, _EdwardsTeng):
+        beta1, beta2 = optics.beta1, optics.beta2
+        alpha1, alpha2 = optics.alpha1, optics.alpha2
+        eta1, eta2 = optics.eta1, optics.eta2
+        etap1, etap2 = optics.etap1, optics.etap2
+    else:
+        raise TypeError('optics arg must be a Twiss or EdwardsTeng object.')
+
     # generate longitudinal phase space
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='norm', cutoff=cutoff)
@@ -57,27 +76,37 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
     # generate transverse phase space
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='exp', cutoff=cutoff*cutoff/2)
-    ampx = _np.sqrt(emitx * 2*parts[:n_part])
-    ampy = _np.sqrt(emity * 2*parts[n_part:])
+    amp1 = _np.sqrt(emit1 * 2*parts[:n_part])
+    amp2 = _np.sqrt(emit2 * 2*parts[n_part:])
 
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='unif', cutoff=cutoff)
-    phx = _np.pi * parts[:n_part]
-    phy = _np.pi * parts[n_part:]
+    ph1 = _np.pi * parts[:n_part]
+    ph2 = _np.pi * parts[n_part:]
 
-    p_x = ampx*_np.sqrt(twi.betax)
-    p_y = ampy*_np.sqrt(twi.betay)
-    p_x *= _np.cos(phx)
-    p_y *= _np.cos(phy)
-    p_x += twi.etax * p_en
-    p_y += twi.etay * p_en
-    p_xp = -ampx/_np.sqrt(twi.betax)
-    p_yp = -ampy/_np.sqrt(twi.betay)
-    p_xp *= twi.alphax*_np.cos(phx) + _np.sin(phx)
-    p_yp *= twi.alphay*_np.cos(phy) + _np.sin(phy)
-    p_xp += twi.etapx * p_en
-    p_yp += twi.etapy * p_en
-    return _np.array((p_x, p_xp, p_y, p_yp, p_en, p_s))
+    p_1 = amp1*_np.sqrt(beta1)
+    p_2 = amp2*_np.sqrt(beta2)
+    p_1 *= _np.cos(ph1)
+    p_2 *= _np.cos(ph2)
+    p_1 += eta1 * p_en
+    p_2 += eta2 * p_en
+    p_1p = -amp1/_np.sqrt(beta1)
+    p_2p = -amp2/_np.sqrt(beta2)
+    p_1p *= alpha1*_np.cos(ph1) + _np.sin(ph1)
+    p_2p *= alpha2*_np.cos(ph2) + _np.sin(ph2)
+    p_1p += etap1 * p_en
+    p_2p += etap2 * p_en
+
+    # bunch at normal modes coordinates:
+    bunch_nm = _np.array((p_1, p_1p, p_2, p_2p, p_en, p_s))
+
+    if isinstance(optics, _EdwardsTeng):
+        # bunch at (x, x', y, y', de, dl) coordinates:
+        bunch = optics.from_normal_modes(bunch_nm)
+    else:
+        bunch = bunch_nm
+
+    return bunch
 
 
 @_interactive
