@@ -29,7 +29,7 @@ def naff_general(signal, is_real=True, nr_ff=2, window=1):
         nr_ff -- Number of fundamental frequencies to return (default = 2);
         window -- Which window to use:  (default = 1)
             0 -- no window;
-            1, 2, 3, ... -- Powers of Hamming window;
+            1, 2, 3, ... -- Powers of Hanning window;
             -1 -- Exponential window;
 
     Outputs:
