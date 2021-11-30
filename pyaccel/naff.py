@@ -62,4 +62,8 @@ def naff_general(signal, is_real=True, nr_ff=2, window=1):
     fourier = real + 1j*imag
     fourier = _np.squeeze(fourier)
     freqs = _np.squeeze(freqs)
+
+    if is_real:
+        freqs = _np.abs(freqs)
+
     return freqs, fourier
