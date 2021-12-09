@@ -1,8 +1,8 @@
 """NAFF module
 This module performs the Numerical Analysis of Fundamental Frequencies (NAFF)
-method, developed by J. Naskar in:
+method, developed by J. Laskar in:
 
-J. Naskar, The chaotic motion of the solar system: A numerical estimate of the
+J. Laskar, The chaotic motion of the solar system: A numerical estimate of the
 size of the chaotic zones, Icarus, Volume 88, Issue 2,1990, Pages 266-291.
 (https://www.sciencedirect.com/science/article/pii/001910359090084M)
 """
@@ -65,5 +65,7 @@ def naff_general(signal, is_real=True, nr_ff=2, window=1):
 
     if is_real:
         freqs = _np.abs(freqs)
+        mask = freqs > 0.5
+        freqs[mask] = _np.abs(1-freqs[mask])
 
     return freqs, fourier
