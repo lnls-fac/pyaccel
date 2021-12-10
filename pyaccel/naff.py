@@ -35,8 +35,8 @@ def naff_general(signal, is_real=True, nr_ff=2, window=1):
     Outputs:
         freqs -- fundamental frequencies.
             Numpy array with shape `(signal.shape[0], nr_ff)`.
-            In case is_real is true, only positive frequencies in the interval
-            [0, 0.5] are returned;
+            In case is_real is True, only one component of each frequency,
+            the positive or negative part is returned;
         fourier -- Fourier component of the given frequencies.
             Numpy array of complex numbers with same shape as freqs.
     """
@@ -48,7 +48,7 @@ def naff_general(signal, is_real=True, nr_ff=2, window=1):
 
     if (signal.shape[1]-1) % 6:
         q, r = divmod(signal.shape[1], 6)
-        if r == 0:
+        if not r:
             q -= 1
         q = 6*q+1
         signal = signal[:, :q]
@@ -62,10 +62,5 @@ def naff_general(signal, is_real=True, nr_ff=2, window=1):
     fourier = real + 1j*imag
     fourier = _np.squeeze(fourier)
     freqs = _np.squeeze(freqs)
-
-    if is_real:
-        freqs = _np.abs(freqs)
-        mask = freqs > 0.5
-        freqs[mask] = _np.abs(1-freqs[mask])
 
     return freqs, fourier
