@@ -175,6 +175,24 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     return Element(element=ele)
 
 
+@_interactive
+def kickmap(
+        fam_name, kicktable_fname, nr_steps=20,
+        rescale_length=1.0, rescale_kicks=1.0):
+    """Create a kickmap element.
+
+    Keyword arguments:
+    fam_name -- family name
+    kicktable_fname -- filename of kicktable
+    nr_steps -- number of steps (default 20)
+    rescale_length -- rescale kicktable length (default 1)
+    rescale_kicks -- rescale all kicktable length (default 1)
+    """
+    e = _trackcpp.kickmap_wrapper(
+        fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks)
+    return Element(element=e)
+
+
 def _process_polynoms(polya, polyb):
     # Make sure polya and polyb have same size and are initialized
     if polya is None:
@@ -195,17 +213,44 @@ def _process_polynoms(polya, polyb):
 class Kicktable:
     """."""
 
+    kicktable_list = _trackcpp.cvar.kicktable_list  # trackcpp vector with all Kicktables in use.
+
     def __init__(self, **kwargs):
         """."""
+        # get kicktable filename
         if 'kicktable' in kwargs:
-            self._kicktable = kwargs['kicktable']
+            filename = kwargs['kicktable'].filename
+        elif 'filename' in kwargs:
+            filename = kwargs['filename']
         else:
-            filename = kwargs.get('filename', "")
-            self._kicktable = _trackcpp.Kicktable(filename)
+            raise NotImplementedError('Invalid Kicktable argument')
+
+        # add new kicktable to list or retrieve index of existing one with same fname.
+        idx = _trackcpp.add_kicktable(filename)
+
+        # update object attributes
+        if idx != -1:
+            self._status = _trackcpp.Status.success
+            self._kicktable_idx = idx
+            self._kicktable = _trackcpp.cvar.kicktable_list[idx]
+        else:
+            self._status = _trackcpp.Status.file_not_found
+            self._kicktable_idx = -1
+            self._kicktable = None
+
+    @property
+    def trackcpp_kickmap(self):
+        """Return trackcpp Kickmap object."""
+        return self._kicktable
+
+    @property
+    def kicktable_idx(self):
+        """Return kicktable index in trackcpp kicktable_list vector."""
+        return self._kicktable_idx
 
     @property
     def filename(self):
-        """."""
+        """Filename corresponding to kicktable"""
         return self._kicktable.filename
 
     @property
@@ -242,6 +287,17 @@ class Kicktable:
     def y_nrpts(self):
         """."""
         return self._kicktable.y_nrpts
+
+    @property
+    def status(self):
+        """Return last object status."""
+        return self._status
+
+    def get_kicks(self, rx, ry):
+        """Return (hkick, vkick) at (rx,ry)."""
+        idx = self.kicktable_idx
+        self._status, hkick, vkick = _trackcpp.kicktable_getkicks_wrapper(idx, rx, ry)
+        return hkick, vkick
 
     def __eq__(self, other):
         """."""
@@ -455,8 +511,9 @@ class Element:
     @property
     def kicktable(self):
         """."""
-        if self.trackcpp_e.kicktable is not None:
-            return Kicktable(kicktable=self.trackcpp_e.kicktable)
+        if self.trackcpp_e.kicktable_idx != -1:
+            kicktable = _trackcpp.cvar.kicktable_list[self.trackcpp_e.kicktable_idx]
+            return Kicktable(kicktable=kicktable)
         else:
             return None
 
@@ -678,7 +735,8 @@ class Element:
         """."""
         Element._check_type(value, Element._t_valid_types)
         Element._check_size(value, _NUM_COORDS)
-        Element._set_c_array_from_vector(self.trackcpp_e.t_in, _NUM_COORDS, value)
+        Element._set_c_array_from_vector(
+            self.trackcpp_e.t_in, _NUM_COORDS, value)
 
     @property
     def t_out(self):
@@ -690,7 +748,8 @@ class Element:
         """."""
         Element._check_type(value, Element._t_valid_types)
         Element._check_size(value, _NUM_COORDS)
-        Element._set_c_array_from_vector(self.trackcpp_e.t_out, _NUM_COORDS, value)
+        Element._set_c_array_from_vector(
+            self.trackcpp_e.t_out, _NUM_COORDS, value)
 
     @property
     def r_in(self):
@@ -784,8 +843,9 @@ class Element:
             rst += fmtstr.format('vmin', self.vmin, 'm')
         if self.vmax != _DBL_MAX:
             rst += fmtstr.format('vmax', self.vmax, 'm')
-        if self.kicktable is not None:
-            rst += fmtstr.format('kicktable', self.kicktable.filename, '')
+        if self.trackcpp_e.kicktable_idx != -1:
+            kicktable = _trackcpp.cvar.kicktable_list[self.trackcpp_e.kicktable_idx]
+            rst += fmtstr.format('kicktable', kicktable.filename, '')
         if not (self.t_in == _numpy.zeros(_NUM_COORDS)).all():
             rst += fmtstr.format('t_in', self.t_in, 'm')
         if not (self.t_out == _numpy.zeros(_NUM_COORDS)).all():

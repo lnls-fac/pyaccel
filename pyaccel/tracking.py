@@ -12,6 +12,7 @@ turn number (n). For example, v = pos[p,c,e,n]. Routines in these module may
 return particle positions structure missing one or more indices but the
 PCEN ordering is preserved.
 """
+import multiprocessing as _multiproc
 
 import numpy as _np
 import trackcpp as _trackcpp
@@ -21,6 +22,8 @@ import mathphys as _mp
 from . import accelerator as _accelerator
 from . import utils as _utils
 from .utils import interactive as _interactive
+from .optics.twiss import Twiss as _Twiss
+from .optics.edwards_teng import EdwardsTeng as _EdwardsTeng
 
 
 LOST_PLANES = (None, 'x', 'y', 'z')
@@ -31,22 +34,84 @@ class TrackingException(Exception):
 
 
 @_interactive
-def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
-    """
-    Create centered bunch with the desired equilibrium and twiss params.
+def generate_bunch(
+        n_part, envelope=None, emit1=None, emit2=None, sigmae=None,
+        sigmas=None, optics=None, cutoff=3):
+    """Create centered bunch with the desired equilibrium and optics params.
 
-    Inputs:
-        emitx = horizontal emittance;
-        emity = vertical emittance;
-        sigmae = energy dispersion;
-        sigmas = bunch length;
-        twi = TwissObject at the desired location
-        n_part = number of particles
-        cutoff = number of sigmas to cut the distribution (in bunch size)
+    Args:
+        n_part (int): number of particles;
+        envelope (numpy.array, optional): 6x6 matrix with beam second moments.
+            when provided, preceeds the usage of the equilibrium parameters.
+            Otherwise they are mandatory. Defaults to None.
+        emit1 (float, optional): first mode emittance, corresponds to
+            horizontal emittance at the limit of zero coupling.
+            Not used when envelope is provided, mandatory otherwise.
+            Defaults to None.
+        emit2 (float, optional): second mode emittance, corresponds to
+            vertical emittance at the limit of zero coupling.
+            Not used when envelope is provided, mandatory otherwise.
+            Defaults to None.
+        sigmae (float, optional): energy dispersion. Not used when envelope is
+            provided, mandatory otherwise. Defaults to None.
+        sigmas (float, optional): bunch length. Not used when envelope is
+            provided, mandatory otherwise. Defaults to None.
+        optics (pyaccel.optics.Twiss or pyaccel.optics.EdwardsTeng, optional):
+            Optical functions at desired location. Not used when envelope is
+            provided, mandatory otherwise. Defaults to None.
+        cutoff (int, optional): number of sigmas to cut the distribution.
+            Defaults to 3.
 
-    Output:
-        particles = numpy.array.shape == (6, n_part)
+    Raises:
+        TypeError: raised if optics is not a pyaccel.optics.Twiss or
+            pyaccel.optics.EdwardsTeng object.
+        ValueError: raised when envelope is not provided and not all
+            equilibrium parameters are defined.
+
+    Returns:
+        numpy.ndarray: 6 x n_part array where each column is a particle.
+
     """
+    if envelope is not None:
+        # The method used below was based on the algorithm described here:
+        #    https://en.wikipedia.org/wiki/Multivariate_normal_distribution
+        # in section: "4.1 Drawing_values_from_the_distribution"
+        #
+        # Create 6D vectors whose components follow the normal
+        # distribution, such that:
+        # np.cov(znor) == <znor @ znor.T> == np.eye(6)
+        znor = _mp.functions.generate_random_numbers(
+            6*n_part, dist_type='norm', cutoff=cutoff).reshape(6, -1)
+        # The Cholesky decomposition finds a matrix env_chol such that:
+        # env_chol @ env_chol.T == envelope
+        env_chol = _np.linalg.cholesky(envelope)
+        # This way we can find bunch througth:
+        bunch = env_chol @ znor
+        # where one can see that:
+        # np.cov(bunch) == <bunch @ bunch.T> ==
+        #     env_chol @ <znor @ znor.T> @ env_chol.T ==
+        #     env_chol @ np.eye(6) @ env_chol.T ==
+        #     env_chol @ env_chol.T == envelope
+        return bunch
+
+    if None in (emit1, emit2, sigmae, sigmas, optics):
+        raise ValueError(
+            'When envelope is not provided, emit1, emit2, sigmae, sigmas ' +
+            'and optics are mandatory arguments.')
+
+    if isinstance(optics, _Twiss):
+        beta1, beta2 = optics.betax, optics.betay
+        alpha1, alpha2 = optics.alphax, optics.alphay
+        eta1, eta2 = optics.etax, optics.etay
+        etap1, etap2 = optics.etapx, optics.etapy
+    elif isinstance(optics, _EdwardsTeng):
+        beta1, beta2 = optics.beta1, optics.beta2
+        alpha1, alpha2 = optics.alpha1, optics.alpha2
+        eta1, eta2 = optics.eta1, optics.eta2
+        etap1, etap2 = optics.etap1, optics.etap2
+    else:
+        raise TypeError('optics arg must be a Twiss or EdwardsTeng object.')
+
     # generate longitudinal phase space
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='norm', cutoff=cutoff)
@@ -56,27 +121,37 @@ def generate_bunch(emitx, emity, sigmae, sigmas, twi, n_part, cutoff=3):
     # generate transverse phase space
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='exp', cutoff=cutoff*cutoff/2)
-    ampx = _np.sqrt(emitx * 2*parts[:n_part])
-    ampy = _np.sqrt(emity * 2*parts[n_part:])
+    amp1 = _np.sqrt(emit1 * 2*parts[:n_part])
+    amp2 = _np.sqrt(emit2 * 2*parts[n_part:])
 
     parts = _mp.functions.generate_random_numbers(
         2*n_part, dist_type='unif', cutoff=cutoff)
-    phx = _np.pi * parts[:n_part]
-    phy = _np.pi * parts[n_part:]
+    ph1 = _np.pi * parts[:n_part]
+    ph2 = _np.pi * parts[n_part:]
 
-    p_x = ampx*_np.sqrt(twi.betax)
-    p_y = ampy*_np.sqrt(twi.betay)
-    p_x *= _np.cos(phx)
-    p_y *= _np.cos(phy)
-    p_x += twi.etax * p_en
-    p_y += twi.etay * p_en
-    p_xp = -ampx/_np.sqrt(twi.betax)
-    p_yp = -ampy/_np.sqrt(twi.betay)
-    p_xp *= twi.alphax*_np.cos(phx) + _np.sin(phx)
-    p_yp *= twi.alphay*_np.cos(phy) + _np.sin(phy)
-    p_xp += twi.etapx * p_en
-    p_yp += twi.etapy * p_en
-    return _np.array((p_x, p_xp, p_y, p_yp, p_en, p_s))
+    p_1 = amp1*_np.sqrt(beta1)
+    p_2 = amp2*_np.sqrt(beta2)
+    p_1 *= _np.cos(ph1)
+    p_2 *= _np.cos(ph2)
+    p_1 += eta1 * p_en
+    p_2 += eta2 * p_en
+    p_1p = -amp1/_np.sqrt(beta1)
+    p_2p = -amp2/_np.sqrt(beta2)
+    p_1p *= alpha1*_np.cos(ph1) + _np.sin(ph1)
+    p_2p *= alpha2*_np.cos(ph2) + _np.sin(ph2)
+    p_1p += etap1 * p_en
+    p_2p += etap2 * p_en
+
+    # bunch at normal modes coordinates:
+    bunch_nm = _np.array((p_1, p_1p, p_2, p_2p, p_en, p_s))
+
+    if isinstance(optics, _EdwardsTeng):
+        # bunch at (x, x', y, y', de, dl) coordinates:
+        bunch = optics.from_normal_modes(bunch_nm)
+    else:
+        bunch = bunch_nm
+
+    return bunch
 
 
 @_interactive
@@ -141,7 +216,9 @@ def element_pass(element, particles, energy, **kwargs):
 
 
 @_interactive
-def line_pass(accelerator, particles, indices=None, element_offset=0):
+def line_pass(
+        accelerator, particles, indices=None, element_offset=0,
+        parallel=False):
     """Track particle(s) along a line.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -153,19 +230,26 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
     Keyword arguments: (accelerator, particles, indices, element_offset)
 
     accelerator -- Accelerator object
+
     particles   -- initial 6D particle(s) position(s).
                    Few examples
                         ex.1: particles = [rx,px,ry,py,de,dl]
                         ex.2: particles = numpy.array([rx,px,ry,py,de,dl])
                         ex.3: particles = numpy.zeros((6, Np))
+
     indices     -- list of indices corresponding to accelerator elements at
                    whose entrances, tracked particles positions are to be
                    stored; string:
                    'open': corresponds to selecting all elements.
                    'closed' : equal 'open' plus the position at the end of the
                               last element.
+
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
+
+    parallel -- whether to parallelize calculation or not. If an integer is
+                passed that many processes will be used. If True, the number
+                of processes will be determined automatically.
 
     Returns: (part_out, lost_flag, lost_element, lost_plane)
 
@@ -223,11 +307,41 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
     p_in, indices = _process_args(accelerator, particles, indices)
     indices = indices if indices is not None else [len(accelerator), ]
 
+    if not parallel:
+        p_out, lost_flag, lost_element, lost_plane = _line_pass(
+            accelerator, p_in, indices, element_offset)
+    else:
+        slcs = _get_slices_multiprocessing(parallel, p_in.shape[1])
+        with _multiproc.Pool(processes=len(slcs)) as pool:
+            res = []
+            for slc in slcs:
+                res.append(pool.apply_async(_line_pass, (
+                    accelerator, p_in[:, slc], indices, element_offset)))
+
+            p_out, lost_element, lost_plane = [], [], []
+            lost_flag = False
+            for re_ in res:
+                part_out, lflag, lelement, lplane = re_.get()
+                lost_flag |= lflag
+                p_out.append(part_out)
+                lost_element.extend(lelement)
+                lost_plane.extend(lplane)
+        p_out = _np.concatenate(p_out, axis=1)
+
+    # simplifies output structure in case of single particle
+    if len(lost_element) == 1:
+        lost_element = lost_element[0]
+        lost_plane = lost_plane[0]
+
+    return p_out, lost_flag, lost_element, lost_plane
+
+
+def _line_pass(accelerator, p_in, indices, element_offset):
     # store only final position?
     args = _trackcpp.LinePassArgs()
     for idx in indices:
         args.indices.push_back(int(idx))
-    args.element_offset = element_offset
+    args.element_offset = int(element_offset)
 
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
@@ -243,17 +357,13 @@ def line_pass(accelerator, particles, indices=None, element_offset=0):
     lost_element = list(args.lost_element)
     lost_plane = [LOST_PLANES[lp] for lp in args.lost_plane]
 
-    # simplifies output structure in case of single particle
-    if len(lost_element) == 1:
-        lost_element = lost_element[0]
-        lost_plane = lost_plane[0]
-
     return p_out, lost_flag, lost_element, lost_plane
 
 
 @_interactive
-def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
-              element_offset=0):
+def ring_pass(
+        accelerator, particles, nr_turns=1, turn_by_turn=None,
+        element_offset=0, parallel=False):
     """Track particle(s) along a ring.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -281,6 +391,10 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
 
     element_offset -- element offset (default 0) for tracking. tracking will
                       start at the element with index 'element_offset'
+
+    parallel -- whether to parallelize calculation or not. If an integer is
+                passed that many processes will be used. If True, the number
+                of processes will be determined automatically.
 
     Returns: (part_out, lost_flag, lost_turn, lost_element, lost_plane)
 
@@ -344,11 +458,44 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
     # checks whether single or multiple particles, reformats particles
     p_in, *_ = _process_args(accelerator, particles, indices=None)
 
+    if not parallel:
+        p_out, lost_flag, lost_turn, lost_element, lost_plane = _ring_pass(
+            accelerator, p_in, nr_turns, turn_by_turn, element_offset)
+    else:
+        slcs = _get_slices_multiprocessing(parallel, p_in.shape[1])
+        with _multiproc.Pool(processes=len(slcs)) as pool:
+            res = []
+            for slc in slcs:
+                res.append(pool.apply_async(_ring_pass, (
+                    accelerator, p_in[:, slc], nr_turns, turn_by_turn,
+                    element_offset)))
+
+            p_out, lost_turn, lost_element, lost_plane = [], [], [], []
+            lost_flag = False
+            for re_ in res:
+                part_out, lflag, lturn, lelement, lplane = re_.get()
+                lost_flag |= lflag
+                p_out.append(part_out)
+                lost_turn.extend(lturn)
+                lost_element.extend(lelement)
+                lost_plane.extend(lplane)
+        p_out = _np.concatenate(p_out, axis=1)
+
+    # simplifies output structure in case of single particle
+    if len(lost_element) == 1:
+        lost_turn = lost_turn[0]
+        lost_element = lost_element[0]
+        lost_plane = lost_plane[0]
+
+    return p_out, lost_flag, lost_turn, lost_element, lost_plane
+
+
+def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset):
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
-    args.nr_turns = nr_turns
+    args.nr_turns = int(nr_turns)
     args.trajectory = bool(turn_by_turn)
-    args.element_offset = element_offset
+    args.element_offset = int(element_offset)
 
     n_part = p_in.shape[1]
     if bool(turn_by_turn):
@@ -368,17 +515,11 @@ def ring_pass(accelerator, particles, nr_turns=1, turn_by_turn=None,
     lost_element = list(args.lost_element)
     lost_plane = [LOST_PLANES[lp] for lp in args.lost_plane]
 
-    # simplifies output structure in case of single particle
-    if len(lost_element) == 1:
-        lost_turn = lost_turn[0]
-        lost_element = lost_element[0]
-        lost_plane = lost_plane[0]
-
     return p_out, lost_flag, lost_turn, lost_element, lost_plane
 
 
 @_interactive
-def find_orbit4(accelerator, energy_offset=0, indices=None,
+def find_orbit4(accelerator, energy_offset=0.0, indices=None,
                 fixed_point_guess=None):
     """Calculate 4D closed orbit of accelerator and return it.
 
@@ -408,7 +549,7 @@ def find_orbit4(accelerator, energy_offset=0, indices=None,
 
     Raises TrackingException
     """
-    indices = _process_indices(accelerator, indices, closed=False)
+    indices = _process_indices(accelerator, indices)
 
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()
@@ -475,7 +616,57 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
 
 @_interactive
-def find_m66(accelerator, indices='m66', closed_orbit=None):
+def find_orbit(
+        accelerator, energy_offset=None, indices=None, fixed_point_guess=None):
+    """Calculate 6D closed orbit of accelerator and return it.
+
+    Automatically identifies if find_orbit4 or find_orbit6 must be used based
+    on the state of `radiation_on` and `cavity_on` properties of accelerator.
+
+    Accepts an optional list of indices of ring elements where closed orbit
+    coordinates are to be returned. If this argument is not passed, closed
+    orbit positions are returned at the start of the first element. In
+    addition a guess fixed point at the entrance of the ring may be provided.
+
+    Keyword arguments:
+    accelerator : Accelerator object
+    indices : may be a (list,tuple, numpy.ndarray) of element indices
+        where closed orbit data is to be returned or a string:
+            'open'  : return the closed orbit at the entrance of all elements.
+            'closed' : equal 'open' plus the orbit at the end of the last
+                element.
+        If indices is None the closed orbit is returned only at the entrance
+        of the first element.
+    fixed_point_guess : A 6D position where to start the search of the closed
+        orbit at the entrance of the first element. If not provided the
+        algorithm will start with zero orbit.
+
+    Returns:
+        orbit : 6D closed orbit at the entrance of the selected elements as
+            a 2D numpy array with the 6 phase space variables in the first
+            dimension and the indices of the elements in the second dimension.
+
+    Raises TrackingException
+
+    """
+    if not accelerator.cavity_on and not accelerator.radiation_on:
+        energy_offset = energy_offset or 0.0
+        orb = find_orbit4(
+            accelerator, indices=indices, energy_offset=energy_offset,
+            fixed_point_guess=fixed_point_guess)
+        corb = _np.zeros((6, orb.shape[1]))
+        corb[:4, :] = orb
+        corb[4, :] = energy_offset
+        return corb
+    elif not accelerator.cavity_on and accelerator.radiation_on:
+        raise TrackingException('The radiation is on but the cavity is off')
+    else:
+        return find_orbit6(
+            accelerator, indices=indices, fixed_point_guess=fixed_point_guess)
+
+
+@_interactive
+def find_m66(accelerator, indices='m66', fixed_point=None):
     """Calculate 6D transfer matrices of elements in an accelerator.
 
     Keyword arguments:
@@ -488,11 +679,13 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
                         element.
                'm66'  : the cumul_trans_matrices is not returned.
               If indices is None the cumul_trans_matrices is not returned.
-    closed_orbit
+    fixed_point (numpy.ndarray, (6, )): phase space position at the start of
+        the lattice where the matrices will be calculated around.
 
     Return values:
     m66
     cumul_trans_matrices -- values at the start of each lattice element
+
     """
     if isinstance(indices, str) and indices == 'm66':
         indices = None
@@ -506,7 +699,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
     else:
         trackcpp_idx.push_back(len(accelerator))
 
-    if closed_orbit is None:
+    if fixed_point is None:
         # Closed orbit is calculated by trackcpp
         fixed_point_guess = _trackcpp.CppDoublePos()
         _closed_orbit = _trackcpp.CppDoublePosVector()
@@ -515,7 +708,9 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
         if ret > 0:
             raise TrackingException(_trackcpp.string_error_messages[ret])
     else:
-        _closed_orbit = _Numpy2CppDoublePosVector(closed_orbit)
+        _fixed_point = _Numpy2CppDoublePos(fixed_point)
+        _closed_orbit = _trackcpp.CppDoublePosVector()
+        _closed_orbit.push_back(_fixed_point)
 
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 6, 6), dtype=float)
     m66 = _np.zeros((6, 6), dtype=float)
@@ -532,7 +727,7 @@ def find_m66(accelerator, indices='m66', closed_orbit=None):
 
 
 @_interactive
-def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
+def find_m44(accelerator, indices='m44', energy_offset=0.0, fixed_point=None):
     """Calculate 4D transfer matrices of elements in an accelerator.
 
     Keyword arguments:
@@ -545,8 +740,9 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
                         element.
                'm44'  : the cumul_trans_matrices is not returned.
               If indices is None the cumul_trans_matrices is not returned.
-    energy_offset
-    closed_orbit
+    energy_offset (float, ): energy offset
+    fixed_point (numpy.ndarray, (4, )): phase space position at the start of
+        the lattice where the matrices will be calculated around.
 
     Return values:
     m44
@@ -564,7 +760,7 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
     else:
         trackcpp_idx.push_back(len(accelerator))
 
-    if closed_orbit is None:
+    if fixed_point is None:
         # calcs closed orbit if it was not passed.
         fixed_point_guess = _trackcpp.CppDoublePos()
         fixed_point_guess.de = energy_offset
@@ -575,8 +771,9 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
         if ret > 0:
             raise TrackingException(_trackcpp.string_error_messages[ret])
     else:
-        _closed_orbit = _4Numpy2CppDoublePosVector(
-            closed_orbit, de=energy_offset)
+        _fixed_point = _4Numpy2CppDoublePos(fixed_point, de=energy_offset)
+        _closed_orbit = _trackcpp.CppDoublePosVector()
+        _closed_orbit.push_back(_fixed_point)
 
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 4, 4), dtype=float)
     m44 = _np.zeros((4, 4), dtype=float)
@@ -593,6 +790,18 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, closed_orbit=None):
 
 
 # ------ Auxiliary methods -------
+
+def _get_slices_multiprocessing(parallel, nparticles):
+    nrproc = _multiproc.cpu_count() - 3
+    nrproc = nrproc if parallel is True else parallel
+    nrproc = max(nrproc, 1)
+    nrproc = min(nrproc, nparticles)
+
+    np_proc = (nparticles // nrproc)*_np.ones(nrproc, dtype=int)
+    np_proc[:(nparticles % nrproc)] += 1
+    parts_proc = _np.r_[0, _np.cumsum(np_proc)]
+    return [slice(parts_proc[i], parts_proc[i+1]) for i in range(nrproc)]
+
 
 def _CppMatrix2Numpy(_m):
     return _np.array(_m)
@@ -676,8 +885,13 @@ def _CppDoublePosVector24Numpy(poss):
     return poss_out
 
 
-def _process_args(accelerator, pos, indices=None):
+def _process_args(accelerator, pos, indices=None, dim='6d'):
+    pos = _process_array(pos, dim=dim)
+    indices = _process_indices(accelerator, indices, proc_none=False)
+    return pos, indices
 
+
+def _process_array(pos, dim='6d'):
     # checks whether single or multiple particles
     if isinstance(pos, (list, tuple)):
         if isinstance(pos[0], (list, tuple)):
@@ -685,12 +899,14 @@ def _process_args(accelerator, pos, indices=None):
         else:
             pos = _np.array(pos, ndmin=2).T
     elif isinstance(pos, _np.ndarray):
+        if dim not in ('4d', '6d'):
+            raise TrackingException('dimension argument must be 4d or 6d.')
+        posdim = 4 if dim == '4d' else 6
         if len(pos.shape) == 1:
             pos = _np.array(pos, ndmin=2).T
-        elif len(pos.shape) > 2 or pos.shape[0] != 6:
+        elif len(pos.shape) > 2 or pos.shape[0] != posdim:
             raise TrackingException('invalid position argument.')
-    indices = _process_indices(accelerator, indices, proc_none=False)
-    return pos, indices
+    return pos
 
 
 def _process_indices(accelerator, indices, closed=True, proc_none=True):

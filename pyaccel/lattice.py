@@ -106,7 +106,7 @@ def find_indices(lattice, attribute_name, value, comparison=None):
     attribute_name: string identifying the attribute to match
     value: any data type or collection data type
     comparison: function which takes two arguments, the value of the attribute
-        and value, performs a comparison between then and returns a boolean
+        and value, performs a comparison between them and returns a boolean
         (default: __eq__)
 
     Returns list of indices where the comparison returns True.
@@ -131,10 +131,16 @@ def find_indices(lattice, attribute_name, value, comparison=None):
 
 
 @_interactive
-def get_attribute(lattice, attribute_name, indices=None, m=None, n=None):
+def get_attribute(lattice, attribute_name, indices='open', m=None, n=None):
     """Return a list with requested lattice data."""
     if indices is None:
+        indices = 'open'
+
+    if isinstance(indices, str) and indices == 'open':
         indices = range(len(lattice))
+    elif isinstance(indices, str) and indices == 'closed':
+        indices = list(range(len(lattice)))
+        indices.append(0)
 
     indices, values, isflat = _process_args_errors(indices, 0.0)
 
@@ -169,7 +175,7 @@ def set_attribute(lattice, attribute_name, indices, values, m=None, n=None):
                 tdata[m][n] = val
     elif (m is not None) and (n is None):
         for segs, vals in zip(indices, values):
-            for seg, val in zip(segs, val):
+            for seg, val in zip(segs, vals):
                 tdata = getattr(lattice[seg], attribute_name)
                 tdata[m] = val
     else:
@@ -246,7 +252,8 @@ def write_flat_file(accelerator, filename):
 def write_flat_file_to_string(accelerator):
     """."""
     str_ = _trackcpp.String()
-    rd_ = _trackcpp.write_flat_file_wrapper(str_, accelerator.trackcpp_acc, False)
+    rd_ = _trackcpp.write_flat_file_wrapper(
+        str_, accelerator.trackcpp_acc, False)
     if rd_ > 0:
         raise LatticeError(_trackcpp.string_error_messages[rd_])
 
@@ -317,8 +324,20 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
                 new_acc.append(
                     _Element(elem))
             new_acc.append(e_out)
-        elif ele.kicktable is not None:
-            raise Exception('no refinement implemented for IDs yet')
+        elif ele.trackcpp_e.kicktable_idx != -1:
+            kicktable = _trackcpp.cvar.kicktable_list[
+                elem.trackcpp_e.kicktable_idx]
+            for _ in range(nr_segs):
+                el_ = _trackcpp.kickmap_wrapper(
+                    ele.fam_name,
+                    kicktable.filename,
+                    elem.nr_steps,
+                    1.0/nr_segs,
+                    1.0/nr_segs)
+                elem = _Element(element=el_)
+                elem.length = ele.length / nr_segs
+                elem.angle = ele.angle / nr_segs
+                new_acc.append(elem)
         else:
             for _ in range(nr_segs):
                 elem = _Element(ele)
@@ -966,8 +985,6 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
 
 # --- private functions ---
-
-
 def _process_args_errors(indices, values):
     types = (int, _np.int_)
     isflat = False
@@ -991,15 +1008,16 @@ def _process_args_errors(indices, values):
             raise IndexError(
                 'length of values differs from length of indices.')
         newvalues.append(vals)
-    return indices, _np.array(newvalues), isflat
+    return indices, newvalues, isflat
 
 
 def _process_output(values, isflat):
     if isflat:
         values = flatten(values)
+    values = _np.array(values)
     if len(values) == 1:
         values = values[0]
-    return _np.array(values)
+    return values
 
 
 def _is_equal(val1, val2):
