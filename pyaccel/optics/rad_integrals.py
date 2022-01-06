@@ -26,6 +26,7 @@ class EqParamsFromRadIntegrals:
         self._alpha = 0.0
         self._integralsx = _np.zeros(6)
         self._integralsy = _np.zeros(6)
+        self._rho3_integral = None
         self.accelerator = accelerator
 
     def __str__(self):
@@ -342,6 +343,19 @@ class EqParamsFromRadIntegrals:
         espread0 = self.espread0
         return _np.sqrt(emity*self._twi.alphay + (espread0*self._twi.etapy)**2)
 
+
+    @property
+    def spin_pol(self):
+        num = 5*_np.sqrt(3)/8
+        Cs = _mp.constants.light_speed
+        compton = _mp.constants.reduced_planck_constant
+        compton /= _mp.constants.electron_mass
+        compton /= _mp.constants.light_speed
+        Cs *= compton
+        Cs *= _mp.constants.electron_radius
+        Cs *= self._acc.gamma_factor**5
+        return 1/(num * Cs * self._rho3_integral)
+
     def as_dict(self):
         """."""
         pars = {
@@ -441,3 +455,4 @@ class EqParamsFromRadIntegrals:
         integralsy[5] = _np.dot(Hy_avg / rho3abs, leng)
         integralsy[6] = _np.dot((K*etay_avg)**2, leng)
         self._integralsy = integralsy
+        self._rho3_integral = _np.dot(1/rho3abs, leng)/spos[-1]
