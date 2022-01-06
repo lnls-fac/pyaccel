@@ -62,7 +62,7 @@ def calc_transverse_acceptance(
 
 
 @_interactive
-def calc_tousheck_energy_acceptance(
+def calc_touschek_energy_acceptance(
         accelerator, energy_offsets=None, track=False, check_tune=False,
         **kwargs):
     """."""
@@ -90,10 +90,10 @@ def calc_tousheck_energy_acceptance(
     px0 = twi0.px
 
     # positive energies
-    curh_pos, ap_phys_pos, tune_pos, beta_pos = _calc_phys_apert_for_tousheck(
+    curh_pos, ap_phys_pos, tune_pos, beta_pos = _calc_phys_apert_for_touschek(
         accelerator, energy_offsets, rx0, px0, hmax, hmin)
     # negative energies
-    curh_neg, ap_phys_neg, tune_neg, beta_neg = _calc_phys_apert_for_tousheck(
+    curh_neg, ap_phys_neg, tune_neg, beta_neg = _calc_phys_apert_for_touschek(
         accelerator, -energy_offsets, rx0, px0, hmax, hmin)
 
     # Considering synchrotron oscillations, negative energy deviations will
@@ -114,13 +114,13 @@ def calc_tousheck_energy_acceptance(
         ener_neg = kwargs.get('track_delta_neg', -ener_pos)
 
         beta_pos = _np.interp(ener_pos, energy_offsets, beta_pos)
-        ap_dyn_pos = _calc_dyn_apert_for_tousheck(
+        ap_dyn_pos = _calc_dyn_apert_for_touschek(
             accelerator, ener_pos, curh_track, beta_pos, nturns,
             parallel=parallel)
         ap_dyn_pos = _np.interp(energy_offsets, ener_pos, ap_dyn_pos)
 
         beta_neg = _np.interp(-ener_neg, energy_offsets, beta_neg)
-        ap_dyn_neg = _calc_dyn_apert_for_tousheck(
+        ap_dyn_neg = _calc_dyn_apert_for_touschek(
             accelerator, ener_neg, curh_track, beta_neg, nturns,
             parallel=parallel)
         ap_dyn_neg = _np.interp(energy_offsets, -ener_neg, ap_dyn_neg)
@@ -178,7 +178,7 @@ def calc_tousheck_energy_acceptance(
     return accep_neg, accep_pos
 
 
-def _calc_phys_apert_for_tousheck(
+def _calc_phys_apert_for_touschek(
         accelerator, energy_offsets, rx0, px0, hmax, hmin):
     curh = _np.full((energy_offsets.size, rx0.size), _np.inf)
     tune = _np.full((2, energy_offsets.size), _np.nan)
@@ -207,7 +207,7 @@ def _calc_phys_apert_for_tousheck(
     return curh, ap_phys, tune, beta
 
 
-def _calc_dyn_apert_for_tousheck(
+def _calc_dyn_apert_for_touschek(
         accelerator, energies, curh, beta, nturns, parallel=False):
     accelerator.cavity_on = False
     accelerator.radiation_on = False
