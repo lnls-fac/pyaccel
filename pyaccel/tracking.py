@@ -84,7 +84,15 @@ def generate_bunch(
             6*n_part, dist_type='norm', cutoff=cutoff).reshape(6, -1)
         # The Cholesky decomposition finds a matrix env_chol such that:
         # env_chol @ env_chol.T == envelope
-        env_chol = _np.linalg.cholesky(envelope)
+        try:
+            env_chol = _np.linalg.cholesky(envelope)
+        except _np.linalg.LinAlgError:
+            # In case there is no coupling the envelope matrix is only
+            # positive semi-definite and we must disconsider the vertical
+            # plane for the decomposition algorithm to work:
+            env_chol = _np.zeros((6, 6))
+            idx = _np.ix_([0, 1, 4, 5], [0, 1, 4, 5])
+            env_chol[idx] = _np.linalg.cholesky(envelope[idx])
         # This way we can find bunch througth:
         bunch = env_chol @ znor
         # where one can see that:
