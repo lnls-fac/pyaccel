@@ -93,7 +93,7 @@ def generate_bunch(
             env_chol = _np.zeros((6, 6))
             idx = _np.ix_([0, 1, 4, 5], [0, 1, 4, 5])
             env_chol[idx] = _np.linalg.cholesky(envelope[idx])
-        # This way we can find bunch througth:
+        # This way we can find bunch through:
         bunch = env_chol @ znor
         # where one can see that:
         # np.cov(bunch) == <bunch @ bunch.T> ==
