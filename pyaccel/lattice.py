@@ -2,11 +2,13 @@
 
 import math as _math
 from collections.abc import Iterable as _Iterable
+
 import numpy as _np
 
 import mathphys as _mp
 import trackcpp as _trackcpp
 
+from .accelerator import Accelerator as _Accelerator
 from .elements import Element as _Element, marker as _marker
 from .utils import interactive as _interactive
 
@@ -202,7 +204,7 @@ def split_element(ele, fractions=None, nr_segs=None):
 @_interactive
 def length(lattice):
     """Return the length, in meters, of the given lattice."""
-    if isinstance(lattice, _accelerator.Accelerator):
+    if isinstance(lattice, _Accelerator):
         return lattice.length
     elif isinstance(lattice, _trackcpp.Accelerator):
         return lattice.get_length()
@@ -372,7 +374,7 @@ def add_knob(lattice, fam_name, attribute_name, value):
 def read_flat_file(filename):
     """."""
     energy = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
-    acc = _accelerator.Accelerator(energy=energy)  # energy cannot be zero
+    acc = _Accelerator(energy=energy)  # energy cannot be zero
     fname = _trackcpp.String(filename)
     rd_ = _trackcpp.read_flat_file_wrapper(fname, acc.trackcpp_acc, True)
     if rd_ > 0:
@@ -426,7 +428,7 @@ def refine_lattice(
         if fam_names is None and pass_methods is None:
             indices = list(range(len(acc)))
 
-    new_acc = _accelerator.Accelerator(
+    new_acc = _Accelerator(
         energy=acc.energy,
         harmonic_number=acc.harmonic_number,
         cavity_on=acc.cavity_on,
