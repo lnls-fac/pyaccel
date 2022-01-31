@@ -7,9 +7,7 @@ import numpy as _np
 import mathphys as _mp
 import trackcpp as _trackcpp
 
-from pyaccel import accelerator as _accelerator
-
-from .elements import Element as _Element
+from .elements import Element as _Element, marker as _marker
 from .utils import interactive as _interactive
 
 
@@ -59,6 +57,56 @@ def shift(lattice, start: int):
     for i in range(start):
         new_lattice.append(lattice[i])
     return new_lattice
+
+
+@_interactive
+def insert_marker_at_position(accelerator, fam_name: str, position: float):
+    """Return a copy of accelerator with a marker at the desired position.
+
+    This method will split a element of the accelerator if needed to ensure
+    the position of the marker is respected.
+
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator model.
+        fam_name (str): value for the attribut fam_name of the marker.
+        position (float): Position in meters where to insert the marker.
+
+    Returns:
+        pyaccel.accelerator.Accelerator: new accelerator model with the marker
+            at the desired position.
+
+    """
+    element = _marker(fam_name)
+
+    new_acc = accelerator[:]
+    if position <= 0.0:
+        new_acc.insert(0, element)
+        return new_acc
+
+    leng = 0
+    for i in range(len(accelerator)):
+        leng += accelerator[i].length
+        if leng > position:
+            break
+    else:
+        # in case position is larger than lattice length
+        position = leng
+
+    delta = leng - position
+    # in case the position is between 2 elements:
+    if _math.isclose(delta, 0):
+        new_acc.insert(i+1, element)
+    else:
+        # in case the position is in the middle of an element:
+        e_len = accelerator[i].length
+        fractions = _np.array([delta, e_len - delta])
+        fractions /= e_len
+        elems = split_element(accelerator[i], fractions)
+        new_acc[i] = elems[0]
+        new_acc.insert(i+1, element)
+        new_acc.insert(i+2, elems[1])
+
+    return new_acc
 
 
 @_interactive
