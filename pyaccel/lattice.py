@@ -40,17 +40,21 @@ def build(elist):
 
 
 @_interactive
-def shift(lattice, start):
+def shift(lattice, start: int):
     """Shift lattice periodically so that it starts at index 'start'.
 
-    Inputs:
-        lattice -- a list of objects
-        start -- index of first element in new list
+    Args:
+        lattice (any iterable): a list of objects.
+        start (int): index of first element in new lattice.
 
     Returns:
-    new_lattice -- shifted lattice.
-
+        new_lattice: shifted lattice.
     """
+    leng = len(lattice)
+    start = int(start)
+    start = max(min(start, leng), -leng)
+    if start < 0:
+        start += leng
     new_lattice = lattice[start:]
     for i in range(start):
         new_lattice.append(lattice[i])
