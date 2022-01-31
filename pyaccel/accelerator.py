@@ -325,7 +325,21 @@ class Accelerator(object):
                     other.__class__.__name__ + "'"
             raise TypeError(msg)
 
-    def __rmul__(self, other):
+    def __radd__(self, other):
+        """."""
+        if isinstance(other, _elements.Element):
+            acc = self[:]
+            acc.insert(0, other)
+            return acc
+        # if other is of type Accelerator, the __add__ method of other will
+        # be called, so we don't need to treat this case here.
+        else:
+            msg = "unsupported operand type(s) for +: '" + \
+                    self.__class__.__name__ + "' and '" + \
+                    other.__class__.__name__ + "'"
+            raise TypeError(msg)
+
+    def __mul__(self, other):
         """."""
         if isinstance(other, (int, _np.int_)):
             if other < 0:
@@ -349,6 +363,10 @@ class Accelerator(object):
                     other.__class__.__name__ + "' and '" + \
                     self.__class__.__name__ + "'"
             raise TypeError(msg)
+
+    def __rmul__(self, other):
+        """."""
+        return self.__mul__(other)
 
     def __eq__(self, other):
         """."""
