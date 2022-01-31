@@ -162,11 +162,20 @@ class Accelerator(object):
         del self[index]
         return elem
 
-    def append(self, value):
-        """."""
-        if not isinstance(value, _elements.Element):
+    def append(self, element: _elements.Element):
+        """Append element to end of lattice.
+
+        Args:
+            element (pyaccel.elements.Element): Element to added.
+
+        Raises:
+            TypeError: when element is not an pyaccel.elements.Element.
+
+        """
+        if not isinstance(element, _elements.Element):
             raise TypeError('value must be Element')
-        self.trackcpp_acc.lattice.append(value.trackcpp_e)
+        self.trackcpp_acc.lattice.append(element.trackcpp_e)
+
 
     def extend(self, value):
         """."""
