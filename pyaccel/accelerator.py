@@ -176,6 +176,28 @@ class Accelerator(object):
             raise TypeError('value must be Element')
         self.trackcpp_acc.lattice.append(element.trackcpp_e)
 
+    def insert(self, index: int, element: _elements.Element):
+        """Insert element at a given index of the lattice.
+
+        Args:
+            index (int): index where to insert element. May be negative or
+                positive
+            element (pyaccel.elements.Element): Element to be inserted.
+
+        Raises:
+            TypeError: when element is no an pyaccel.elements.Element.
+
+        """
+        if not isinstance(element, _elements.Element):
+            raise TypeError('element must be of type pyaccel.elements.Element')
+
+        leng = len(self)
+        index = int(index)
+        index = max(min(index, leng), -leng)
+        if index < 0:
+            index += leng
+        idx = self.trackcpp_acc.lattice.begin() + index
+        self.trackcpp_acc.lattice.insert(idx, element.trackcpp_e)
 
     def extend(self, value):
         """."""
