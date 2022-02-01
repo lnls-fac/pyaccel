@@ -49,6 +49,7 @@ def shift(lattice, start: int):
 
     Returns:
         new_lattice: shifted lattice.
+
     """
     leng = len(lattice)
     start = int(start)
@@ -67,6 +68,8 @@ def insert_marker_at_position(accelerator, fam_name: str, position: float):
 
     This method will split a element of the accelerator if needed to ensure
     the position of the marker is respected.
+    The vacuum chamber of the marker will be defined by the element closest to
+    in in the model.
 
     Args:
         accelerator (pyaccel.accelerator.Accelerator): accelerator model.
@@ -78,45 +81,53 @@ def insert_marker_at_position(accelerator, fam_name: str, position: float):
             at the desired position.
 
     """
-    element = _marker(fam_name)
-
-    new_acc = accelerator[:]
-    if position <= 0.0:
-        new_acc.insert(0, element)
-        return new_acc
-
-    leng = 0
+    leng = 0.0
+    put_end = False
+    position = max(0.0, position)
     for i in range(len(accelerator)):
+        if _math.isclose(leng, position):
+            idx = i
+            break
         leng += accelerator[i].length
         if leng > position:
+            idx = i
             break
     else:
         # in case position is larger than lattice length
         position = leng
+        idx = i
+        put_end = True
 
     delta = leng - position
-    # in case the position is between 2 elements:
-    if _math.isclose(delta, 0):
-        new_acc.insert(i+1, element)
-    else:
-        # in case the position is in the middle of an element:
-        e_len = accelerator[i].length
-        fractions = _np.array([delta, e_len - delta])
+    new_acc = accelerator[:]
+    # in case the position is in the middle of an element we need to split
+    # that element in two parts:
+    if not _math.isclose(delta, 0.0):
+        e_len = accelerator[idx].length
+        fractions = _np.array([e_len - delta, delta])
         fractions /= e_len
-        elems = split_element(accelerator[i], fractions)
-        new_acc[i] = elems[0]
-        new_acc.insert(i+1, element)
-        new_acc.insert(i+2, elems[1])
+        elems = split_element(accelerator[idx], fractions)
+        new_acc[idx] = elems[0]
+        idx += 1
+        new_acc.insert(idx, elems[1])
 
+    element = _marker(fam_name)
+    element.vmin = new_acc[idx].vmin
+    element.vmax = new_acc[idx].vmax
+    element.hmin = new_acc[idx].hmin
+    element.hmax = new_acc[idx].hmax
+    if put_end:
+        idx += 1
+    new_acc.insert(idx, element)
     return new_acc
 
 
 @_interactive
-def split_element(ele, fractions=None, nr_segs=None):
+def split_element(element, fractions=None, nr_segs=None):
     """Split element into several fractions.
 
     Args:
-        ele (pyaccel.elements.Element): Element to be splitted.
+        element (pyaccel.elements.Element): Element to be splitted.
         fractions ((numpy.ndarray, list, tuple), optional): list of floats
             with length larger than 2 indicating the length (and strength)
             fraction of each subelement. Defaults to None.
@@ -134,6 +145,7 @@ def split_element(ele, fractions=None, nr_segs=None):
         list: List containing the splitted elements.
 
     """
+    ele = element  # Define shorter alias
     if fractions is None:
         if nr_segs is None:
             raise LatticeError(
