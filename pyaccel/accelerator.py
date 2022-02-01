@@ -185,7 +185,7 @@ class Accelerator(object):
             element (pyaccel.elements.Element): Element to be inserted.
 
         Raises:
-            TypeError: when element is no an pyaccel.elements.Element.
+            TypeError: when element is not a pyaccel.elements.Element.
 
         """
         if not isinstance(element, _elements.Element):

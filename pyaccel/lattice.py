@@ -68,8 +68,7 @@ def insert_marker_at_position(accelerator, fam_name: str, position: float):
 
     This method will split a element of the accelerator if needed to ensure
     the position of the marker is respected.
-    The vacuum chamber of the marker will be defined by the element closest to
-    in in the model.
+    The vacuum chamber of the marker will be defined by its closest neighbor.
 
     Args:
         accelerator (pyaccel.accelerator.Accelerator): accelerator model.
@@ -84,11 +83,11 @@ def insert_marker_at_position(accelerator, fam_name: str, position: float):
     leng = 0.0
     put_end = False
     position = max(0.0, position)
-    for i in range(len(accelerator)):
+    for i, ele in enumerate(accelerator):
         if _math.isclose(leng, position):
             idx = i
             break
-        leng += accelerator[i].length
+        leng += ele.length
         if leng > position:
             idx = i
             break
@@ -129,8 +128,10 @@ def split_element(element, fractions=None, nr_segs=None):
     Args:
         element (pyaccel.elements.Element): Element to be splitted.
         fractions ((numpy.ndarray, list, tuple), optional): list of floats
-            with length larger than 2 indicating the length (and strength)
-            fraction of each subelement. Defaults to None.
+            with length larger than 2 indicating the fraction of the length
+            (and strength) of each subelement. The code will normalize the
+            components of this vector such that its sum is normalized to one.
+            Defaults to None.
         nr_segs (int, optional): In case fractions is None, this integer,
             larger than one, indicates in how many equal segments the element
             must be splitted. Defaults to None.
