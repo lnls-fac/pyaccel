@@ -2,14 +2,14 @@
 
 import math as _math
 from collections.abc import Iterable as _Iterable
+
 import numpy as _np
 
 import mathphys as _mp
 import trackcpp as _trackcpp
 
-from pyaccel import accelerator as _accelerator
-
-from .elements import Element as _Element
+from .accelerator import Accelerator as _Accelerator
+from .elements import Element as _Element, marker as _marker
 from .utils import interactive as _interactive
 
 
@@ -40,17 +40,22 @@ def build(elist):
 
 
 @_interactive
-def shift(lattice, start):
+def shift(lattice, start: int):
     """Shift lattice periodically so that it starts at index 'start'.
 
-    Inputs:
-        lattice -- a list of objects
-        start -- index of first element in new list
+    Args:
+        lattice (any iterable): a list of objects.
+        start (int): index of first element in new lattice.
 
     Returns:
-    new_lattice -- shifted lattice.
+        new_lattice: shifted lattice.
 
     """
+    leng = len(lattice)
+    start = int(start)
+    start = max(min(start, leng), -leng)
+    if start < 0:
+        start += leng
     new_lattice = lattice[start:]
     for i in range(start):
         new_lattice.append(lattice[i])
@@ -58,9 +63,161 @@ def shift(lattice, start):
 
 
 @_interactive
+def insert_marker_at_position(accelerator, fam_name: str, position: float):
+    """Return a copy of accelerator with a marker at the desired position.
+
+    This method will split a element of the accelerator if needed to ensure
+    the position of the marker is respected.
+    The vacuum chamber of the marker will be defined by its closest neighbor.
+
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator model.
+        fam_name (str): value for the attribut fam_name of the marker.
+        position (float): Position in meters where to insert the marker.
+
+    Returns:
+        pyaccel.accelerator.Accelerator: new accelerator model with the marker
+            at the desired position.
+
+    """
+    leng = 0.0
+    put_end = False
+    position = max(0.0, position)
+    for i, ele in enumerate(accelerator):
+        if _math.isclose(leng, position):
+            idx = i
+            break
+        leng += ele.length
+        if leng > position:
+            idx = i
+            break
+    else:
+        # in case position is larger than lattice length
+        position = leng
+        idx = i
+        put_end = True
+
+    delta = leng - position
+    new_acc = accelerator[:]
+    # in case the position is in the middle of an element we need to split
+    # that element in two parts:
+    if not _math.isclose(delta, 0.0):
+        e_len = accelerator[idx].length
+        fractions = _np.array([e_len - delta, delta])
+        fractions /= e_len
+        elems = split_element(accelerator[idx], fractions)
+        new_acc[idx] = elems[0]
+        idx += 1
+        new_acc.insert(idx, elems[1])
+
+    element = _marker(fam_name)
+    element.vmin = new_acc[idx].vmin
+    element.vmax = new_acc[idx].vmax
+    element.hmin = new_acc[idx].hmin
+    element.hmax = new_acc[idx].hmax
+    if put_end:
+        idx += 1
+    new_acc.insert(idx, element)
+    return new_acc
+
+
+@_interactive
+def split_element(element, fractions=None, nr_segs=None):
+    """Split element into several fractions.
+
+    Args:
+        element (pyaccel.elements.Element): Element to be splitted.
+        fractions ((numpy.ndarray, list, tuple), optional): list of floats
+            with length larger than 2 indicating the fraction of the length
+            (and strength) of each subelement. The code will normalize the
+            components of this vector such that its sum is normalized to one.
+            Defaults to None.
+        nr_segs (int, optional): In case fractions is None, this integer,
+            larger than one, indicates in how many equal segments the element
+            must be splitted. Defaults to None.
+
+    Raises:
+        LatticeError: raised if both, fractions and nr_segs is None.
+        LatticeError: raised if nr_segs is not something convertible to an
+            integer larger.
+        LatticeError: raised if length of fractions is not larger than 1.
+
+    Returns:
+        list: List containing the splitted elements.
+
+    """
+    ele = element  # Define shorter alias
+    if fractions is None:
+        if nr_segs is None:
+            raise LatticeError(
+                "Arguments fractions and nr_segs must not be mutually None.")
+        try:
+            nr_segs = int(nr_segs)
+        except TypeError:
+            raise LatticeError(
+                "Argument nr_segs must be an integer larger than one.")
+        fractions = _np.ones(nr_segs)/nr_segs
+
+    try:
+        fractions = _np.asarray(fractions, dtype=float)
+        if fractions.size <= 1:
+            raise ValueError('')
+    except ValueError:
+        raise LatticeError(
+            'Argument fractions must be an iterable with floats with more '
+            'than one element.')
+    fractions /= fractions.sum()
+
+    elems = []
+    if any((ele.angle_in, ele.angle_out, ele.fint_in, ele.fint_out)):
+        e_in = _Element(ele)
+        e_in.angle = ele.angle * fractions[0]
+        e_in.length = ele.length * fractions[0]
+        e_in.angle_out = 0.0
+        e_in.fint_out = 0.0
+        elems.append(e_in)
+
+        elem = _Element(ele)
+        elem.angle_in = 0.0
+        elem.angle_out = 0.0
+        elem.fint_in = 0.0
+        elem.fint_out = 0.0
+        for frac in fractions[1:-1]:
+            e_mid = _Element(elem)
+            e_mid.angle = ele.angle * frac
+            e_mid.length = ele.length * frac
+            elems.append(e_mid)
+
+        e_out = _Element(ele)
+        e_out.angle = ele.angle * fractions[-1]
+        e_out.length = ele.length * fractions[-1]
+        e_out.angle_in = 0.0
+        e_out.fint_in = 0.0
+        elems.append(e_out)
+    elif ele.trackcpp_e.kicktable_idx != -1:
+        kicktable = _trackcpp.cvar.kicktable_list[
+            ele.trackcpp_e.kicktable_idx]
+        for frac in fractions:
+            el_ = _trackcpp.kickmap_wrapper(
+                ele.fam_name, kicktable.filename,
+                ele.nr_steps, frac, frac)
+            elem = _Element(element=el_)
+            elem.length = ele.length * frac
+            elem.angle = ele.angle * frac
+            elems.append(elem)
+    else:
+        for frac in fractions:
+            elem = _Element(ele)
+            elem.length = ele.length * frac
+            elem.angle = ele.angle * frac
+            elems.append(elem)
+    return elems
+
+
+@_interactive
 def length(lattice):
     """Return the length, in meters, of the given lattice."""
-    if isinstance(lattice, _accelerator.Accelerator):
+    if isinstance(lattice, _Accelerator):
         return lattice.length
     elif isinstance(lattice, _trackcpp.Accelerator):
         return lattice.get_length()
@@ -230,7 +387,7 @@ def add_knob(lattice, fam_name, attribute_name, value):
 def read_flat_file(filename):
     """."""
     energy = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
-    acc = _accelerator.Accelerator(energy=energy)  # energy cannot be zero
+    acc = _Accelerator(energy=energy)  # energy cannot be zero
     fname = _trackcpp.String(filename)
     rd_ = _trackcpp.read_flat_file_wrapper(fname, acc.trackcpp_acc, True)
     if rd_ > 0:
@@ -261,8 +418,9 @@ def write_flat_file_to_string(accelerator):
 
 
 @_interactive
-def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
-                   pass_methods=None):
+def refine_lattice(
+        accelerator, max_length=None, indices=None, fam_names=None,
+        pass_methods=None):
     """."""
     if max_length is None:
         max_length = 0.05
@@ -283,7 +441,7 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
         if fam_names is None and pass_methods is None:
             indices = list(range(len(acc)))
 
-    new_acc = _accelerator.Accelerator(
+    new_acc = _Accelerator(
         energy=acc.energy,
         harmonic_number=acc.harmonic_number,
         cavity_on=acc.cavity_on,
@@ -297,53 +455,10 @@ def refine_lattice(accelerator, max_length=None, indices=None, fam_names=None,
             new_acc.append(elem)
             continue
 
-        nr_segs = 1+int(ele.length/max_length)
-        if any((ele.angle_in, ele.angle_out, ele.fint_in, ele.fint_out)):
-            # for dipoles (special case due to fringe fields)
-            nr_segs = max(3, nr_segs)
-
-            elem = _Element(ele)
-            elem.angle_in = 0.0
-            elem.angle_out = 0.0
-            elem.fint_in = 0.0
-            elem.fint_out = 0.0
-
-            e_in = _Element(ele)
-            e_in.angle_out = 0.0
-            e_in.fint_out = 0.0
-
-            e_out = _Element(ele)
-            e_out.angle_in = 0.0
-            e_out.fint_in = 0.0
-
-            e_in.length, elem.length, e_out.length = 3*(ele.length/nr_segs,)
-            e_in.angle, elem.angle, e_out.angle = 3*(ele.angle/nr_segs,)
-
-            new_acc.append(e_in)
-            for _ in range(nr_segs-2):
-                new_acc.append(
-                    _Element(elem))
-            new_acc.append(e_out)
-        elif ele.trackcpp_e.kicktable_idx != -1:
-            kicktable = _trackcpp.cvar.kicktable_list[
-                elem.trackcpp_e.kicktable_idx]
-            for _ in range(nr_segs):
-                el_ = _trackcpp.kickmap_wrapper(
-                    ele.fam_name,
-                    kicktable.filename,
-                    elem.nr_steps,
-                    1.0/nr_segs,
-                    1.0/nr_segs)
-                elem = _Element(element=el_)
-                elem.length = ele.length / nr_segs
-                elem.angle = ele.angle / nr_segs
-                new_acc.append(elem)
-        else:
-            for _ in range(nr_segs):
-                elem = _Element(ele)
-                elem.length = ele.length / nr_segs
-                elem.angle = ele.angle / nr_segs
-                new_acc.append(elem)
+        nr_segs = int(ele.length // max_length)
+        nr_segs += 1 if ele.length % max_length else 0
+        for el in split_element(ele, nr_segs=nr_segs):
+            new_acc.append(el)
     return new_acc
 
 

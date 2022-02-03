@@ -162,11 +162,42 @@ class Accelerator(object):
         del self[index]
         return elem
 
-    def append(self, value):
-        """."""
-        if not isinstance(value, _elements.Element):
+    def append(self, element: _elements.Element):
+        """Append element to end of lattice.
+
+        Args:
+            element (pyaccel.elements.Element): Element to added.
+
+        Raises:
+            TypeError: when element is not an pyaccel.elements.Element.
+
+        """
+        if not isinstance(element, _elements.Element):
             raise TypeError('value must be Element')
-        self.trackcpp_acc.lattice.append(value.trackcpp_e)
+        self.trackcpp_acc.lattice.append(element.trackcpp_e)
+
+    def insert(self, index: int, element: _elements.Element):
+        """Insert element at a given index of the lattice.
+
+        Args:
+            index (int): index where to insert element. May be negative or
+                positive
+            element (pyaccel.elements.Element): Element to be inserted.
+
+        Raises:
+            TypeError: when element is not a pyaccel.elements.Element.
+
+        """
+        if not isinstance(element, _elements.Element):
+            raise TypeError('element must be of type pyaccel.elements.Element')
+
+        leng = len(self)
+        index = int(index)
+        index = max(min(index, leng), -leng)
+        if index < 0:
+            index += leng
+        idx = self.trackcpp_acc.lattice.begin() + index
+        self.trackcpp_acc.lattice.insert(idx, element.trackcpp_e)
 
     def extend(self, value):
         """."""
@@ -294,7 +325,21 @@ class Accelerator(object):
                     other.__class__.__name__ + "'"
             raise TypeError(msg)
 
-    def __rmul__(self, other):
+    def __radd__(self, other):
+        """."""
+        if isinstance(other, _elements.Element):
+            acc = self[:]
+            acc.insert(0, other)
+            return acc
+        # if other is of type Accelerator, the __add__ method of other will
+        # be called, so we don't need to treat this case here.
+        else:
+            msg = "unsupported operand type(s) for +: '" + \
+                    self.__class__.__name__ + "' and '" + \
+                    other.__class__.__name__ + "'"
+            raise TypeError(msg)
+
+    def __mul__(self, other):
         """."""
         if isinstance(other, (int, _np.int_)):
             if other < 0:
@@ -318,6 +363,10 @@ class Accelerator(object):
                     other.__class__.__name__ + "' and '" + \
                     self.__class__.__name__ + "'"
             raise TypeError(msg)
+
+    def __rmul__(self, other):
+        """."""
+        return self.__mul__(other)
 
     def __eq__(self, other):
         """."""
