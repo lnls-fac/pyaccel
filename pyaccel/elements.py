@@ -525,6 +525,18 @@ class Element:
         self.trackcpp_e.kicktable = value._kicktable
 
     @property
+    def vchamber(self):
+        """Shape of vacuum chamber.
+        See trackcpp.VChamberShape for values."""
+        return self.trackcpp_e.vchamber
+
+    @vchamber.setter
+    def vchamber(self, value):
+        """Set shape of vacuum chamber.
+        See trackcpp.VChamberShape for values."""
+        self.trackcpp_e.vchamber = value
+
+    @property
     def hmax(self):
         """."""
         return self.trackcpp_e.hmax
@@ -835,6 +847,8 @@ class Element:
             rst += fmtstr.format('voltage', self.voltage, 'V')
         if self.phase_lag != 0:
             rst += fmtstr.format('phase_lag', self.phase_lag, 'rad')
+        if self.vchamber != 0:
+            rst += fmtstr.format('vchamber', self.vchamber, '')
         if self.hmin != -_DBL_MAX:
             rst += fmtstr.format('hmin', self.hmin, 'm')
         if self.hmax != _DBL_MAX:
