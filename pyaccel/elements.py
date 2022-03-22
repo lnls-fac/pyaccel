@@ -535,7 +535,10 @@ class Element:
     def vchamber(self, value):
         """Set shape of vacuum chamber.
         See trackcpp.VChamberShape for values."""
-        self.trackcpp_e.vchamber = value
+        if value >= 0:
+            self.trackcpp_e.vchamber = value
+        else:
+            raise ValueError('Invalid vchamber p-norm number.')
 
     @property
     def hmax(self):
