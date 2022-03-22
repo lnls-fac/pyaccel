@@ -17,6 +17,7 @@ _COORD_VECTOR = _ctypes.c_double*_NUM_COORDS
 _COORD_MATRIX = _ctypes.c_double*_DIMS[0]*_DIMS[1]
 
 PASS_METHODS = _trackcpp.pm_dict
+VChamberShape = _trackcpp.VChamberShape
 
 
 @_interactive
