@@ -4,13 +4,13 @@ authors:
 - family-names: "de Sá"
   given-names: "Fernando Henrique"
  
-- family-names: "Rocha Resende"
+- family-names: "Resende"
   given-names: "Ximenes"
 
-- family-names: "Barbosa Alves"
+- family-names: "Alves"
   given-names: "Murilo"
   
-- family-names: "Pires Vilela"
+- family-names: "Vilela"
   given-names: "Luana Nayara"
 
 title: "Pyaccel. A Python module for beam dynamics tracking and optics calculations in particle accelerators."
