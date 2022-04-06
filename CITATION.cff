@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "de Sá"
+  given-names: "Fernando Henrique"
+ 
+- family-names: "Rocha Resende"
+  given-names: "Ximenes"
+
+- family-names: "Barbosa Alves"
+  given-names: "Murilo"
+  
+- family-names: "Pires Vilela"
+  given-names: "Luana Nayara"
+
+title: "Pyaccel. A Python module for beam dynamics tracking and optics calculations in particle accelerators."
+version: 3.14.0
+doi: 10.5281/zenodo.6412041
+date-released: 2022-04-04
+url: "https://github.com/lnls-fac/pyaccel"
