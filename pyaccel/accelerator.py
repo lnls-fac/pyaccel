@@ -52,6 +52,11 @@ class Accelerator(object):
         return self.trackcpp_acc.get_length()
 
     @property
+    def revolution_time(self):
+        """Revolution Time of the synchronous particle [s]."""
+        return self.length / self.velocity
+
+    @property
     def energy(self):
         """Return beam energy [eV]."""
         return self.trackcpp_acc.energy
