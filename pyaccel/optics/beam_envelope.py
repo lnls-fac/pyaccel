@@ -499,12 +499,12 @@ def calc_beamenvelope(
     """
     indices = _tracking._process_indices(accelerator, indices)
 
-    rad_stt = accelerator.radiation_on
-    cav_stt = accelerator.cavity_on
-    accelerator.radiation_on = True
-    accelerator.cavity_on = True
-
     if fixed_point is None:
+        rad_stt = accelerator.radiation_on
+        cav_stt = accelerator.cavity_on
+        accelerator.radiation_on = True
+        accelerator.cavity_on = True
+
         fixed_point = _tracking.find_orbit(
             accelerator, energy_offset=energy_offset)
 
@@ -552,8 +552,9 @@ def calc_beamenvelope(
     envelopes += envelopes.transpose(0, 2, 1)
     envelopes /= 2
 
-    accelerator.radiation_on = rad_stt
-    accelerator.cavity_on = cav_stt
+    if fixed_point is None:
+        accelerator.radiation_on = rad_stt
+        accelerator.cavity_on = cav_stt
 
     if not full:
         return envelopes[indices]
