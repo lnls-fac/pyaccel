@@ -724,8 +724,8 @@ class Lifetime:
 
         Positional arguments:
         accepx   = horizontal acceptance [m·rad]
-        emit1    = Mode 1 emittance [m·rad]
-        tau1     = Mode 1 damping time [s]
+        emit1    = mode 1 emittance [m·rad]
+        tau1     = mode 1 damping time [s]
 
         output:
 
@@ -760,7 +760,7 @@ class Lifetime:
         Positional arguments:
         accepy   = vertical acceptance [m·rad]
         emit2    = mode 2 emittance [m·rad]
-        tauy     = vertical damping time [s]
+        tau2     = mode 2 damping time [s]
 
         output:
 
@@ -771,13 +771,13 @@ class Lifetime:
         """
         accep_y = self.accepy
         emit2 = self.emit2
-        tauy = self.tauy
+        tau2 = self.tau2
 
         spos = accep_y['spos']
         accep_y = accep_y['acc']
 
         ksi_y = accep_y / (2*emit2)
-        rate = self._calc_quantum_loss_rate(ksi_y, tauy)
+        rate = self._calc_quantum_loss_rate(ksi_y, tau2)
 
         avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])
         return dict(rate=rate, avg_rate=avg_rate, pos=spos)
@@ -795,7 +795,7 @@ class Lifetime:
         Positional arguments:
         accepen   = longitudinal acceptance [m·rad]
         espread0  = relative energy spread
-        taue      = longitudinal damping time [s]
+        tau3      = mode 3 damping time [s]
 
         output:
 
@@ -806,14 +806,14 @@ class Lifetime:
         """
         en_accep = self.accepen
         espread = self.espread0
-        taue = self.taue
+        tau3 = self.tau3
 
         spos = en_accep['spos']
         accp = en_accep['accp']
         accn = en_accep['accn']
 
-        ratep = self._calc_quantum_loss_rate((accp/espread)**2 / 2, taue)
-        raten = self._calc_quantum_loss_rate((accn/espread)**2 / 2, taue)
+        ratep = self._calc_quantum_loss_rate((accp/espread)**2 / 2, tau3)
+        raten = self._calc_quantum_loss_rate((accn/espread)**2 / 2, tau3)
         rate = (ratep + raten) / 2
 
         avg_rate = _np.trapz(rate, spos) / (spos[-1]-spos[0])

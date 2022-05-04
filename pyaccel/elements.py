@@ -17,6 +17,7 @@ _COORD_VECTOR = _ctypes.c_double*_NUM_COORDS
 _COORD_MATRIX = _ctypes.c_double*_DIMS[0]*_DIMS[1]
 
 PASS_METHODS = _trackcpp.pm_dict
+VChamberShape = _trackcpp.VChamberShape
 
 
 @_interactive
@@ -525,6 +526,21 @@ class Element:
         self.trackcpp_e.kicktable = value._kicktable
 
     @property
+    def vchamber(self):
+        """Shape of vacuum chamber.
+        See trackcpp.VChamberShape for values."""
+        return self.trackcpp_e.vchamber
+
+    @vchamber.setter
+    def vchamber(self, value):
+        """Set shape of vacuum chamber.
+        See trackcpp.VChamberShape for values."""
+        if value >= 0:
+            self.trackcpp_e.vchamber = value
+        else:
+            raise ValueError('Invalid vchamber p-norm number.')
+
+    @property
     def hmax(self):
         """."""
         return self.trackcpp_e.hmax
@@ -835,6 +851,8 @@ class Element:
             rst += fmtstr.format('voltage', self.voltage, 'V')
         if self.phase_lag != 0:
             rst += fmtstr.format('phase_lag', self.phase_lag, 'rad')
+        if self.vchamber != 0:
+            rst += fmtstr.format('vchamber', self.vchamber, '')
         if self.hmin != -_DBL_MAX:
             rst += fmtstr.format('hmin', self.hmin, 'm')
         if self.hmax != _DBL_MAX:

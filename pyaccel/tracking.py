@@ -26,7 +26,7 @@ from .optics.twiss import Twiss as _Twiss
 from .optics.edwards_teng import EdwardsTeng as _EdwardsTeng
 
 
-LOST_PLANES = (None, 'x', 'y', 'z')
+LOST_PLANES = (None, 'x', 'y', 'z', 'xy')  # See trackcpp.Plane
 
 
 class TrackingException(Exception):
