@@ -11,7 +11,7 @@ from mathphys import units as _u, beam_optics as _beam
 from mathphys.constants import light_speed as _LSPEED, \
     electron_radius as _ERADIUS
 
-from .. import optics as _optics
+from . import optics as _optics
 
 
 class IBS:
