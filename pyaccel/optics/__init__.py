@@ -2,7 +2,6 @@
 from .acceptances import calc_transverse_acceptance, \
     calc_touschek_energy_acceptance
 from .beam_envelope import EqParamsFromBeamEnvelope, calc_beamenvelope
-from .intrabeam_scattering import IBS
 from .edwards_teng import EdwardsTeng, EdwardsTengArray, calc_edwards_teng, \
     estimate_coupling_parameters
 from .miscellaneous import get_chromaticities, get_mcf, get_frac_tunes, \
