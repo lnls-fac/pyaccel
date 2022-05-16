@@ -499,7 +499,9 @@ def calc_beamenvelope(
     """
     indices = _tracking._process_indices(accelerator, indices)
 
+    no_fpoint_flag = False
     if fixed_point is None:
+        no_fpoint_flag = True
         rad_stt = accelerator.radiation_on
         cav_stt = accelerator.cavity_on
         accelerator.radiation_on = True
@@ -552,7 +554,7 @@ def calc_beamenvelope(
     envelopes += envelopes.transpose(0, 2, 1)
     envelopes /= 2
 
-    if fixed_point is None:
+    if no_fpoint_flag:
         accelerator.radiation_on = rad_stt
         accelerator.cavity_on = cav_stt
 
