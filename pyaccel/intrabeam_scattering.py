@@ -15,23 +15,71 @@ from . import optics as _optics
 
 
 class IBS:
-    """."""
+    """Calculate IBS effects on beam.
 
-    OPTICS = _get_namedtuple('Optics', ['EdwardsTeng', 'Twiss'])
+    The class `pyaccel.intrabeam_scattering.IBS` calculates the time evolution
+    of the three equilibrium emittances of the normal modes of the beam until
+    an stationary regime is reached. The time evolution is based on the
+    solution of a first order differential equation that takes into account
+    the radiation damping times, the IBS growth times and the initial
+    equilibrium emittances given by synchrotron radiation. The time step of
+    the time integration is controlled by the user, in units of the smaller
+    radiation damping time (default is 1/10, larger values may accelerate
+    convergence, but lead to wrong results).
+
+    At each step of the evolution the IBS growth rates are calculated using
+    one of the three IBS models:
+    - CIMP: a high energy approximation of the modified Piwinski model.
+    - Bane: a high energy approximation of the modified Bjorken-Mtingwa
+        formalism.
+    - BM: a modified Bjorken-Mtingwa formalism which includes the dispersion
+        function of eigen-mode 2.
+
+    Among these three, CIMP and Bane models are faster to evaluate. However,
+    Bane model gives somewhat unphysical results at the limit of very low
+    betatron coupling and zero vertical dispersion because the only mechanism
+    for creation of emittance 2 is via the curly H function, which will tend
+    to zero in this limit.
+
+    BM is the more general model but it takes longer to evaluate (~0.2s per
+    time step iteration considering sirius storage ring lattice, with ~5800
+    elements).
+
+    All IBS models calculates the growth rates locally along the whole ring
+    and use its average for the integration of the equations.
+
+    Transverse coupling is naturally included in this implementation, since we
+    evolve the emittances of the eigen-modes {1, 2, 3} and not the {x, y, l}
+    emittances, so there is no need to coupled the time evolution of the
+    emittances 1 and 2, as presented in some literature. All twiss functions
+    will be calculated with the Edwards and Teng parametrization of the one
+    turn matrix, so that the horizontal and vertical dispersion functions will
+    correctly be projected to modes 1 and 2, leading to self-consistent time
+    evolutions.
+
+    The values for the radiation damping times and initial emittances are
+    initially calculated by one of the classes {`EqParamsFromBeamEnvelope`,
+    `EqParamsFromRadIntegrals`} but can be overwritten by the user to account
+    for additional damping or emittance changes created by IDs not modelled in
+    the accelerator model or effects created by other sources, such as bunch
+    lengthening due to impedances. It is important to note, however, that the
+    correct way to include coupling is by changing the accelerator model, not
+    by setting by hand the value of the equilibrium parameters, which will
+    lead to inconsistent final equilibrium parameters.
+
+    """
+
     EQPARAMS = _get_namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])
     IBS_MODEL = _get_namedtuple('IBSModel', ['CIMP', 'Bane', 'BM'])
 
     def __init__(
             self, accelerator, curr_per_bunch=0.1e-3,
-            ibs_model=IBS_MODEL._fields[0], type_eqparams=EQPARAMS._fields[0],
-            type_optics=OPTICS._fields[0]):
+            ibs_model=IBS_MODEL._fields[0], type_eqparams=EQPARAMS._fields[0]):
         """."""
-        self._acc = accelerator
+        self._acc = None
         self._type_eqparams = None
         self._eqparams_func = None
         self._eqpar_data = None
-        self._type_optics = None
-        self._optics_func = None
         self._optics_data = None
         self._ibs_model = None
         self._ibs_data = None
@@ -42,9 +90,9 @@ class IBS:
         self._delta_time = 1/10
 
         self._curr_per_bun = curr_per_bunch  # [A]
-        self.type_optics = type_optics
         self.type_eqparams = type_eqparams
         self.ibs_model = ibs_model
+        self.accelerator = accelerator
 
     def __str__(self):
         """Print all relevant parameters for calculation and results."""
@@ -52,46 +100,44 @@ class IBS:
         stg += '{:30s} {:^20s}\n'.format(
             'type_eqparams:', self.type_eqparams_str)
         stg += '{:30s} {:^20s}\n'.format(
-            'type_optics:', self.type_optics_str)
-        stg += '{:30s} {:^20s}\n'.format(
             'ibs_model:', self.ibs_model_str)
         stg += '{:30s} {:^20.1f}\n'.format(
             'curr_per_bunch [mA]:', self.curr_per_bunch*1e3)
         stg += 'Radiation damping times considered:\n'
-        stg += '    {:30s} {:^20.1f}\n'.format(
-            'tau1 (x-plane) [ms]:', self.tau1*1e3)
-        stg += '    {:30s} {:^20.1f}\n'.format(
-            'tau2 (y-plane) [ms]:', self.tau2*1e3)
-        stg += '    {:30s} {:^20.1f}\n'.format(
-            'tau3 (l-plane) [ms]:', self.tau3*1e3)
+        stg += '{:30s} {:^20.1f}\n'.format(
+            '    tau1 (x-plane) [ms]:', self.tau1*1e3)
+        stg += '{:30s} {:^20.1f}\n'.format(
+            '    tau2 (y-plane) [ms]:', self.tau2*1e3)
+        stg += '{:30s} {:^20.1f}\n'.format(
+            '    tau3 (l-plane) [ms]:', self.tau3*1e3)
         stg += 'Initial (w/o IBS) equilibrium parameters considered:\n'
-        stg += '    {:30s} {:^20.1f}\n'.format(
-            'emit10 (x-plane) [pm.rad]:', self.emit10*1e12)
-        stg += '    {:30s} {:^20.1f}\n'.format(
-            'emit20 (y-plane) [pm.rad]:', self.emit20*1e12)
-        stg += '    {:30s} {:^20.4f}\n'.format(
-            'espread0 [%]:', self.espread0*1e2)
-        stg += '    {:30s} {:^20.3f}\n'.format(
-            'bunlen0 [mm]:', self.bunlen0*1e3)
+        stg += '{:30s} {:^20.1f}\n'.format(
+            '    emit10 (x-plane) [pm.rad]:', self.emit10*1e12)
+        stg += '{:30s} {:^20.1f}\n'.format(
+            '    emit20 (y-plane) [pm.rad]:', self.emit20*1e12)
+        stg += '{:30s} {:^20.4f}\n'.format(
+            '    espread0 [%]:', self.espread0*1e2)
+        stg += '{:30s} {:^20.3f}\n'.format(
+            '    bunlen0 [mm]:', self.bunlen0*1e3)
         stg += 'Parameters related to algorithm convergence:\n'
-        stg += '    {:30s} {:^20.1f}\n'.format(
-            'delta_time (frac. tau123):', self.delta_time)
-        stg += '    {:30s} {:^20d}\n'.format(
-            'max_num_iters:', self.max_num_iters)
-        stg += '    {:30s} {:^20.1g}\n'.format(
-            'relative_tolerance:', self.relative_tolerance)
+        stg += '{:30s} {:^20.1f}\n'.format(
+            '    delta_time (frac. tau123):', self.delta_time)
+        stg += '{:30s} {:^20d}\n'.format(
+            '    max_num_iters:', self.max_num_iters)
+        stg += '{:30s} {:^20.1g}\n'.format(
+            '    relative_tolerance:', self.relative_tolerance)
         if self.ibs_data is None:
             stg += 'Final Equilibrium parameters not calculated yet.'
             return stg
         stg += 'Final (with IBS) equilibrium parameters:\n'
-        stg += '    {:30s} {:^20.1f}\n'.format(
-            'emit1 (x-plane) [pm.rad]:', self.emit1*1e12)
-        stg += '    {:30s} {:^20.1f}\n'.format(
-            'emit2 (y-plane) [pm.rad]:', self.emit2*1e12)
-        stg += '    {:30s} {:^20.4f}\n'.format(
-            'espread [%]:', self.espread*1e2)
-        stg += '    {:30s} {:^20.3f}\n'.format(
-            'bunlen [mm]:', self.bunlen*1e3)
+        stg += '{:30s} {:^20.1f}\n'.format(
+            '    emit1 (x-plane) [pm.rad]:', self.emit1*1e12)
+        stg += '{:30s} {:^20.1f}\n'.format(
+            '    emit2 (y-plane) [pm.rad]:', self.emit2*1e12)
+        stg += '{:30s} {:^20.4f}\n'.format(
+            '    espread [%]:', self.espread*1e2)
+        stg += '{:30s} {:^20.3f}\n'.format(
+            '    bunlen [mm]:', self.bunlen*1e3)
         return stg
 
     @property
@@ -165,53 +211,14 @@ class IBS:
             self._eqparams_func = _optics.EqParamsFromBeamEnvelope
         elif self._type_eqparams == self.EQPARAMS.RadIntegrals:
             self._eqparams_func = _optics.EqParamsFromRadIntegrals
-        self._eqpar_data = self._eqparams_func(self._acc)
+        if self._acc is not None:
+            self._eqpar_data = self._eqparams_func(self._acc)
         self._ibs_data = None
 
     @property
     def eqparams_data(self):
         """Equilibrium parameters."""
         return self._eqpar_data
-
-    @property
-    def type_optics_str(self):
-        """Which class to use to parametrize the 1-turn matrix.
-
-        The options are `EdwardsTeng' and `Twiss`, which will imply
-        the use of `pyaccel.optics.calc_edwards_teng` and
-        `pyaccel.optics.calc_twiss` respectively.
-
-        """
-        return IBS.OPTICS._fields[self._type_optics]
-
-    @property
-    def type_optics(self):
-        """Which class to use to parametrize the 1-turn matrix.
-
-        The options are `EdwardsTeng' and `Twiss`, which will imply
-        the use of `pyaccel.optics.calc_edwards_teng` and
-        `pyaccel.optics.calc_twiss` respectively.
-
-        """
-        return self._type_optics
-
-    @type_optics.setter
-    def type_optics(self, value):
-        if value is None:
-            return
-        if isinstance(value, str):
-            self._type_optics = int(value in IBS.OPTICS._fields[1])
-        elif int(value) in IBS.OPTICS:
-            self._type_optics = int(value)
-        else:
-            return
-
-        if self._type_optics == self.OPTICS.EdwardsTeng:
-            self._optics_func = _optics.calc_edwards_teng
-        elif self._type_optics == self.OPTICS.Twiss:
-            self._optics_func = _optics.calc_twiss
-        self._optics_data, *_ = self._optics_func(self._acc, indices='closed')
-        self._ibs_data = None
 
     @property
     def optics_data(self):
@@ -245,8 +252,10 @@ class IBS:
 
     @accelerator.setter
     def accelerator(self, val):
+        self._acc = val
         self._eqpar_data = self._eqparams_func(val)
-        self._optics_data, *_ = self._optics_func(val, indices='closed')
+        self._optics_data, *_ = _optics.calc_edwards_teng(
+            val, indices='closed')
         self._ibs_data = None
 
     @property
@@ -391,42 +400,7 @@ class IBS:
             return self._ibs_data
 
     def calc_ibs(self, print_progress=False):
-        """Calculate IBS effect on equilibrium parameters.
-
-        The code uses two approximated models: CIMP and high energy developed
-        by Bane. Equilibrium emittances are calculated by the temporal
-        evolution over a time which is a multiple of damping time, based on
-        equations described in KIM - A Code for Calculating the Time Evolution
-        of Beam Parameters in High Intensity Circular Accelerators - PAC 97.
-        The bunch length was calculated by the expression given in SANDS - The
-        Physics of Electron Storage Rings, an Introduction.
-
-        This function was based very much on lnls_calcula_ibs developed by
-        Afonso H. C. Mukai which calculates the effect of IBS with CIMP model
-        only.
-
-        INPUT
-            data_atsum      struct with ring parameters (atsummary):
-                            revTime              revolution time [s]
-                            gamma
-                            twiss
-                            compactionFactor
-                            damping
-                            naturalEnergySpread
-                            naturalEmittance     zero current emittance [m rad]
-                            radiationDamping     damping times [s]
-                            synctune
-            I           Beam Current [mA]
-            K           Coupling      [%]
-            R(=1)       growth bunch length factor (optional)
-
-        OUTPUT
-            finalEmit   equilibrium values for Bane and CIMP models[e10 e20
-            sigmaE sigmaz]
-                    [m rad] [m rad] [] [m]
-            relEmit     variation of initial and final values (in %)
-
-        """
+        """Calculate IBS effect on equilibrium parameters."""
         gamma = self._acc.gamma_factor
         beta_factor = self._acc.beta_factor
         alpha = self._eqpar_data.etac
@@ -443,37 +417,27 @@ class IBS:
         rate_sr_3 = 2 / self.tau3
 
         num_part = self.particles_per_bunch
-        optics = self._optics_data
         # Conversion factor from energy spread to bunch length, assuming a
-        # linear voltage. It will be used along the code to convert from
-        # longitudinal emittance to energy spread.
+        # linear voltage (quadractic potential well). It will be used along
+        # the code to convert from longitudinal emittance to energy spread.
         # This term is equal to w_s/eta_c/c
         conv_sige2sigs = bunlen0 / espread0
 
-        twi_names = [
-            'betax', 'alphax', 'etax', 'etapx',
-            'betay', 'alphay', 'etay', 'etapy']
-        edteng_names = [
-            'beta1', 'alpha1', 'eta1', 'etap1',
-            'beta2', 'alpha2', 'eta2', 'etap2']
-        names = twi_names if \
-            self.type_optics == self.OPTICS.Twiss else edteng_names
-
         # Copy values making them unique
-        spos, idx = _np.unique(optics.spos, return_index=True)
+        spos, idx = _np.unique(self._optics_data.spos, return_index=True)
         circum = spos[-1] - spos[0]
-        beta1 = getattr(optics, names[0])[idx]
-        alpha1 = getattr(optics, names[1])[idx]
-        eta1 = getattr(optics, names[2])[idx]
-        eta1l = getattr(optics, names[3])[idx]
-        beta2 = getattr(optics, names[4])[idx]
-        alpha2 = getattr(optics, names[5])[idx]
-        eta2 = getattr(optics, names[6])[idx]
-        eta2l = getattr(optics, names[7])[idx]
-        curh_1 = self._calc_curlyh(beta1, alpha1, eta1, eta1l)
-        curh_2 = self._calc_curlyh(beta2, alpha2, eta2, eta2l)
-        phi1 = eta1l + alpha1*eta1/beta1
-        phi2 = eta2l + alpha2*eta2/beta2
+        beta1 = self._optics_data.beta1[idx]
+        alpha1 = self._optics_data.alpha1[idx]
+        eta1 = self._optics_data.eta1[idx]
+        etap1 = self._optics_data.etap1[idx]
+        beta2 = self._optics_data.beta2[idx]
+        alpha2 = self._optics_data.alpha2[idx]
+        eta2 = self._optics_data.eta2[idx]
+        etap2 = self._optics_data.etap2[idx]
+        curh_1 = self._calc_curlyh(beta1, alpha1, eta1, etap1)
+        curh_2 = self._calc_curlyh(beta2, alpha2, eta2, etap2)
+        phi1 = etap1 + alpha1*eta1/beta1
+        phi2 = etap2 + alpha2*eta2/beta2
 
         cst = _ERADIUS**2*_LSPEED * num_part
         cst_bane = cst / 16 / gamma**3
