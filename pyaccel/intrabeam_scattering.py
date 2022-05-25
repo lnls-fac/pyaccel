@@ -42,10 +42,10 @@ class IBS:
     to zero in this limit.
 
     BM is the more general model but it takes longer to evaluate (~0.2s per
-    time step iteration considering sirius storage ring lattice, with ~5800
+    time step iteration considering Sirius storage ring lattice, with ~5800
     elements).
 
-    All IBS models calculates the growth rates locally along the whole ring
+    All IBS models calculate the growth rates locally along the whole ring
     and use its average for the integration of the equations.
 
     Transverse coupling is naturally included in this implementation, since we
@@ -66,6 +66,15 @@ class IBS:
     correct way to include coupling is by changing the accelerator model, not
     by setting by hand the value of the equilibrium parameters, which will
     lead to inconsistent final equilibrium parameters.
+
+    References:
+        [1] Kubo, K., Mtingwa, S. K., & Wolski, A. (2005). Intrabeam
+            scattering formulas for high energy beams. Physical Review
+            Special Topics - Accelerators and Beams, 8(8), 1-8.
+            https://doi.org/10.1103/PhysRevSTAB.8.081001
+        [2] Bane, K. L. F. (2002). A Simplified Model of Intrabeam
+            Scattering. Proceedings of EPAC 2002, 309-316.
+            https://doi.org/10.1007/978-94-017-1154-8_33
 
     """
 
@@ -222,17 +231,17 @@ class IBS:
 
     @property
     def optics_data(self):
-        """Optics data. May be Twiss or EdwardsTeng object."""
+        """Optics data: EdwardsTeng object."""
         return self._optics_data
 
     @property
     def ibs_model_str(self):
-        """Model used to calculate IBS effects. May be CIMP or Bane."""
+        """Model used to calculate IBS effects. May be CIMP, Bane or BM."""
         return IBS.IBS_MODEL._fields[self._ibs_model]
 
     @property
     def ibs_model(self):
-        """Model used to calculate IBS effects. May be CIMP or Bane."""
+        """Model used to calculate IBS effects. May be CIMP, Bane or BM."""
         return self._ibs_model
 
     @ibs_model.setter
@@ -395,12 +404,47 @@ class IBS:
 
     @property
     def ibs_data(self):
-        """Return dictionary with IBS calculation data."""
+        """Return dictionary with IBS calculation data.
+
+        This dictionary contains the following keys:
+            'spos' (numpy.ndarray, Mx1): positions in meters along the ring
+                where IBS growth times were calculated.
+            'tim' (numpy.ndarray, Nx1): time in seconds where the time
+                evolution of the emittances was calculated;
+            'emit1' (numpy.ndarray, Nx1): evolution of emittance 1 [m.rad].
+            'emit2' (numpy.ndarray, Nx1): evolution of emittance 2 [m.rad].
+            'espread' (numpy.ndarray, Nx1): evolution of energy spread.
+            'bunlen' (numpy.ndarray, Nx1): evolution of bunch length [m].
+            'residues' (numpy.ndarray, Nx3): relative change of each emittance
+                as function of time.
+            'growth_rates': (numpy.ndarray, Nx3xM): all 3 growth rates as
+                function of 'spos' and 'tim' [1/s].
+
+        """
         if self._ibs_data is not None:
             return self._ibs_data
 
     def calc_ibs(self, print_progress=False):
-        """Calculate IBS effect on equilibrium parameters."""
+        """Calculate IBS effect on equilibrium parameters.
+
+        References:
+            [1] Kubo, K., Mtingwa, S. K., & Wolski, A. (2005). Intrabeam
+                scattering formulas for high energy beams. Physical Review
+                Special Topics - Accelerators and Beams, 8(8), 1-8.
+                https://doi.org/10.1103/PhysRevSTAB.8.081001
+            [2] Bane, K. L. F. (2002). A Simplified Model of Intrabeam
+                Scattering. Proceedings of EPAC 2002, 309-316.
+                https://doi.org/10.1007/978-94-017-1154-8_33
+
+        Args:
+            print_progress (bool, optional): Whether or not to print progress
+                of the calculation. Defaults to False.
+
+        Returns:
+            dict: All relevant results of the calculation. This is the same
+                object as the one returned by property `ibs_data`.
+
+        """
         gamma = self._acc.gamma_factor
         beta_factor = self._acc.beta_factor
         alpha = self._eqpar_data.etac
@@ -469,6 +513,9 @@ class IBS:
 
             # According to discussion after eq. 22 in ref. [1] the parameter d
             # is taken to be the vertical beamsize.
+            # NOTE: A more detailed analysis must be carried out regarding the
+            # correct calculation of the Coulomb logarithm. Elegant calculates
+            # it differently.
             d = _np.sqrt(e2_*beta2 + (se_*eta2)**2)  # == sigy
             q_sqr = sig2_H * beta_factor**2 * 2*d/_ERADIUS
             log = _np.log(q_sqr / a_**2)
@@ -476,6 +523,7 @@ class IBS:
             if self._ibs_model == self.IBS_MODEL.Bane:
                 amp = cst_bane/(e1_*e2_)**(3/4)/e3_/se_**2
 
+                # G function of eq. 15 of ref. [1]
                 g_ = self.calc_g_func_bane(alpha, method='exact')
 
                 rate_3 = amp * log * sig_H * g_ * (beta1*beta2)**(-1/4)
@@ -484,7 +532,7 @@ class IBS:
             elif self._ibs_model == self.IBS_MODEL.CIMP:
                 amp = cst_cimp / e1_ / e2_ / e3_
 
-                # G function of eq. XX of ref. [1]
+                # G function of eq. 34 of ref. [1]
                 g_ab = self.calc_g_func_cimp(alpha)
                 g_ba = self.calc_g_func_cimp(1/alpha)
 
@@ -495,6 +543,10 @@ class IBS:
                 rate_2 = factor1*(curh_2/e2_*factor2 - b_*g_ab)
                 rate_3 = factor1*factor2 / se_**2
             else:
+                # BM Method.
+                # This are the matrices of eqs. 6-9 of ref. [1] with Bane's
+                # change of integration variable of integral of eq. 4 of
+                # ref. [1]. (lamb -> lamb * gamma^2 / sigH^2, see ref. [2])
                 l1_11 = beta1/e1_ * sig2_H/gamma/gamma
                 l1_12 = -phi1*beta1/e1_ * sig2_H / gamma
                 l1_22 = curh_1/e1_ * sig2_H
@@ -519,10 +571,13 @@ class IBS:
             rate_2_avg = _np.trapz(rate_2, x=spos) / circum
             rate_3_avg = _np.trapz(rate_3, x=spos) / circum
 
+            # Calculate the excess of emittance induced by IBS:
             exc_e1 = e1_ - e10
             exc_e2 = e2_ - e20
             exc_e3 = e3_ - e30
 
+            # Since we are working with the normal modes we don't need to
+            # worry about betatron coupling here:
             dlt_e1 = (2*e1_*rate_1_avg - exc_e1*rate_sr_1) * dt_
             dlt_e2 = (2*e2_*rate_2_avg - exc_e2*rate_sr_2) * dt_
             dlt_e3 = (2*e3_*rate_3_avg - exc_e3*rate_sr_3) * dt_
@@ -560,6 +615,7 @@ class IBS:
 
     @classmethod
     def _calc_bm_integral(cls, args):
+        # NOTE: I got faster integration with only one worker.
         vec, _ = _integrate.quad_vec(
             _partial(cls._get_bm_integrand, args=args),
             0, _np.inf, workers=1, norm='max')
@@ -571,12 +627,14 @@ class IBS:
 
     @staticmethod
     def _get_bm_integrand(lamb, args=None):
-        # import sympy as sp
-        # a, b, c, d, e = sp.symbols('a b c d e')
-        # m = sp.Matrix([[a, d, 0], [d, b, e], [0, e, c]])
-        # detm = sp.det(m)
-        # print(detm)
-        # sp.simplify(m.inv() * detm)
+        # NOTE: the code commented bellow is useful to get the explicit
+        # expressions for the matrix inversion, which are implemented here:
+        #     import sympy as sp
+        #     a, b, c, d, e = sp.symbols('a b c d e')
+        #     m = sp.Matrix([[a, d, 0], [d, b, e], [0, e, c]])
+        #     detm = sp.det(m)
+        #     print(detm)
+        #     sp.simplify(m.inv() * detm)
         l1_11, l1_12, l1_22, l2_22, l2_23, l2_33, l3_22 = args.T
         lt_11 = l1_11 + lamb
         lt_22 = 1 + lamb
@@ -599,7 +657,7 @@ class IBS:
 
         prefac = (lamb / det_t)**0.5 / det_t
 
-        # Remember that: Tr(AB) = Tr(BA) = a_ij*b_ji
+        # Remember that: Tr(AB) = Tr(BA) = a_ij*b_ji (Frobenius Norm)
         integ3 = prefac * (l3_22*tr_im - 3*l3_22*im22)
         integ2 = prefac * (
             (l2_22 + l2_33)*tr_im -
@@ -611,13 +669,18 @@ class IBS:
 
     @classmethod
     def calc_g_func_cimp(cls, omega):
-        """_summary_
+        """Calculate CIMP g function, eq 34 of ref. [1].
+
+        References:
+            [1] Kubo, K., Mtingwa, S. K., & Wolski, A. (2005). Intrabeam
+                scattering formulas for high energy beams. Physical Review
+                Special Topics - Accelerators and Beams, 8(8), 1-8.
 
         Args:
-            omega (_type_): _description_
+            omega (numpy.ndarray): Argument of the g function.
 
         Returns:
-            _type_: _description_
+            numpy.ndarray: value of the g function for the given arguments.
 
         """
         arg = (omega*omega + 1) / (2*omega)
@@ -638,17 +701,38 @@ class IBS:
 
     @staticmethod
     def calc_g_func_bane(alphas, method='exact'):
-        """_summary_
+        """Calculate Bane's G function (eq. 12 of ref. [2]).
+
+        The integral is calculated using three different approaches.
+          - 'exact': Via complete elliptic integral. Wolfram Alpha, identifies
+            that integral as the first complete elliptic integral (ref. [3]).
+          - 'numeric': By numeric integration.
+          - 'fitting': using the approximate formula of eq. 13 of ref. [2].
+
+        Both methods 'exact' and 'numeric' should give equally accurate
+        results, being the method 'exact' as fast as the 'fitting' method.
+        For these reasons it is recommended to use 'exact' method.
+
+        References:
+            [1] Kubo, K., Mtingwa, S. K., & Wolski, A. (2005). Intrabeam
+                scattering formulas for high energy beams. Physical Review
+                Special Topics - Accelerators and Beams, 8(8), 1-8.
+                https://doi.org/10.1103/PhysRevSTAB.8.081001
+            [2] Bane, K. L. F. (2002). A Simplified Model of Intrabeam
+                Scattering. Proceedings of EPAC 2002, 309-316.
+                https://doi.org/10.1007/978-94-017-1154-8_33
+            [3] https://www.wolframalpha.com/input?i=integral+1%2F%28%281%2Bx%5E2%29%5E%281%2F2%29%28a%5E2%2Bx%5E2%29%5E%281%2F2%29%29+from+0+to+infinity
 
         Args:
-            alphas (_type_): _description_
-            method (str, optional): _description_. Defaults to 'exact'.
+            alphas (numpy.ndarray): Argument of the g function.
+            method (str, optional): Method used in calculation.
+                Defaults to 'exact'.
 
         Raises:
             ValueError: when method not in {`exact`, `fitting`, `numeric`}.
 
         Returns:
-            _type_: _description_
+            numpy.ndarray: the value of the g function for the given arguments.
 
         """
         ret = _np.zeros(alphas.size)
