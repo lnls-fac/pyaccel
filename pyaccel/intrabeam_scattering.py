@@ -50,7 +50,7 @@ class IBS:
 
     Transverse coupling is naturally included in this implementation, since we
     evolve the emittances of the eigen-modes {1, 2, 3} and not the {x, y, l}
-    emittances, so there is no need to coupled the time evolution of the
+    emittances, so there is no need to couple the time evolution of the
     emittances 1 and 2, as presented in some literature. All twiss functions
     will be calculated with the Edwards and Teng parametrization of the one
     turn matrix, so that the horizontal and vertical dispersion functions will
@@ -488,7 +488,7 @@ class IBS:
         cst_cimp = cst / 64 / _np.pi**2 / gamma**4 / beta_factor**3
 
         # Total time and time step are set based on assumptions that IBS
-        # tipical times are greater (about 10 times) than damping times
+        # typical times are greater (about 10 times) than damping times
         dt_ = _np.min([1/rate_sr_1, 1/rate_sr_2, 1/rate_sr_3])
         dt_ *= self.delta_time
 
@@ -544,7 +544,7 @@ class IBS:
                 rate_3 = factor1*factor2 / se_**2
             else:
                 # BM Method.
-                # This are the matrices of eqs. 6-9 of ref. [1] with Bane's
+                # These are the matrices of eqs. 6-9 of ref. [1] with Bane's
                 # change of integration variable of integral of eq. 4 of
                 # ref. [1]. (lamb -> lamb * gamma^2 / sigH^2, see ref. [2])
                 l1_11 = beta1/e1_ * sig2_H/gamma/gamma
