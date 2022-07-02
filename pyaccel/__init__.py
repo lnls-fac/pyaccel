@@ -5,6 +5,7 @@ from . import accelerator
 from . import lattice
 from . import tracking
 from . import graphics
+from . import intrabeam_scattering
 from . import lifetime
 from . import naff
 
