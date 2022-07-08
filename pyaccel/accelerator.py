@@ -147,6 +147,16 @@ class Accelerator(object):
         self.trackcpp_acc.radiation_on = value
 
     @property
+    def quantdiff_on(self):
+        """Return quantum diffusion on state."""
+        return self.trackcpp_acc.quantdiff_on
+
+    @quantdiff_on.setter
+    def quantdiff_on(self, value):
+        """Set quantum diffusion on state."""
+        self.trackcpp_acc.quantdiff_on = value
+
+    @property
     def vchamber_on(self):
         """Return vacuum chamber on state."""
         return self.trackcpp_acc.vchamber_on
