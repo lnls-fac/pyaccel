@@ -4,6 +4,9 @@ import warnings
 import numpy as _numpy
 
 
+import trackcpp as _trackcpp
+
+
 INTERACTIVE_LIST = []
 
 
@@ -61,6 +64,17 @@ class Polynom(_numpy.ndarray):
         if (self != other).any():
             return False
         return True
+
+
+@interactive
+def set_random_seed(rnd_seed : int):
+    """Set random number seed used in trackcpp."""
+    _trackcpp.set_random_seed(rnd_seed)
+
+@interactive
+def get_random_number():
+    """Return a random number from trackcpp normal distribution."""
+    return _trackcpp.gen_random_number()
 
 
 # class Matrix(_numpy.ndarray):
