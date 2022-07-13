@@ -30,6 +30,8 @@ class Accelerator(object):
             self.trackcpp_acc.harmonic_number = kwargs['harmonic_number']
         if 'radiation_on' in kwargs:
             self.trackcpp_acc.radiation_on = kwargs['radiation_on']
+        if 'quantdiff_on' in kwargs:
+            self.trackcpp_acc.quantdiff_on = kwargs['quantdiff_on']
         if 'cavity_on' in kwargs:
             self.trackcpp_acc.cavity_on = kwargs['cavity_on']
         if 'vchamber_on' in kwargs:
@@ -276,6 +278,7 @@ class Accelerator(object):
             harmonic_number=self.trackcpp_acc.harmonic_number,
             cavity_on=self.trackcpp_acc.cavity_on,
             radiation_on=self.trackcpp_acc.radiation_on,
+            quantdiff_on=self.trackcpp_acc.quantdiff_on,
             vchamber_on=self.trackcpp_acc.vchamber_on)
         return acc
 
@@ -313,6 +316,7 @@ class Accelerator(object):
         rst += '\nharmonic_number: ' + str(self.trackcpp_acc.harmonic_number)
         rst += '\ncavity_on      : ' + str(self.trackcpp_acc.cavity_on)
         rst += '\nradiation_on   : ' + str(self.trackcpp_acc.radiation_on)
+        rst += '\nquantdiff_on   : ' + str(self.trackcpp_acc.quantdiff_on)
         rst += '\nvchamber_on    : ' + str(self.trackcpp_acc.vchamber_on)
         rst += '\nlattice size   : ' + str(len(self.trackcpp_acc.lattice))
         rst += '\nlattice length : ' + str(self.length) + ' m'
@@ -360,6 +364,7 @@ class Accelerator(object):
                     harmonic_number=self.harmonic_number,
                     cavity_on=self.cavity_on,
                     radiation_on=self.radiation_on,
+                    quantdiff_on=self.quantdiff_on,
                     vchamber_on=self.vchamber_on)
             else:
                 acc = self[:]
@@ -397,12 +402,14 @@ class Accelerator(object):
                 trackcpp_acc.energy = acc.energy
                 trackcpp_acc.cavity_on = acc.cavity_on
                 trackcpp_acc.radiation_on = acc.radiation_on
+                trackcpp_acc.quantdiff_on = acc.quantdiff_on
                 trackcpp_acc.vchamber_on = acc.vchamber_on
                 trackcpp_acc.harmonic_number = acc.harmonic_number
         else:
             trackcpp_acc = _trackcpp.Accelerator()
             trackcpp_acc.cavity_on = False
             trackcpp_acc.radiation_on = False
+            trackcpp_acc.quantdiff_on = False
             trackcpp_acc.vchamber_on = False
             trackcpp_acc.harmonic_number = 0
         return trackcpp_acc
