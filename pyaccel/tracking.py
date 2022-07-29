@@ -165,13 +165,16 @@ def generate_bunch(
 @_interactive
 def set_4d_tracking(accelerator):
     accelerator.cavity_on = False
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 0
 
 
 @_interactive
-def set_6d_tracking(accelerator):
+def set_6d_tracking(accelerator, rad_full=False):
     accelerator.cavity_on = True
-    accelerator.radiation_on = True
+    if rad_full:
+        accelerator.radiation_on = 2
+    else:
+        accelerator.radiation_on = 1
 
 
 @_interactive
@@ -189,11 +192,12 @@ def element_pass(element, particles, energy, **kwargs):
                        ex.1: particles = [rx,px,ry,py,de,dl]
                        ex.3: particles = numpy.zeros((6, Np))
     energy          -- energy of the beam [eV]
-    harmonic_number -- harmonic number of the lattice (optional, defaul=1)
-    cavity_on       -- cavity on state (True/False) (optional, defaul=False)
-    radiation_on    -- radiation on state (True/False) (optional, defaul=False)
+    harmonic_number -- harmonic number of the lattice (optional, default=1)
+    cavity_on       -- cavity on state (True/False) (optional, default=False)
+    radiation_on    -- radiation on state (0 or "off", 1 or "damping", 2 or
+        "full") (optional, default="off")
     vchamber_on     -- vacuum chamber on state (True/False) (optional,
-        defaul=False)
+        default=False)
 
     Returns:
     part_out -- a numpy array with tracked 6D position(s) of the particle(s).
@@ -607,6 +611,11 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     """
     indices = _process_indices(accelerator, indices)
 
+    # The orbit can't be found when quantum excitation is on.
+    if accelerator.radiation_on == 2:
+        rad_stt = accelerator.radiation_on
+        accelerator.radiation_on = 1
+
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()
     else:
@@ -616,6 +625,9 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     ret = _trackcpp.track_findorbit6(
         accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
+
+    accelerator.radiation_on = rad_stt
+
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 

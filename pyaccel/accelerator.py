@@ -9,6 +9,9 @@ from . import elements as _elements
 from .utils import interactive as _interactive
 
 
+RadiationStates = _trackcpp.rad_dict
+
+
 class AcceleratorException(Exception):
     """."""
 
@@ -140,25 +143,35 @@ class Accelerator(object):
         """Return radiation on state."""
         return self.trackcpp_acc.radiation_on
 
+    @property
+    def radiation_on_str(self):
+        """Return radiation_on state in string format."""
+        return RadiationStates[self.trackcpp_acc.radiation_on]
+
     @radiation_on.setter
     def radiation_on(self, value):
         """Set radiation on state.
 
-        Parameters
-        ----------
-        value : Int or bool. Possible values are
-            - 0 or False = no radiative effects;
-            - 1 or True  = only radiation damping;
-            - 2          = radiation damping + quantum excitation
-            Other int values will be treated as False.
-        Raises
-        ------
-        ValueError
-            radiation_on must be integer or boolean
+        Args:
+            value (int, bool or string): Radiation state to be set,
+            the options are:
+            - 0, False, "off"    = No radiative effects.
+            - 1, True, "damping" = Turns on radiation damping, without
+                quantum excitation.
+            - 2, "full" = Turns on radiation damping with quantum excitation
+
+        Raises:
+            ValueError
         """
-        if not isinstance(value, (int, bool)):
-            raise ValueError('radiation_on must be integer or boolean')
-        self.trackcpp_acc.radiation_on = int(value)
+        if isinstance(value, (int, bool, float)) and \
+                0 <= value <= len(RadiationStates):
+            self.trackcpp_acc.radiation_on = int(value)
+        elif isinstance(value, str) and value in RadiationStates:
+            self.trackcpp_acc.radiation_on = RadiationStates.index(value)
+        else:
+            raise ValueError(
+                'Value not valid, radiation_on must be 0 < int < 2 or one of'
+                f'the strings: {RadiationStates}')
 
     @property
     def vchamber_on(self):

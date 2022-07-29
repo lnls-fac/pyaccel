@@ -70,7 +70,7 @@ def calc_touschek_energy_acceptance(
     rad_sts = accelerator.radiation_on
     cav_sts = accelerator.cavity_on
 
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 0
     accelerator.cavity_on = False
     accelerator.vchamber_on = False
 
@@ -210,7 +210,7 @@ def _calc_phys_apert_for_touschek(
 def _calc_dyn_apert_for_touschek(
         accelerator, energies, curh, beta, nturns, parallel=False):
     accelerator.cavity_on = False
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 0
     accelerator.vchamber_on = False
 
     rin = _np.full((6, energies.size, curh.size), _np.nan)
@@ -223,7 +223,7 @@ def _calc_dyn_apert_for_touschek(
     rin = rin.reshape(6, -1)
 
     accelerator.cavity_on = True
-    accelerator.radiation_on = True
+    accelerator.radiation_on = 1
     accelerator.vchamber_on = True
     orb6d = _tracking.find_orbit6(accelerator)
 
