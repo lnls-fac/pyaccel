@@ -420,7 +420,7 @@ class Accelerator(object):
         else:
             trackcpp_acc = _trackcpp.Accelerator()
             trackcpp_acc.cavity_on = False
-            trackcpp_acc.radiation_on = 0
+            trackcpp_acc.radiation_on = 0  # 0 = radiation off
             trackcpp_acc.vchamber_on = False
             trackcpp_acc.harmonic_number = 0
         return trackcpp_acc
