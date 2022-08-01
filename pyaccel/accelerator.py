@@ -23,6 +23,7 @@ class Accelerator(object):
     __isfrozen = False  # this is used to prevent creation of new attributes
 
     def __init__(self, **kwargs):
+        """."""
         self.trackcpp_acc = self._init_accelerator(kwargs)
         self._init_lattice(kwargs)
 

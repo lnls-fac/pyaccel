@@ -501,7 +501,7 @@ def calc_beamenvelope(
 
     rad_stt = accelerator.radiation_on
     cav_stt = accelerator.cavity_on
-    accelerator.radiation_on = 1
+    accelerator.radiation_on = 'damping'
     accelerator.cavity_on = True
 
     if fixed_point is None:

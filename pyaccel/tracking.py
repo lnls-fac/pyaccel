@@ -165,16 +165,13 @@ def generate_bunch(
 @_interactive
 def set_4d_tracking(accelerator):
     accelerator.cavity_on = False
-    accelerator.radiation_on = 0
+    accelerator.radiation_on = 'off'
 
 
 @_interactive
 def set_6d_tracking(accelerator, rad_full=False):
     accelerator.cavity_on = True
-    if rad_full:
-        accelerator.radiation_on = 2
-    else:
-        accelerator.radiation_on = 1
+    accelerator.radiation_on = 'full' if rad_full else 'damping'
 
 
 @_interactive
@@ -588,6 +585,9 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     orbit positions are returned at the start of the first element. In
     addition a guess fixed point at the entrance of the ring may be provided.
 
+    The radiation_on property will be temporarily set to "damping" to perform
+    this calculation, regardless the initial radiation state.
+
     Keyword arguments:
     accelerator : Accelerator object
     indices : may be a (list,tuple, numpy.ndarray) of element indices
@@ -612,9 +612,8 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     indices = _process_indices(accelerator, indices)
 
     # The orbit can't be found when quantum excitation is on.
-    if accelerator.radiation_on == 2:
-        rad_stt = accelerator.radiation_on
-        accelerator.radiation_on = 1
+    rad_stt = accelerator.radiation_on
+    accelerator.radiation_on = 'damping'
 
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()

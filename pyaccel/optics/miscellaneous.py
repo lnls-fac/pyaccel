@@ -99,7 +99,7 @@ def get_chromaticities(accelerator, energy_offset=1e-6):
     """."""
     cav_on = accelerator.cavity_on
     rad_on = accelerator.radiation_on
-    accelerator.radiation_on = 0
+    accelerator.radiation_on = 'off'
     accelerator.cavity_on = False
 
     nux, nuy, *_ = get_frac_tunes(accelerator, dim='4D', energy_offset=0.0)
