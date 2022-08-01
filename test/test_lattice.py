@@ -132,7 +132,7 @@ class TestFlatFile(unittest.TestCase):
         self.assertAlmostEqual(self.a.energy, 3.0e9, 9)
         self.assertEqual(self.a.harmonic_number, 864)
         self.assertTrue(self.a.cavity_on)
-        self.assertEqual(self.a.radiation_on, 0)
+        self.assertEqual(self.a.radiation_on, 0)  # 0 = radiation off
         self.assertFalse(self.a.vchamber_on)
         # Lattice elements
         self.assertEqual(self.a[0].fam_name, 'start')
