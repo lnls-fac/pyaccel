@@ -32,7 +32,7 @@ class Accelerator(object):
         if 'harmonic_number' in kwargs:
             self.trackcpp_acc.harmonic_number = kwargs['harmonic_number']
         if 'radiation_on' in kwargs:
-            self.trackcpp_acc.radiation_on = kwargs['radiation_on']
+            self.radiation_on = kwargs['radiation_on']
         if 'cavity_on' in kwargs:
             self.trackcpp_acc.cavity_on = kwargs['cavity_on']
         if 'vchamber_on' in kwargs:
