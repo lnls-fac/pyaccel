@@ -8,6 +8,7 @@ import trackcpp as _trackcpp
 
 
 INTERACTIVE_LIST = []
+Distributions = _trackcpp.distributions_dict
 
 
 def interactive(obj):
@@ -71,11 +72,33 @@ def set_random_seed(rnd_seed : int):
     """Set random number seed used in trackcpp."""
     _trackcpp.set_random_seed(rnd_seed)
 
+
 @interactive
 def get_random_number():
     """Return a random number from trackcpp normal distribution."""
     return _trackcpp.gen_random_number()
 
+
+@interactive
+def set_distribution(distribution):
+    """Sets the distribution of the random numbers used to simulate quantum
+    excitation effects.
+
+    Args:
+        distribution (str or int):
+        - 0 or 'normal': Normal distribution,
+        - 1 or 'uniform': Uniform distribution.
+
+    Raises:
+        ValueError
+    """
+    if isinstance(distribution, int) and (distribution < len(Distributions)):
+        _trackcpp.set_random_distribution(distribution)
+    elif isinstance(distribution, str) and (distribution in Distributions):
+        _trackcpp.set_random_distribution(Distributions.index(distribution))
+    else:
+        raise ValueError(
+            f'The distribution must be one of the options: {Distributions}')
 
 # class Matrix(_numpy.ndarray):
 
