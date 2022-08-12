@@ -1,7 +1,9 @@
 """."""
 
 import warnings
+
 import numpy as _numpy
+
 import trackcpp as _trackcpp
 
 
