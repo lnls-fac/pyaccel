@@ -672,7 +672,7 @@ def calc_edwards_teng(
     cav_stt = accelerator.cavity_on
     rad_stt = accelerator.radiation_on
     accelerator.cavity_on = False
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 'off'
 
     cod = None
     if init_edteng is not None:

@@ -1,7 +1,7 @@
 % energy          3.0e9
 % harmonic_number 864
 % cavity_on       true
-% radiation_on    false
+% radiation_on    0
 % vchamber_on     false
 
 #### 0000 ####

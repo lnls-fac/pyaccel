@@ -1150,13 +1150,13 @@ def _is_equal(val1, val2):
         _ = val1[0]
         # 'val1' is an iterable
         return _is_equal_val1_iterable(val1, val2)
-    except TypeError:
+    except (TypeError, IndexError):
         # 'val1' is not iterable
         try:
             _ = val2[0]
             # 'val1' is not iterable but 'val2' is.
             return False
-        except TypeError:
+        except (TypeError, IndexError):
             # neither 'val1' nor 'val2' are iterables
             return val1 == val2
 
@@ -1166,7 +1166,7 @@ def _is_equal_val1_iterable(val1, val2):
         _ = val2[0]
         # 'val2' is an iterable
         if len(val1) != len(val2):
-            # 'val1' and 'val2' are iterbales but with different lengths
+            # 'val1' and 'val2' are iterables but with different lengths
             return False
         else:
             # 'val1' and 'val2' are iterables with the same length
