@@ -490,6 +490,7 @@ def ring_pass(
                 lost_plane.extend(lplane)
         p_out = _np.concatenate(p_out, axis=1)
 
+    p_out = _np.squeeze(p_out)
     # simplifies output structure in case of single particle
     if len(lost_element) == 1:
         lost_turn = lost_turn[0]
@@ -517,7 +518,6 @@ def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset):
         accelerator.trackcpp_acc, p_in, p_out, args))
 
     p_out = p_out.reshape(6, n_part, -1)
-    p_out = _np.squeeze(p_out)
 
     # fills vectors with info about particle loss
     lost_turn = list(args.lost_turn)
