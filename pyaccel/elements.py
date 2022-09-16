@@ -526,6 +526,17 @@ class Element:
         self.trackcpp_e.kicktable = value._kicktable
 
     @property
+    def rescale_kicks(self):
+        """Scale factor applied to values given by kicktable.
+        Default value: 1.0"""
+        return self.trackcpp_e.rescale_kicks
+
+    @rescale_kicks.setter
+    def rescale_kicks(self, value):
+        """."""
+        self.trackcpp_e.rescale_kicks = value
+
+    @property
     def vchamber(self):
         """Shape of vacuum chamber.
         See trackcpp.VChamberShape for values."""
