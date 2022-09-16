@@ -528,7 +528,7 @@ class Element:
     @property
     def rescale_kicks(self):
         """Scale factor applied to values given by kicktable.
-        Default value: 0.5"""
+        Default value: 1.0"""
         return self.trackcpp_e.rescale_kicks
 
     @rescale_kicks.setter
