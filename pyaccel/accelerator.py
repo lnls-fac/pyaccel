@@ -7,9 +7,7 @@ import trackcpp as _trackcpp
 
 from . import elements as _elements
 from .utils import interactive as _interactive
-
-
-RadiationStates = _trackcpp.rad_dict
+from .utils import RADIATION_STATES_NAMES as _RADIATION_STATES_NAMES
 
 
 class AcceleratorException(Exception):
@@ -147,7 +145,7 @@ class Accelerator(object):
     @property
     def radiation_on_str(self):
         """Return radiation_on state in string format."""
-        return RadiationStates[self.trackcpp_acc.radiation_on]
+        return _RADIATION_STATES_NAMES[self.trackcpp_acc.radiation_on]
 
     @radiation_on.setter
     def radiation_on(self, value):
@@ -164,15 +162,20 @@ class Accelerator(object):
         Raises:
             ValueError
         """
+        nr_states = len(_RADIATION_STATES_NAMES)
         if isinstance(value, (int, bool, float)) and \
-                0 <= value <= len(RadiationStates):
+                0 <= value <= nr_states:
             self.trackcpp_acc.radiation_on = int(value)
-        elif isinstance(value, str) and value in RadiationStates:
-            self.trackcpp_acc.radiation_on = RadiationStates.index(value)
+        elif isinstance(value, str) and value in _RADIATION_STATES_NAMES:
+            self.trackcpp_acc.radiation_on = \
+                _RADIATION_STATES_NAMES.index(value)
         else:
-            raise ValueError(
-                'Value not valid, radiation_on must be 0 < int < 2 or one of'
-                f'the strings: {RadiationStates}')
+            errtxt = (
+                'Value not valid, radiation_on must be '
+                f'0 < int < {nr_states} or one of'
+                f'the strings: {_RADIATION_STATES_NAMES}'
+                )
+            raise ValueError(errtxt)
 
     @property
     def vchamber_on(self):
