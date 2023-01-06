@@ -35,6 +35,8 @@ class Accelerator(object):
             self.trackcpp_acc.cavity_on = kwargs['cavity_on']
         if 'vchamber_on' in kwargs:
             self.trackcpp_acc.vchamber_on = kwargs['vchamber_on']
+        if 'lattice_version' in kwargs:
+            self._lattice_version = kwargs['lattice_version']
 
         if self.trackcpp_acc.energy == 0:
             self._brho, self._velocity, self._beta, self._gamma, \
@@ -186,6 +188,11 @@ class Accelerator(object):
     def vchamber_on(self, value):
         """Set vacuum chamber on state."""
         self.trackcpp_acc.vchamber_on = value
+
+    @property
+    def lattice_version(self):
+        """Return lattice version."""
+        return self._lattice_version
 
     def pop(self, index):
         """."""
