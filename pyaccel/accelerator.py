@@ -36,7 +36,7 @@ class Accelerator(object):
         if 'vchamber_on' in kwargs:
             self.trackcpp_acc.vchamber_on = kwargs['vchamber_on']
         if 'lattice_version' in kwargs:
-            self._lattice_version = kwargs['lattice_version']
+            self.trackcpp_acc.lattice_version = kwargs['lattice_version']
 
         if self.trackcpp_acc.energy == 0:
             self._brho, self._velocity, self._beta, self._gamma, \
@@ -104,12 +104,12 @@ class Accelerator(object):
 
     @property
     def brho(self):
-        """Return beam rigidity [T.m]"""
+        """Return beam rigidity [T.m]."""
         return self._brho
 
     @brho.setter
     def brho(self, value):
-        """Set beam rigidity [T.m]"""
+        """Set beam rigidity [T.m]."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(brho=value)
         self.trackcpp_acc.energy = energy * 1e9
@@ -160,7 +160,6 @@ class Accelerator(object):
             - 1, True, "damping" = Turns on radiation damping, without
                 quantum excitation.
             - 2, "full" = Turns on radiation damping with quantum excitation
-
         Raises:
             ValueError
         """
@@ -192,7 +191,7 @@ class Accelerator(object):
     @property
     def lattice_version(self):
         """Return lattice version."""
-        return self._lattice_version
+        return self.trackcpp_acc.lattice_version
 
     def pop(self, index):
         """."""
@@ -300,6 +299,7 @@ class Accelerator(object):
             raise TypeError('invalid index')
         acc = Accelerator(
             lattice=lattice,
+            lattice_version=self.trackcpp_acc.lattice_version,
             energy=self.trackcpp_acc.energy,
             harmonic_number=self.trackcpp_acc.harmonic_number,
             cavity_on=self.trackcpp_acc.cavity_on,
@@ -342,6 +342,7 @@ class Accelerator(object):
         rst += '\ncavity_on      : ' + str(self.trackcpp_acc.cavity_on)
         rst += '\nradiation_on   : ' + str(self.trackcpp_acc.radiation_on)
         rst += '\nvchamber_on    : ' + str(self.trackcpp_acc.vchamber_on)
+        rst += '\nlattice version: ' + str(self.trackcpp_acc.lattice_version)
         rst += '\nlattice size   : ' + str(len(self.trackcpp_acc.lattice))
         rst += '\nlattice length : ' + str(self.length) + ' m'
         return rst
@@ -385,6 +386,7 @@ class Accelerator(object):
             elif other == 0:
                 return Accelerator(
                     energy=self.energy,
+                    lattice_version=self.trackcpp_acc.lattice_version,
                     harmonic_number=self.harmonic_number,
                     cavity_on=self.cavity_on,
                     radiation_on=self.radiation_on,
@@ -427,12 +429,14 @@ class Accelerator(object):
                 trackcpp_acc.radiation_on = acc.radiation_on
                 trackcpp_acc.vchamber_on = acc.vchamber_on
                 trackcpp_acc.harmonic_number = acc.harmonic_number
+                trackcpp_acc.lattice_version = acc.lattice_version
         else:
             trackcpp_acc = _trackcpp.Accelerator()
             trackcpp_acc.cavity_on = False
             trackcpp_acc.radiation_on = 0  # 0 = radiation off
             trackcpp_acc.vchamber_on = False
             trackcpp_acc.harmonic_number = 0
+            trackcpp_acc.lattice_version = ''
         return trackcpp_acc
 
     def _init_lattice(self, kwargs):
