@@ -386,7 +386,7 @@ class Accelerator(object):
             elif other == 0:
                 return Accelerator(
                     energy=self.energy,
-                    lattice_version=self.trackcpp_acc.lattice_version,
+                    lattice_version=self.lattice_version,
                     harmonic_number=self.harmonic_number,
                     cavity_on=self.cavity_on,
                     radiation_on=self.radiation_on,
