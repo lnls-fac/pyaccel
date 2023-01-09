@@ -193,6 +193,11 @@ class Accelerator(object):
         """Return lattice version."""
         return self.trackcpp_acc.lattice_version
 
+    @lattice_version.setter
+    def lattice_version(self, value):
+        """Set lattice version."""
+        self.trackcpp_acc.lattice_version = value
+
     def pop(self, index):
         """."""
         elem = self[index]
