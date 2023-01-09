@@ -342,7 +342,7 @@ class Accelerator(object):
         rst += '\ncavity_on      : ' + str(self.trackcpp_acc.cavity_on)
         rst += '\nradiation_on   : ' + str(self.trackcpp_acc.radiation_on)
         rst += '\nvchamber_on    : ' + str(self.trackcpp_acc.vchamber_on)
-        rst += '\nlattice version: ' + str(self.trackcpp_acc.lattice_version)
+        rst += '\nlattice version: ' + self.trackcpp_acc.lattice_version
         rst += '\nlattice size   : ' + str(len(self.trackcpp_acc.lattice))
         rst += '\nlattice length : ' + str(self.length) + ' m'
         return rst
