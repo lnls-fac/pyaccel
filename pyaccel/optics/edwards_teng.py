@@ -276,7 +276,7 @@ class EdwardsTengArray(_np.ndarray):
     def __new__(cls, edteng=None, copy=True):
         """."""
         length = 1
-        if isinstance(edteng, (int, _np.int)):
+        if isinstance(edteng, int):
             length = edteng
             edteng = None
         elif isinstance(edteng, EdwardsTengArray):

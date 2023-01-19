@@ -1078,7 +1078,7 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
             'Length of main_monoms differs from length of indices.')
 
     # Extend the fields, if necessary to the number of elements in indices
-    types = (int, float, _np.int_, _np.float_)
+    types = (int, float)
     if Bn_norm is None or isinstance(Bn_norm[0], types):
         Bn_norm = len(indices) * [Bn_norm]
     if An_norm is None or isinstance(An_norm[0], types):
@@ -1101,7 +1101,7 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
 
 # --- private functions ---
 def _process_args_errors(indices, values):
-    types = (int, _np.int_)
+    types = (int)
     isflat = False
     if isinstance(indices, types):
         indices = [[indices]]
@@ -1109,7 +1109,7 @@ def _process_args_errors(indices, values):
         indices = [[ind] for ind in indices]
         isflat = True
 
-    types = (int, float, _np.int_, _np.float_)
+    types = (int, float)
     if isinstance(values, types):
         values = [len(ind) * [values] for ind in indices]
     if len(values) != len(indices):

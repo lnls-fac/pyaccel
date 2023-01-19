@@ -275,7 +275,7 @@ class Accelerator(object):
         if isinstance(index, slice):
             start, stop, step = index.indices(len(self))
             index = set(range(start, stop, step))
-        if isinstance(index, (int, _np.int_)):
+        if isinstance(index, int):
             self.trackcpp_acc.lattice.erase(
                 self.trackcpp_acc.lattice.begin() + int(index))
         elif isinstance(index, (set, list, tuple, _np.ndarray)):
@@ -286,7 +286,7 @@ class Accelerator(object):
 
     def __getitem__(self, index):
         """."""
-        if isinstance(index, (int, _np.int_)):
+        if isinstance(index, int):
             ele = _elements.Element()
             ele.trackcpp_e = self.trackcpp_acc.lattice[int(index)]
             return ele
@@ -314,7 +314,7 @@ class Accelerator(object):
 
     def __setitem__(self, index, value):
         """."""
-        if isinstance(index, (int, _np.int_)):
+        if isinstance(index, int):
             index = [index, ]
         elif isinstance(index, (list, tuple, _np.ndarray)):
             pass
@@ -385,7 +385,7 @@ class Accelerator(object):
 
     def __mul__(self, other):
         """."""
-        if isinstance(other, (int, _np.int_)):
+        if isinstance(other, int):
             if other < 0:
                 raise ValueError('cannot multiply by negative integer')
             elif other == 0:

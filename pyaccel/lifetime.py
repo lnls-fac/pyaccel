@@ -313,7 +313,7 @@ class Lifetime:
             spos = self._optics_data.spos
             accp = spos*0.0 + val[1]
             accn = spos*0.0 + val[0]
-        elif isinstance(val, (int, _np.int, float, _np.float)):
+        elif isinstance(val, (int, float)):
             spos = self._optics_data.spos
             accp = spos*0.0 + val
             accn = spos*0.0 - val
@@ -339,7 +339,7 @@ class Lifetime:
                     "Dictionary must contain keys 'spos', 'acc'")
             spos = val['spos']
             acc = val['acc']
-        elif isinstance(val, (int, _np.int, float, _np.float)):
+        elif isinstance(val, (int, float)):
             spos = self._optics_data.spos
             acc = spos*0.0 + val
         else:
@@ -364,7 +364,7 @@ class Lifetime:
                     "Dictionary must contain keys 'spos', 'acc'")
             spos = val['spos']
             acc = val['acc']
-        elif isinstance(val, (int, _np.int, float, _np.float)):
+        elif isinstance(val, (int, float)):
             spos = self._optics_data.spos
             acc = spos*0.0 + val
         else:
