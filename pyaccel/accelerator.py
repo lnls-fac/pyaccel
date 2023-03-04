@@ -299,6 +299,7 @@ class Accelerator(object):
             for i in index:
                 lattice.append(self.trackcpp_acc.lattice[int(i)])
         elif isinstance(index, slice):
+            index = slice(*index.indices(len(self)))
             lattice = self.trackcpp_acc.lattice[index]
         else:
             raise TypeError('invalid index')
