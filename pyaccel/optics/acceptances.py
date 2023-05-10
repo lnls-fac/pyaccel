@@ -67,8 +67,7 @@ def calc_transverse_acceptance(
 
 @_interactive
 def calc_touschek_energy_acceptance(
-        accelerator, energy_offsets=None, track=False, check_tune=False,
-        **kwargs):
+        accelerator, energy_offsets=None, track=False, check_tune=False, get_dynamic_aperture=False, **kwargs):
     """."""
     vcham_sts = accelerator.vchamber_on
     rad_sts = accelerator.radiation_on
@@ -135,7 +134,7 @@ def calc_touschek_energy_acceptance(
 
     # ############ Check tunes ############
     # Make sure tunes don't cross int and half-int resonances
-    # Must be symmetric due to syncrhotron oscillations
+    # Must be symmetric due to synchrotron oscillations
     ap_tune = _np.full(energy_offsets.shape, _np.inf)
     if check_tune:
         tune0_int = _np.floor(tune0)
@@ -179,7 +178,7 @@ def calc_touschek_energy_acceptance(
     idcs[~boo.ravel()] = ap_neg.size-1
     accep_neg = -energy_offsets[idcs]
 
-    return accep_neg, accep_pos
+    return accep_neg, accep_pos, 
 
 
 def _calc_phys_apert_for_touschek(
