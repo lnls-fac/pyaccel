@@ -14,8 +14,10 @@ from .miscellaneous import OpticsException as _OpticsException, \
 @_interactive
 def calc_transverse_acceptance(
         accelerator, twiss=None, init_twiss=None, fixed_point=None,
-        energy_offset=0.0):
-    """Return transverse horizontal and vertical physical acceptances."""
+        energy_offset=0.0, get_vchamber=False):
+    """Return transverse horizontal and vertical physical acceptances.
+       if get_vchamber=True, also returns hmax, hmin, vmax, vmin along the 
+       ring"""
     if twiss is None:
         twiss, _ = _calc_twiss(
             accelerator, init_twiss=init_twiss, fixed_point=fixed_point,
@@ -58,6 +60,8 @@ def calc_transverse_acceptance(
     accepy[accepy < 0] = 0
     accepx *= accepx
     accepy *= accepy
+    if get_vchamber:
+        return accepx, accepy, twiss, hmax, hmin, vmax, vmin
     return accepx, accepy, twiss
 
 
