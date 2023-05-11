@@ -23,7 +23,8 @@ class EqParamsFromBeamEnvelope:
     Other useful reference is:
         Chao, A. W. (1979). Evaluation of beam distribution parameters in
         an electron storage ring. Journal of Applied Physics, 50(1), 595.
-        https://doi.org/10.1016/0029-554X(81)90006-9
+        https://doi.org/10.1063/1.326070
+
 
     The normal modes properties are defined so that in the limit of zero
     coupling:
