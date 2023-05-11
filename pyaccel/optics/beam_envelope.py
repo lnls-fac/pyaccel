@@ -19,7 +19,8 @@ class EqParamsFromBeamEnvelope:
 
     It employs Ohmi formalism to do so:
         Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
-        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
+        https://doi.org/10.1103/PhysRevE.49.751
     Other useful reference is:
         Chao, A. W. (1979). Evaluation of beam distribution parameters in
         an electron storage ring. Journal of Applied Physics, 50(1), 595.
