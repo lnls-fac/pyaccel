@@ -19,11 +19,13 @@ class EqParamsFromBeamEnvelope:
 
     It employs Ohmi formalism to do so:
         Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
-        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
+        https://doi.org/10.1103/PhysRevE.49.751
     Other useful reference is:
         Chao, A. W. (1979). Evaluation of beam distribution parameters in
         an electron storage ring. Journal of Applied Physics, 50(1), 595.
-        https://doi.org/10.1016/0029-554X(81)90006-9
+        https://doi.org/10.1063/1.326070
+
 
     The normal modes properties are defined so that in the limit of zero
     coupling:
@@ -299,7 +301,7 @@ class EqParamsFromBeamEnvelope:
         Calculated via equation 25 of
             Chao, A. W. (1979). Evaluation of beam distribution parameters in
             an electron storage ring. Journal of Applied Physics, 50(1), 595.
-            https://doi.org/10.1016/0029-554X(81)90006-9
+            https://doi.org/10.1063/1.326070
 
         The equation reads:
             tilt = 1/2 * arctan(2*<xy>/(<x^2>-<y^2>))
@@ -465,7 +467,8 @@ def calc_beamenvelope(
 
     It employs Ohmi formalism to do so:
         Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
-        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
+        https://doi.org/10.1103/PhysRevE.49.751
 
     Keyword arguments:
     accelerator : Accelerator object. Only non-optional argument.
