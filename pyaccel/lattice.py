@@ -1087,6 +1087,7 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
         raise IndexError('Length of polynoms differs from length of indices.')
 
     for segs, n, ann, bnn in zip(indices, main_monom, An_norm, Bn_norm):
+        n = int(n)
         for idx in segs:
             ele = lattice[idx]
             if abs(n) == 1 and ele.angle != 0:
@@ -1094,7 +1095,7 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
                 if ele.length > 0:
                     KP /= ele.length
             else:
-                KP = ele.polynom_b[n-1] if n > 0 else ele.polynom_a[-n-1]
+                KP = ele.polynom_b[n-1] if n >= 0 else ele.polynom_a[-n-1]
             add_polynom(ele, 'polynom_b', bnn, n, KP)
             add_polynom(ele, 'polynom_a', ann, n, KP)
 
