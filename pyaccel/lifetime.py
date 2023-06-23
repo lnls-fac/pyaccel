@@ -474,6 +474,7 @@ class Lifetime:
         const = (_cst.electron_radius**2 * _cst.light_speed) / (8*_np.pi)
 
         touschek_coeffs = dict()
+        A_spin_num, A_spin_den = None, None
         if self.touschek_model == self.TOUSCHEKMODEL.FlatBeam:
             fator = beta1*eta1l + alpha1*eta1
             a_var = 1 / (4*espread**2) + (eta1**2 + fator**2) / (4*sig1b2)
@@ -502,6 +503,36 @@ class Lifetime:
             ratep = const * nr_part/gamma**2 / d_accp**3 * d_pos / vol
             raten = const * nr_part/gamma**2 / d_accn**3 * d_neg / vol
             rate = (ratep+raten)/2
+
+            spin_const = _cst.electron_radius**2
+            spin_const *= _cst.light_speed
+            spin_const /= 2*_np.pi
+            gamma1 = (1 + alpha1**2)/beta1
+            sig1l = _np.sqrt(eta1l**2*espread**2 + gamma1*emit1)
+            a_spinp = spin_const / gamma**3 / vol / sig1l / d_accp**2
+            a_spinn = spin_const / gamma**3 / vol / sig1l / d_accn**2
+
+            ksip = (d_accp/gamma/sig1l)**2
+            ksin = (d_accn/gamma/sig1l)**2
+
+            c_ksip, f_ksip = [], []
+            c_ksin, f_ksin = [], []
+            for en, ep in zip(ksin, ksip):
+                ckp, fkp = self._calc_spin_funcs(ep)
+                ckn, fkn = self._calc_spin_funcs(en)
+                c_ksip.append(ckp)
+                f_ksip.append(fkp)
+                c_ksin.append(ckn)
+                f_ksin.append(fkn)
+
+            c_ksip, f_ksip = _np.array(c_ksip), _np.array(f_ksip)
+            c_ksin, f_ksin = _np.array(c_ksin), _np.array(f_ksin)
+
+            A_spinp_num, A_spinp_den = a_spinp*f_ksip, a_spinp*c_ksip
+            A_spinn_num, A_spinn_den = a_spinn*f_ksin, a_spinn*c_ksin
+            A_spin_num = (A_spinp_num + A_spinn_num)/2
+            A_spin_den = (A_spinp_den + A_spinn_den)/2
+
         elif self.touschek_model == self.TOUSCHEKMODEL.Piwinski:
             eta1til2 = (alpha1*eta1 + beta1*eta1l)**2
             eta2til2 = (alpha2*eta2 + beta2*eta2l)**2
@@ -543,12 +574,19 @@ class Lifetime:
             rate = (ratep + raten)/2
 
         rate = _np.array(rate).ravel()
+        circum = s_calc[-1] - s_calc[0]
         # Average inverse Touschek Lifetime
-        avg_rate = _np.trapz(rate, x=s_calc) / (s_calc[-1] - s_calc[0])
+        avg_rate = _np.trapz(rate, x=s_calc)/circum
         dit = dict(
             rate=rate, avg_rate=avg_rate,
             volume=vol, pos=s_calc,
             touschek_coeffs=touschek_coeffs)
+        if A_spin_num is not None:
+            A_spin_num = _np.array(A_spin_num).ravel()
+            avg_A_spin_num = _np.trapz(A_spin_num, x=s_calc)
+            avg_A_spin_den = _np.trapz(A_spin_den, x=s_calc)
+            avg_A_spin = avg_A_spin_num/avg_A_spin_den
+            dit['spin'] = avg_A_spin
         return dit
 
     @staticmethod
@@ -880,6 +918,21 @@ class Lifetime:
         else:
             cls._calc_d_touschek_table(ksi_ini, ksi_end)
         return cls._KSI_TABLE, cls._D_TABLE
+
+    @staticmethod
+    def _calc_spin_funcs(ksi):
+        if _integrate is None:
+            raise ImportError('scipy library not available')
+        lim = 1000
+        int1, _ = _integrate.quad(
+            lambda x: _np.exp(-x)/x, ksi, _np.inf, limit=lim)
+        int2, _ = _integrate.quad(
+            lambda x: _np.exp(-x)*_np.log(x/ksi)/x**2, ksi, _np.inf, limit=lim)
+        int3, _ = _integrate.quad(
+            lambda x: _np.exp(-x)/x**2, ksi, _np.inf, limit=lim)
+        f_val = ksi*int2/2
+        c_val = int1 - f_val - ksi*int3
+        return c_val, f_val
 
     # ----- private methods -----
 
