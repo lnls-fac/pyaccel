@@ -20,7 +20,7 @@ else:
 
 
 class Lifetime:
-    """Class which calculates the lifetime for a given accelerator."""
+    """Class to calculate lifetime contributions for the accelerator."""
 
     # Constant factors
     _MBAR_2_PASCAL = 1.0e-3 / _u.pascal_2_bar
@@ -377,7 +377,8 @@ class Lifetime:
 
         If touschek_model = 'FlatBeam', the calculation follows the formulas
             presented in Ref. [1], where the vertical betatron beam size and
-            vertical dispersion are not taken into account
+            vertical dispersion are not taken into account. Dependence of spin
+            polarization is also calculated following Ref. [3].
         If touschek_model = 'Piwinski', the calculation follows the formulas
             presented in Ref. [2], Eqs. 32-42. This formalism describes the
             most general case with respect to the horizontal and vertical
@@ -389,6 +390,11 @@ class Lifetime:
                 CERN Acccelerator School: Accelerator Physics (pp. 114–130).
             [2] Piwinski, A. (1999). The Touschek Effect in Strong Focusing
                 Storage Rings. November. http://arxiv.org/abs/physics/9903034
+            [3] J. Zhang, et al. (2013). Precise beam energy measurement using
+                resonant spin depolarization in the SOLEIL storage ring.
+                Nuclear Instruments and Methods in Physics Research Section A:
+                Accelerators, Spectrometers, Detectors and Associated
+                Equipment. https://doi.org/10.1016/j.nima.2012.09.003.
 
         parameters used in calculation:
 
