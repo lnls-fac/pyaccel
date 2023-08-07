@@ -577,7 +577,7 @@ class Lifetime:
         circum = s_calc[-1] - s_calc[0]
         # Average inverse Touschek Lifetime
         avg_rate = _np.trapz(rate, x=s_calc)/circum
-        dit = dict(
+        touschek_dict = dict(
             rate=rate, avg_rate=avg_rate,
             volume=vol, pos=s_calc,
             touschek_coeffs=touschek_coeffs)
@@ -586,8 +586,8 @@ class Lifetime:
             avg_A_spin_num = _np.trapz(A_spin_num, x=s_calc)
             avg_A_spin_den = _np.trapz(A_spin_den, x=s_calc)
             avg_A_spin = avg_A_spin_num/avg_A_spin_den
-            dit['spin'] = avg_A_spin
-        return dit
+            touschek_dict['avg_A_spin'] = avg_A_spin
+        return touschek_dict
 
     @staticmethod
     def f_function_arg(kappa, kappam, b1_, b2_):
