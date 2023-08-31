@@ -634,7 +634,6 @@ def add_error_misalignment_y(lattice, indices, values):
 
 @_interactive
 def get_error_rotation_roll(lattice, indices):
-    print('sdddfgf')
     """Get roll rotation errors from lattice elements.
 
     INPUTS:
