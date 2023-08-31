@@ -634,6 +634,7 @@ def add_error_misalignment_y(lattice, indices, values):
 
 @_interactive
 def get_error_rotation_roll(lattice, indices):
+    print('sdddfgf')
     """Get roll rotation errors from lattice elements.
 
     INPUTS:
@@ -655,7 +656,12 @@ def get_error_rotation_roll(lattice, indices):
     # loops over elements and gets error from R_IN
     values = []
     for segs in indices:
-        angle = _math.asin(lattice[segs[0]].r_in[0, 2])
+        ele = lattice[segs[0]]
+        if ele.angle != 0 and ele.length != 0:
+            rho = ele.length / ele.angle
+            angle = _math.asin(ele.polynom_a[0] * rho)
+        else:
+            angle = _math.asin(ele.r_in[0, 2])
         values.append(len(segs) * [angle])
     return _process_output(values, isflat)
 
@@ -688,13 +694,10 @@ def set_error_rotation_roll(lattice, indices, values):
             ele = lattice[idx]
             if ele.angle != 0 and ele.length != 0:
                 rho = ele.length / ele.angle
-                orig_s = ele.polynom_a[0] * rho
-                # look at bndpolysymplectic4pass:
-                orig_c = ele.polynom_b[0] * rho + 1.0
                 # sin(teta)/rho:
-                ele.polynom_a[0] = (orig_s*cos + orig_c*sin)/rho
+                ele.polynom_a[0] = sin/rho
                 # (cos(teta)-1)/rho:
-                ele.polynom_b[0] = (orig_c*cos - orig_s*sin - 1.0)/rho
+                ele.polynom_b[0] = (cos - 1.0)/rho
             else:
                 ele.r_in = rot
                 ele.r_out = rot.T
