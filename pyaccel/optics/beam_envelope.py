@@ -526,6 +526,7 @@ def calc_beamenvelope(
     bdiffs = _np.zeros((len(accelerator)+1, 6, 6), dtype=float)
     _trackcpp.track_diffusionmatrix_wrapper(
         accelerator.trackcpp_acc, fixed_point, mat_ele, bdiffs)
+    fixed_point = _tracking._CppDoublePos2Numpy(fixed_point)
 
     if init_env is None:
         # ------------------------------------------------------------
