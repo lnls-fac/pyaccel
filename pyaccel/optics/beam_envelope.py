@@ -19,11 +19,13 @@ class EqParamsFromBeamEnvelope:
 
     It employs Ohmi formalism to do so:
         Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
-        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
+        https://doi.org/10.1103/PhysRevE.49.751
     Other useful reference is:
         Chao, A. W. (1979). Evaluation of beam distribution parameters in
         an electron storage ring. Journal of Applied Physics, 50(1), 595.
-        https://doi.org/10.1016/0029-554X(81)90006-9
+        https://doi.org/10.1063/1.326070
+
 
     The normal modes properties are defined so that in the limit of zero
     coupling:
@@ -299,7 +301,7 @@ class EqParamsFromBeamEnvelope:
         Calculated via equation 25 of
             Chao, A. W. (1979). Evaluation of beam distribution parameters in
             an electron storage ring. Journal of Applied Physics, 50(1), 595.
-            https://doi.org/10.1016/0029-554X(81)90006-9
+            https://doi.org/10.1063/1.326070
 
         The equation reads:
             tilt = 1/2 * arctan(2*<xy>/(<x^2>-<y^2>))
@@ -465,7 +467,8 @@ def calc_beamenvelope(
 
     It employs Ohmi formalism to do so:
         Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
-        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
+        https://doi.org/10.1103/PhysRevE.49.751
 
     Keyword arguments:
     accelerator : Accelerator object. Only non-optional argument.
@@ -501,7 +504,7 @@ def calc_beamenvelope(
 
     rad_stt = accelerator.radiation_on
     cav_stt = accelerator.cavity_on
-    accelerator.radiation_on = True
+    accelerator.radiation_on = 'damping'
     accelerator.cavity_on = True
 
     if fixed_point is None:
@@ -523,6 +526,7 @@ def calc_beamenvelope(
     bdiffs = _np.zeros((len(accelerator)+1, 6, 6), dtype=float)
     _trackcpp.track_diffusionmatrix_wrapper(
         accelerator.trackcpp_acc, fixed_point, mat_ele, bdiffs)
+    fixed_point = _tracking._CppDoublePos2Numpy(fixed_point)
 
     if init_env is None:
         # ------------------------------------------------------------

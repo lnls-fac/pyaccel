@@ -6,8 +6,8 @@ import matplotlib.collections as _collections
 import matplotlib.patches as _patches
 
 from .utils import interactive as _interactive
-from .lattice import find_spos as _find_spos
-from .lattice import get_attribute as _get_attribute
+from .lattice import find_spos as _find_spos, find_indices as _find_indices, \
+    get_attribute as _get_attribute
 from .optics import calc_twiss as _calc_twiss
 
 
@@ -20,8 +20,9 @@ _COLOURS = {
     'skew_quadupole': '#aa1b1b',
     'coil': '#444444',
     'bpm': '#444444',
-    'vacuum_chamber': '#444444'
-}
+    'vacuum_chamber': '#444444',
+    'girder': '#EBF086',
+    }
 
 
 @_interactive
@@ -202,9 +203,9 @@ def plot_vchamber(accelerator, add_lattice=True,
 
 @_interactive
 def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
-                 family_data=None, family_mapping=None, colours=None,
-                 selection=None, symmetry=None, gca=False, is_interactive=None,
-                 show_label=False):
+                 draw_girders=False, family_data=None, family_mapping=None,
+                 colours=None, selection=None, symmetry=None, gca=False,
+                 is_interactive=None, show_label=False):
     """Draw lattice elements along longitudinal position.
 
     Keyword arguments:
@@ -212,6 +213,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     offset -- Element center vertical offset
     height -- Element height
     draw_edges -- If True, draw element edges in black
+    draw_girders -- If True, draw girders
     family_data -- dict with family data; if supplied, family_mapping must also
         be passed
     family_mapping -- dict with mapping from family names to element types
@@ -275,6 +277,9 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
             selection.remove('pulsed_magnets')
             selection.append('septum')
 
+    if draw_girders:
+        selection.append('girder')
+
     if is_interactive is None:
         is_interactive = _plt.isinteractive()
     _plt.interactive = False
@@ -307,7 +312,7 @@ def draw_lattice(lattice, offset=None, height=1.0, draw_edges=False,
     axis.add_line(line)
 
     drawer = _LatticeDrawer(
-        lattice, offset, height, draw_edges, family_data,
+        lattice, offset, height, draw_edges, draw_girders, family_data,
         family_mapping, colours, show_label)
 
     if not gca:
@@ -333,8 +338,8 @@ class _LatticeDrawer(object):
     """."""
 
     def __init__(
-            self, lattice, offset, height, draw_edges, family_data,
-            family_mapping, colours, show_label):
+            self, lattice, offset, height, draw_edges, draw_girders,
+            family_data, family_mapping, colours, show_label):
         """."""
         self._show_label = show_label
         self._bpm_length = 0.10
@@ -362,6 +367,7 @@ class _LatticeDrawer(object):
         self._skew_quadrupole_core_patches = []
         self._skew_quadrupole_coil_patches = []
         self._bpm_patches = []
+        self._girder_patches = []
         if show_label:
             self.patch_labels = []
 
@@ -458,6 +464,20 @@ class _LatticeDrawer(object):
                 facecolor=colours['bpm'],
                 zorder=2),
             }
+
+        if draw_girders:
+            girs = _find_indices(lattice, 'fam_name', 'girder')
+            if girs:
+                for ini, fin in zip(girs[::2], girs[1::2]):
+                    self._girder_patches.append(self._get_girder(
+                        pos[ini], pos[fin]))
+
+                self.patch_collections['girder'] = \
+                    _collections.PatchCollection(
+                        self._girder_patches,
+                        edgecolor=(edgec if draw_edges else colours['girder']),
+                        facecolor=colours['girder'],
+                        zorder=-2)
 
     def _create_element_patch(self, element, pos, element_type=None):
         if element_type is None:
@@ -581,3 +601,8 @@ class _LatticeDrawer(object):
         corner = (pos-self._bpm_length/2, self._offset-self._height/20)
         return _patches.Rectangle(
             xy=corner, width=self._bpm_length, height=self._height/10)
+
+    def _get_girder(self, posi, posf):
+        corner = (posi-5e-3, self._offset - self._height*6/10)
+        return _patches.Rectangle(
+            xy=corner, width=posf-posi + 1e-2, height=self._height*12/10)

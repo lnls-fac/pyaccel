@@ -12,7 +12,7 @@ class OpticsException(Exception):
 
 @_interactive
 def get_rf_frequency(accelerator):
-    """Return the frequency of the first RF cavity in the lattice."""
+    """Return the frequency of the first RF cavity in the lattice [Hz]."""
     for e in accelerator:
         if e.frequency != 0.0:
             return e.frequency
@@ -21,7 +21,7 @@ def get_rf_frequency(accelerator):
 
 @_interactive
 def get_rf_voltage(accelerator):
-    """Return the voltage of the first RF cavity in the lattice."""
+    """Return the voltage of the first RF cavity in the lattice [V]."""
     voltages = []
     for e in accelerator:
         if e.voltage != 0.0:
@@ -37,13 +37,13 @@ def get_rf_voltage(accelerator):
 
 @_interactive
 def get_revolution_frequency(accelerator):
-    """."""
+    """Return the actual revolution frequency of the 6D fixed point [Hz]."""
     return get_rf_frequency(accelerator) / accelerator.harmonic_number
 
 
 @_interactive
 def get_revolution_period(accelerator):
-    """."""
+    """Return the actual revolution frequency of the 6D fixed point [s]."""
     return 1 / get_revolution_frequency(accelerator)
 
 
@@ -99,7 +99,7 @@ def get_chromaticities(accelerator, energy_offset=1e-6):
     """."""
     cav_on = accelerator.cavity_on
     rad_on = accelerator.radiation_on
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 'off'
     accelerator.cavity_on = False
 
     nux, nuy, *_ = get_frac_tunes(accelerator, dim='4D', energy_offset=0.0)

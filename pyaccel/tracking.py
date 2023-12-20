@@ -26,7 +26,7 @@ from .optics.twiss import Twiss as _Twiss
 from .optics.edwards_teng import EdwardsTeng as _EdwardsTeng
 
 
-LOST_PLANES = (None, 'x', 'y', 'z')
+LOST_PLANES = (None, 'x', 'y', 'z', 'xy')  # See trackcpp.Plane
 
 
 class TrackingException(Exception):
@@ -84,8 +84,16 @@ def generate_bunch(
             6*n_part, dist_type='norm', cutoff=cutoff).reshape(6, -1)
         # The Cholesky decomposition finds a matrix env_chol such that:
         # env_chol @ env_chol.T == envelope
-        env_chol = _np.linalg.cholesky(envelope)
-        # This way we can find bunch througth:
+        try:
+            env_chol = _np.linalg.cholesky(envelope)
+        except _np.linalg.LinAlgError:
+            # In case there is no coupling the envelope matrix is only
+            # positive semi-definite and we must disconsider the vertical
+            # plane for the decomposition algorithm to work:
+            env_chol = _np.zeros((6, 6))
+            idx = _np.ix_([0, 1, 4, 5], [0, 1, 4, 5])
+            env_chol[idx] = _np.linalg.cholesky(envelope[idx])
+        # This way we can find bunch through:
         bunch = env_chol @ znor
         # where one can see that:
         # np.cov(bunch) == <bunch @ bunch.T> ==
@@ -157,13 +165,13 @@ def generate_bunch(
 @_interactive
 def set_4d_tracking(accelerator):
     accelerator.cavity_on = False
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 'off'
 
 
 @_interactive
-def set_6d_tracking(accelerator):
+def set_6d_tracking(accelerator, rad_full=False):
     accelerator.cavity_on = True
-    accelerator.radiation_on = True
+    accelerator.radiation_on = 'full' if rad_full else 'damping'
 
 
 @_interactive
@@ -181,11 +189,12 @@ def element_pass(element, particles, energy, **kwargs):
                        ex.1: particles = [rx,px,ry,py,de,dl]
                        ex.3: particles = numpy.zeros((6, Np))
     energy          -- energy of the beam [eV]
-    harmonic_number -- harmonic number of the lattice (optional, defaul=1)
-    cavity_on       -- cavity on state (True/False) (optional, defaul=False)
-    radiation_on    -- radiation on state (True/False) (optional, defaul=False)
+    harmonic_number -- harmonic number of the lattice (optional, default=1)
+    cavity_on       -- cavity on state (True/False) (optional, default=False)
+    radiation_on    -- radiation on state (0 or "off", 1 or "damping", 2 or
+        "full") (optional, default="off")
     vchamber_on     -- vacuum chamber on state (True/False) (optional,
-        defaul=False)
+        default=False)
 
     Returns:
     part_out -- a numpy array with tracked 6D position(s) of the particle(s).
@@ -481,6 +490,7 @@ def ring_pass(
                 lost_plane.extend(lplane)
         p_out = _np.concatenate(p_out, axis=1)
 
+    p_out = _np.squeeze(p_out)
     # simplifies output structure in case of single particle
     if len(lost_element) == 1:
         lost_turn = lost_turn[0]
@@ -508,7 +518,6 @@ def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset):
         accelerator.trackcpp_acc, p_in, p_out, args))
 
     p_out = p_out.reshape(6, n_part, -1)
-    p_out = _np.squeeze(p_out)
 
     # fills vectors with info about particle loss
     lost_turn = list(args.lost_turn)
@@ -576,6 +585,9 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     orbit positions are returned at the start of the first element. In
     addition a guess fixed point at the entrance of the ring may be provided.
 
+    The radiation_on property will be temporarily set to "damping" to perform
+    this calculation, regardless the initial radiation state.
+
     Keyword arguments:
     accelerator : Accelerator object
     indices : may be a (list,tuple, numpy.ndarray) of element indices
@@ -599,6 +611,10 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     """
     indices = _process_indices(accelerator, indices)
 
+    # The orbit can't be found when quantum excitation is on.
+    rad_stt = accelerator.radiation_on
+    accelerator.radiation_on = 'damping'
+
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()
     else:
@@ -608,6 +624,9 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     ret = _trackcpp.track_findorbit6(
         accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
+
+    accelerator.radiation_on = rad_stt
+
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 
