@@ -17,7 +17,7 @@ authors:
   given-names: "Murilo"
 
 title: "Pyaccel. A Python module for beam dynamics tracking and optics calculations in particle accelerators."
-version: 3.17.2
+version: 3.18.1
 doi: 10.5281/zenodo.7702615
 date-released: 2023-03-06
 url: "https://github.com/lnls-fac/pyaccel"
