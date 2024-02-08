@@ -195,6 +195,7 @@ def element_pass(element, particles, energy, **kwargs):
         "full") (optional, default="off")
     vchamber_on     -- vacuum chamber on state (True/False) (optional,
         default=False)
+    turn_number     -- turn number count for realistic cavity pass (int, >= 1, default=0)
 
     Returns:
     part_out -- a numpy array with tracked 6D position(s) of the particle(s).
@@ -208,6 +209,9 @@ def element_pass(element, particles, energy, **kwargs):
     """
     # checks if all necessary arguments have been passed
     kwargs['energy'] = energy
+    turn_number = int(0)
+    if 'turn_number' in kwargs:
+        turn_number = int(kwargs['turn_number'])
 
     # creates accelerator for tracking
     accelerator = _accelerator.Accelerator(**kwargs)
@@ -217,7 +221,7 @@ def element_pass(element, particles, energy, **kwargs):
 
     # tracks through the list of pos
     ret = _trackcpp.track_elementpass_wrapper(
-        element.trackcpp_e, p_in, accelerator.trackcpp_acc)
+        element.trackcpp_e, p_in, accelerator.trackcpp_acc, turn_number)
     if ret > 0:
         raise TrackingException
 
@@ -227,7 +231,7 @@ def element_pass(element, particles, energy, **kwargs):
 @_interactive
 def line_pass(
         accelerator, particles, indices=None, element_offset=0,
-        parallel=False):
+        parallel=False, turn_number=0):
     """Track particle(s) along a line.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -260,6 +264,9 @@ def line_pass(
                 passed that many processes will be used. If True, the number
                 of processes will be determined automatically.
 
+    turn_number -- integer turn number count for realistic cavity pass 
+                   (int, >= 1, default=0)
+                
     Returns: (part_out, lost_flag, lost_element, lost_plane)
 
     part_out -- 6D position for each particle at entrance of each element.
@@ -318,14 +325,14 @@ def line_pass(
 
     if not parallel:
         p_out, lost_flag, lost_element, lost_plane = _line_pass(
-            accelerator, p_in, indices, element_offset)
+            accelerator, p_in, indices, element_offset, turn_number)
     else:
         slcs = _get_slices_multiprocessing(parallel, p_in.shape[1])
         with _multiproc.Pool(processes=len(slcs)) as pool:
             res = []
             for slc in slcs:
                 res.append(pool.apply_async(_line_pass, (
-                    accelerator, p_in[:, slc], indices, element_offset)))
+                    accelerator, p_in[:, slc], indices, element_offset, turn_number)))
 
             p_out, lost_element, lost_plane = [], [], []
             lost_flag = False
@@ -345,12 +352,13 @@ def line_pass(
     return p_out, lost_flag, lost_element, lost_plane
 
 
-def _line_pass(accelerator, p_in, indices, element_offset):
+def _line_pass(accelerator, p_in, indices, element_offset, turn_number):
     # store only final position?
     args = _trackcpp.LinePassArgs()
     for idx in indices:
         args.indices.push_back(int(idx))
     args.element_offset = int(element_offset)
+    args.turn_number = int(turn_number)
 
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
