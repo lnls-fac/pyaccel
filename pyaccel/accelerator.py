@@ -26,7 +26,8 @@ class Accelerator(object):
         self._init_lattice(kwargs)
 
         if 'energy' in kwargs:
-            self.trackcpp_acc.energy = kwargs['energy']
+            # self.trackcpp_acc.energy = kwargs['energy']
+            self.trackcpp_acc.setEnergy(kwargs['energy'])
         if 'harmonic_number' in kwargs:
             self.trackcpp_acc.harmonic_number = kwargs['harmonic_number']
         if 'radiation_on' in kwargs:
@@ -39,13 +40,20 @@ class Accelerator(object):
             self.trackcpp_acc.lattice_version = kwargs['lattice_version']
 
         if self.trackcpp_acc.energy == 0:
-            self._brho, self._velocity, self._beta, self._gamma, \
-                self.trackcpp_acc.energy = \
+            # self._brho, self._velocity, self._beta, self._gamma, \
+            #     self.trackcpp_acc.energy = \
+            #     _mp.beam_optics.beam_rigidity(gamma=1.0)
+            _, _, _, _, \
+               energy_value = \
                 _mp.beam_optics.beam_rigidity(gamma=1.0)
+            self.trackcpp_acc.setEnergy(energy_value)
         else:
-            self._brho, self._velocity, self._beta, self._gamma, energy = \
+            # self._brho, self._velocity, self._beta, self._gamma, energy = \
+            #     _mp.beam_optics.beam_rigidity(energy=self.energy/1e9)
+            # self.trackcpp_acc.energy = energy * 1e9
+            _, _, _, _, energy =\
                 _mp.beam_optics.beam_rigidity(energy=self.energy/1e9)
-            self.trackcpp_acc.energy = energy * 1e9
+            self.trackcpp_acc.setEnergy(energy * 1e9)
 
         self.__isfrozen = True
 
@@ -62,57 +70,76 @@ class Accelerator(object):
     @energy.setter
     def energy(self, value):
         """."""
-        self._brho, self._velocity, self._beta, self._gamma, energy = \
+        # self._brho, self._velocity, self._beta, self._gamma, energy = \
+        #     _mp.beam_optics.beam_rigidity(energy=value/1e9)
+        # self.trackcpp_acc.energy = energy * 1e9
+        _, _, _, _, energy = \
             _mp.beam_optics.beam_rigidity(energy=value/1e9)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.trackcpp_acc.setEnergy(energy * 1e9)
 
     @property
     def gamma_factor(self):
         """Return beam relativistic gamma factor."""
-        return self._gamma
+        # return self._gamma
+        return self.trackcpp_acc.gamma_factor
 
     @gamma_factor.setter
     def gamma_factor(self, value):
         """Set beam relativistic gamma factor."""
-        self._brho, self._velocity, self._beta, self._gamma, energy = \
+        # self._brho, self._velocity, self._beta, self._gamma, energy = \
+        #     _mp.beam_optics.beam_rigidity(gamma=value)
+        # self.trackcpp_acc.energy = energy * 1e9
+        _, _, _, _, energy = \
             _mp.beam_optics.beam_rigidity(gamma=value)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.trackcpp_acc.setEnergy(energy * 1e9)
 
     @property
     def beta_factor(self):
         """Return beam relativistic beta factor."""
-        return self._beta
+        # return self._beta
+        return self.trackcpp_acc.beta_factor
 
     @beta_factor.setter
     def beta_factor(self, value):
         """Set beam relativistic beta factor."""
-        self._brho, self._velocity, self._beta, self._gamma, energy = \
+        # self._brho, self._velocity, self._beta, self._gamma, energy = \
+        #     _mp.beam_optics.beam_rigidity(beta=value)
+        # self.trackcpp_acc.energy = energy * 1e9
+        _, _, _, _, energy = \
             _mp.beam_optics.beam_rigidity(beta=value)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.trackcpp_acc.setEnergy(energy * 1e9)
 
     @property
     def velocity(self):
         """Return beam velocity [m/s]."""
-        return self._velocity
+        # return self._velocity
+        return self.trackcpp_acc.velocity
 
     @velocity.setter
     def velocity(self, value):
         """Set beam velocity [m/s]."""
-        self._brho, self._velocity, self._beta, self._gamma, energy = \
+        # self._brho, self._velocity, self._beta, self._gamma, energy = \
+        #     _mp.beam_optics.beam_rigidity(velocity=value)
+        # self.trackcpp_acc.energy = energy * 1e9
+        _, _, _, _, energy = \
             _mp.beam_optics.beam_rigidity(velocity=value)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.trackcpp_acc.setEnergy(energy * 1e9)
 
     @property
     def brho(self):
         """Return beam rigidity [T.m]."""
-        return self._brho
+        # return self._brho
+        return self.trackcpp_acc.brho
 
     @brho.setter
     def brho(self, value):
         """Set beam rigidity [T.m]."""
-        self._brho, self._velocity, self._beta, self._gamma, energy = \
+        # self._brho, self._velocity, self._beta, self._gamma, energy = \
+        #     _mp.beam_optics.beam_rigidity(brho=value)
+        # self.trackcpp_acc.energy = energy * 1e9
+        _, _, _, _, energy = \
             _mp.beam_optics.beam_rigidity(brho=value)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.trackcpp_acc.setEnergy(energy * 1e9)
 
     @property
     def harmonic_number(self):
@@ -430,7 +457,8 @@ class Accelerator(object):
             elif isinstance(acc, Accelerator):  # creates another object.
                 trackcpp_acc = _trackcpp.Accelerator()
                 trackcpp_acc.lattice = acc.trackcpp_acc.lattice[:]
-                trackcpp_acc.energy = acc.energy
+                # trackcpp_acc.energy = acc.energy
+                trackcpp_acc.setEnergy(acc.energy)
                 trackcpp_acc.cavity_on = acc.cavity_on
                 trackcpp_acc.radiation_on = acc.radiation_on
                 trackcpp_acc.vchamber_on = acc.vchamber_on
