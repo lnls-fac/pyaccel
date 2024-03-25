@@ -48,6 +48,7 @@ class EqParamsFromBeamEnvelope:
         self._alphas = _np.zeros(3)
         self._damping_numbers = _np.zeros(3)
         self._tunes = _np.zeros(3)
+        self._fixed_point = None
         self.accelerator = accelerator
 
     def __str__(self):
@@ -118,6 +119,11 @@ class EqParamsFromBeamEnvelope:
     def m66(self):
         """."""
         return self._cumul_mat[-1].copy()
+
+    @property
+    def fixed_point(self):
+        """."""
+        return self._fixed_point
 
     @property
     def envelopes(self):
