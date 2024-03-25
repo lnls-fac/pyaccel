@@ -123,7 +123,7 @@ class EqParamsFromBeamEnvelope:
     @property
     def fixed_point(self):
         """."""
-        return self._fixed_point
+        return self._fixed_point.copy()
 
     @property
     def envelopes(self):
