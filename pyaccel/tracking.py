@@ -14,7 +14,6 @@ PCEN ordering is preserved.
 """
 import multiprocessing as _multiproc
 
-import random as _random
 import numpy as _np
 import trackcpp as _trackcpp
 
@@ -821,9 +820,7 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, fixed_point=None):
 
 
 def _set_random_seed():
-    # seed = _np.random.randint(0, 2**32-1)  # introduces correlation with parallel tracking!
-    seed = _random.randint(0, 2**32-1)  # c++ seed is a 32-bit unsigned int
-    _trackcpp.set_random_seed(seed)
+    _trackcpp.set_random_seed_with_random_device()
 
 
 def _get_slices_multiprocessing(parallel, nparticles):
