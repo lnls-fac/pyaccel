@@ -14,6 +14,7 @@ PCEN ordering is preserved.
 """
 import multiprocessing as _multiproc
 
+import random as _random
 import numpy as _np
 import trackcpp as _trackcpp
 
@@ -325,7 +326,7 @@ def line_pass(
             res = []
             for slc in slcs:
                 res.append(pool.apply_async(_line_pass, (
-                    accelerator, p_in[:, slc], indices, element_offset)))
+                    accelerator, p_in[:, slc], indices, element_offset, True)))
 
             p_out, lost_element, lost_plane = [], [], []
             lost_flag = False
@@ -345,7 +346,7 @@ def line_pass(
     return p_out, lost_flag, lost_element, lost_plane
 
 
-def _line_pass(accelerator, p_in, indices, element_offset):
+def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
     # store only final position?
     args = _trackcpp.LinePassArgs()
     for idx in indices:
@@ -354,6 +355,10 @@ def _line_pass(accelerator, p_in, indices, element_offset):
 
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
+
+    # re-seed pseudo-random generator
+    if set_seed:
+        _set_random_seed()
 
     # tracking
     lost_flag = bool(_trackcpp.track_linepass_wrapper(
@@ -477,7 +482,7 @@ def ring_pass(
             for slc in slcs:
                 res.append(pool.apply_async(_ring_pass, (
                     accelerator, p_in[:, slc], nr_turns, turn_by_turn,
-                    element_offset)))
+                    element_offset, True)))
 
             p_out, lost_turn, lost_element, lost_plane = [], [], [], []
             lost_flag = False
@@ -500,7 +505,7 @@ def ring_pass(
     return p_out, lost_flag, lost_turn, lost_element, lost_plane
 
 
-def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset):
+def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset, set_seed=False):
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
     args.nr_turns = int(nr_turns)
@@ -512,6 +517,10 @@ def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset):
         p_out = _np.zeros((6, n_part*(nr_turns+1)), dtype=float)
     else:
         p_out = _np.zeros((6, n_part), dtype=float)
+
+    # re-seed pseudo-random generator
+    if set_seed:
+        _set_random_seed()
 
     # tracking
     lost_flag = bool(_trackcpp.track_ringpass_wrapper(
@@ -809,6 +818,13 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, fixed_point=None):
 
 
 # ------ Auxiliary methods -------
+
+
+def _set_random_seed():
+    # seed = _np.random.randint(0, 2**32-1)  # introduces correlation with parallel tracking!
+    seed = _random.randint(0, 2**32-1)  # c++ seed is a 32-bit unsigned int
+    _trackcpp.set_random_seed(seed)
+
 
 def _get_slices_multiprocessing(parallel, nparticles):
     nrproc = _multiproc.cpu_count() - 3
