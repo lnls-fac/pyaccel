@@ -1,14 +1,13 @@
 """Accelerator class."""
 
-import numpy as _np
-
+import numpy as _numpy
+from . import get_backend
+backend = get_backend()
 import mathphys as _mp
-import trackcpp as _trackcpp
-
 from . import elements as _elements
 from .utils import interactive as _interactive
-from .utils import RADIATION_STATES_NAMES as _RADIATION_STATES_NAMES
 
+_RADIATION_STATES_NAMES = ["off", "damping", "full"]
 
 class AcceleratorException(Exception):
     """."""
@@ -22,49 +21,51 @@ class Accelerator(object):
 
     def __init__(self, **kwargs):
         """."""
-        self.trackcpp_acc = self._init_accelerator(kwargs)
+        self.backend_acc = self._init_accelerator(kwargs)
         self._init_lattice(kwargs)
 
         if 'energy' in kwargs:
-            self.trackcpp_acc.energy = kwargs['energy']
+            self.backend_acc.energy = kwargs['energy']
         if 'harmonic_number' in kwargs:
-            self.trackcpp_acc.harmonic_number = kwargs['harmonic_number']
+            self.backend_acc.harmonic_number = kwargs['harmonic_number']
         if 'radiation_on' in kwargs:
             self.radiation_on = kwargs['radiation_on']
         if 'cavity_on' in kwargs:
-            self.trackcpp_acc.cavity_on = kwargs['cavity_on']
+            self.backend_acc.cavity_on = kwargs['cavity_on']
         if 'vchamber_on' in kwargs:
-            self.trackcpp_acc.vchamber_on = kwargs['vchamber_on']
+            self.backend_acc.vchamber_on = kwargs['vchamber_on']
         if 'lattice_version' in kwargs:
-            self.trackcpp_acc.lattice_version = kwargs['lattice_version']
+            backend.force_set(
+                self.backend_acc, "lattice_version" , kwargs['lattice_version']
+                )
 
-        if self.trackcpp_acc.energy == 0:
+        if self.backend_acc.energy == 0:
             self._brho, self._velocity, self._beta, self._gamma, \
-                self.trackcpp_acc.energy = \
+                self.backend_acc.energy = \
                 _mp.beam_optics.beam_rigidity(gamma=1.0)
         else:
             self._brho, self._velocity, self._beta, self._gamma, energy = \
                 _mp.beam_optics.beam_rigidity(energy=self.energy/1e9)
-            self.trackcpp_acc.energy = energy * 1e9
+            self.backend_acc.energy = energy * 1e9
 
         self.__isfrozen = True
 
     @property
     def length(self):
         """Return lattice length [m]."""
-        return self.trackcpp_acc.get_length()
+        return backend.get_acc_length(self.backend_acc)
 
     @property
     def energy(self):
         """Return beam energy [eV]."""
-        return self.trackcpp_acc.energy
+        return self.backend_acc.energy
 
     @energy.setter
     def energy(self, value):
         """."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(energy=value/1e9)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.backend_acc.energy = energy * 1e9
 
     @property
     def gamma_factor(self):
@@ -76,7 +77,7 @@ class Accelerator(object):
         """Set beam relativistic gamma factor."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(gamma=value)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.backend_acc.energy = energy * 1e9
 
     @property
     def beta_factor(self):
@@ -88,7 +89,7 @@ class Accelerator(object):
         """Set beam relativistic beta factor."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(beta=value)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.backend_acc.energy = energy * 1e9
 
     @property
     def velocity(self):
@@ -100,7 +101,7 @@ class Accelerator(object):
         """Set beam velocity [m/s]."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(velocity=value)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.backend_acc.energy = energy * 1e9
 
     @property
     def brho(self):
@@ -112,12 +113,12 @@ class Accelerator(object):
         """Set beam rigidity [T.m]."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(brho=value)
-        self.trackcpp_acc.energy = energy * 1e9
+        self.backend_acc.energy = energy * 1e9
 
     @property
     def harmonic_number(self):
         """Return accelerator harmonic number."""
-        return self.trackcpp_acc.harmonic_number
+        return self.backend_acc.harmonic_number
 
     @harmonic_number.setter
     def harmonic_number(self, value):
@@ -125,29 +126,29 @@ class Accelerator(object):
         if not isinstance(value, int) or value < 1:
             raise AcceleratorException(
                 'harmonic number has to be a positive integer')
-        self.trackcpp_acc.harmonic_number = value
+        self.backend_acc.harmonic_number = value
 
     @property
     def cavity_on(self):
         """Return cavity on state."""
-        return self.trackcpp_acc.cavity_on
+        return self.backend_acc.cavity_on
 
     @cavity_on.setter
     def cavity_on(self, value):
         """Set cavity on state."""
-        if self.trackcpp_acc.harmonic_number < 1:
+        if self.backend_acc.harmonic_number < 1:
             raise AcceleratorException('invalid harmonic number')
-        self.trackcpp_acc.cavity_on = value
+        self.backend_acc.cavity_on = value
 
     @property
     def radiation_on(self):
         """Return radiation on state."""
-        return self.trackcpp_acc.radiation_on
+        return backend.Int(self.backend_acc.radiation_on)
 
     @property
     def radiation_on_str(self):
         """Return radiation_on state in string format."""
-        return _RADIATION_STATES_NAMES[self.trackcpp_acc.radiation_on]
+        return _RADIATION_STATES_NAMES[backend.Int(self.backend_acc.radiation_on)]
 
     @radiation_on.setter
     def radiation_on(self, value):
@@ -166,9 +167,9 @@ class Accelerator(object):
         nr_states = len(_RADIATION_STATES_NAMES)
         if isinstance(value, (int, bool, float)) and \
                 0 <= value <= nr_states:
-            self.trackcpp_acc.radiation_on = int(value)
+            self.backend_acc.radiation_on = int(value)
         elif isinstance(value, str) and value in _RADIATION_STATES_NAMES:
-            self.trackcpp_acc.radiation_on = \
+            self.backend_acc.radiation_on = \
                 _RADIATION_STATES_NAMES.index(value)
         else:
             errtxt = (
@@ -181,22 +182,22 @@ class Accelerator(object):
     @property
     def vchamber_on(self):
         """Return vacuum chamber on state."""
-        return self.trackcpp_acc.vchamber_on
+        return self.backend_acc.vchamber_on
 
     @vchamber_on.setter
     def vchamber_on(self, value):
         """Set vacuum chamber on state."""
-        self.trackcpp_acc.vchamber_on = value
+        self.backend_acc.vchamber_on = value
 
     @property
     def lattice_version(self):
         """Return lattice version."""
-        return self.trackcpp_acc.lattice_version
+        return self.backend_acc.lattice_version
 
     @lattice_version.setter
     def lattice_version(self, value):
         """Set lattice version."""
-        self.trackcpp_acc.lattice_version = value
+        backend.force_set(self.backend_acc, "lattice_version", value)
 
     def pop(self, index):
         """."""
@@ -216,7 +217,7 @@ class Accelerator(object):
         """
         if not isinstance(element, _elements.Element):
             raise TypeError('value must be Element')
-        self.trackcpp_acc.lattice.append(element.trackcpp_e)
+        self.backend_acc.lattice.append(element.backend_e)
 
     def insert(self, index: int, element: _elements.Element):
         """Insert element at a given index of the lattice.
@@ -238,8 +239,8 @@ class Accelerator(object):
         index = max(min(index, leng), -leng)
         if index < 0:
             index += leng
-        idx = self.trackcpp_acc.lattice.begin() + index
-        self.trackcpp_acc.lattice.insert(idx, element.trackcpp_e)
+        idx = self.backend_acc.lattice.begin() + index
+        self.backend_acc.lattice.insert(idx, element.backend_e)
 
     def extend(self, value):
         """."""
@@ -250,19 +251,19 @@ class Accelerator(object):
         for el in value:
             self.append(el)
 
-    # NOTE: make the class objects pickalable
-    def __getstate__(self):
-        """."""
-        stri = _trackcpp.String()
-        _trackcpp.write_flat_file_wrapper(stri, self.trackcpp_acc, False)
-        return stri.data
+    # # NOTE: make the class objects pickalable
+    # def __getstate__(self):
+    #     """."""
+    #     stri = backend.String()
+    #     backend.write_flat_file_wrapper(stri, self.backend_acc, False)
+    #     return stri.data
 
-    def __setstate__(self, stridata):
-        """."""
-        stri = _trackcpp.String(stridata)
-        acc = Accelerator()
-        _trackcpp.read_flat_file_wrapper(stri, acc.trackcpp_acc, False)
-        self.trackcpp_acc = acc.trackcpp_acc
+    # def __setstate__(self, stridata):
+    #     """."""
+    #     stri = backend.String(stridata)
+    #     acc = Accelerator()
+    #     backend.read_flat_file_wrapper(stri, acc.backend_acc, False)
+    #     self.backend_acc = acc.backend_acc
 
     def __setattr__(self, key, value):
         """."""
@@ -270,54 +271,55 @@ class Accelerator(object):
             raise AcceleratorException("%r is a frozen class" % self)
         object.__setattr__(self, key, value)
 
-    def __delitem__(self, index):
-        """."""
-        if isinstance(index, slice):
-            start, stop, step = index.indices(len(self))
-            index = set(range(start, stop, step))
-        if isinstance(index, (int, _np.int_)):
-            self.trackcpp_acc.lattice.erase(
-                self.trackcpp_acc.lattice.begin() + int(index))
-        elif isinstance(index, (set, list, tuple, _np.ndarray)):
-            index = sorted(set(index), reverse=True)
-            for i in index:
-                self.trackcpp_acc.lattice.erase(
-                    self.trackcpp_acc.lattice.begin() + int(i))
+    # def __delitem__(self, index):
+    #     """."""
+    #     if isinstance(index, slice):
+    #         start, stop, step = index.indices(len(self))
+    #         index = set(range(start, stop, st))
+    #     if isinstance(index, (int, _numpy.int_)):
+    #         self.backend_acc.lattice.erase(
+    #             self.backend_acc.lattice.begin() + int(index))
+    #     elif isinstance(index, (set, list, tuple, _numpy.ndarray)):
+    #         index = sorted(set(index), reverse=True)
+    #         for i in index:
+    #             self.backend_acc.lattice.erase(
+    #                 self.backend_acc.lattice.begin() + int(i))
 
     def __getitem__(self, index):
         """."""
-        if isinstance(index, (int, _np.int_)):
-            ele = _elements.Element()
-            ele.trackcpp_e = self.trackcpp_acc.lattice[int(index)]
+        if isinstance(index, (int, _numpy.int_)):
+            ele = _elements.Element(
+                element=self.backend_acc.lattice[int(index)]
+                )
             return ele
-        elif isinstance(index, (list, tuple, _np.ndarray)):
+        elif isinstance(index, (list, tuple, _numpy.ndarray)):
             try:
-                index = _np.array(index, dtype=int)
+                index = _numpy.array(index, dtype=int)
             except TypeError:
                 raise TypeError('invalid index')
-            lattice = _trackcpp.CppElementVector()
+            lattice = backend.ElementVector()
             for i in index:
-                lattice.append(self.trackcpp_acc.lattice[int(i)])
+                lattice.append(self.backend_acc.lattice[int(i)])
         elif isinstance(index, slice):
             index = slice(*index.indices(len(self)))
-            lattice = self.trackcpp_acc.lattice[index]
+            lattice = self.backend_acc.lattice[index]
         else:
             raise TypeError('invalid index')
         acc = Accelerator(
             lattice=lattice,
-            lattice_version=self.trackcpp_acc.lattice_version,
-            energy=self.trackcpp_acc.energy,
-            harmonic_number=self.trackcpp_acc.harmonic_number,
-            cavity_on=self.trackcpp_acc.cavity_on,
-            radiation_on=self.trackcpp_acc.radiation_on,
-            vchamber_on=self.trackcpp_acc.vchamber_on)
+            lattice_version=self.backend_acc.lattice_version,
+            energy=self.backend_acc.energy,
+            harmonic_number=self.backend_acc.harmonic_number,
+            cavity_on=self.backend_acc.cavity_on,
+            radiation_on=self.backend_acc.radiation_on,
+            vchamber_on=self.backend_acc.vchamber_on)
         return acc
 
     def __setitem__(self, index, value):
         """."""
-        if isinstance(index, (int, _np.int_)):
+        if isinstance(index, (int, _numpy.int_)):
             index = [index, ]
-        elif isinstance(index, (list, tuple, _np.ndarray)):
+        elif isinstance(index, (list, tuple, _numpy.ndarray)):
             pass
         elif isinstance(index, slice):
             start, stop, step = index.indices(len(self))
@@ -325,31 +327,31 @@ class Accelerator(object):
         else:
             raise TypeError('invalid index')
 
-        if isinstance(value, (list, tuple, _np.ndarray, Accelerator)):
+        if isinstance(value, (list, tuple, _numpy.ndarray, Accelerator)):
             if not all([isinstance(v, _elements.Element) for v in value]):
                 raise TypeError('invalid value')
             for i, val in zip(index, value):
-                self.trackcpp_acc.lattice[int(i)] = val.trackcpp_e
+                self.backend_acc.lattice[int(i)] = val.backend_e
         elif isinstance(value, _elements.Element):
             for i in index:
-                self.trackcpp_acc.lattice[int(i)] = value.trackcpp_e
+                self.backend_acc.lattice[int(i)] = value.backend_e
         else:
             raise TypeError('invalid value')
 
     def __len__(self):
         """."""
-        return self.trackcpp_acc.lattice.size()
+        return backend.get_size(self.backend_acc.lattice)
 
     def __str__(self):
         """."""
         rst = ''
-        rst += 'energy         : ' + str(self.trackcpp_acc.energy) + ' eV'
-        rst += '\nharmonic_number: ' + str(self.trackcpp_acc.harmonic_number)
-        rst += '\ncavity_on      : ' + str(self.trackcpp_acc.cavity_on)
-        rst += '\nradiation_on   : ' + str(self.trackcpp_acc.radiation_on)
-        rst += '\nvchamber_on    : ' + str(self.trackcpp_acc.vchamber_on)
-        rst += '\nlattice version: ' + self.trackcpp_acc.lattice_version
-        rst += '\nlattice size   : ' + str(len(self.trackcpp_acc.lattice))
+        rst += 'energy         : ' + str(self.backend_acc.energy) + ' eV'
+        rst += '\nharmonic_number: ' + str(self.backend_acc.harmonic_number)
+        rst += '\ncavity_on      : ' + str(self.backend_acc.cavity_on)
+        rst += '\nradiation_on   : ' + self.radiation_on_str
+        rst += '\nvchamber_on    : ' + str(self.backend_acc.vchamber_on)
+        rst += '\nlattice version: ' + self.backend_acc.lattice_version
+        rst += '\nlattice size   : ' + str(len(self.backend_acc.lattice))
         rst += '\nlattice length : ' + str(self.length) + ' m'
         return rst
 
@@ -386,7 +388,7 @@ class Accelerator(object):
 
     def __mul__(self, other):
         """."""
-        if isinstance(other, (int, _np.int_)):
+        if isinstance(other, (int, _numpy.int_)):
             if other < 0:
                 raise ValueError('cannot multiply by negative integer')
             elif other == 0:
@@ -418,40 +420,41 @@ class Accelerator(object):
         """."""
         if not isinstance(other, Accelerator):
             return NotImplemented
-        return self.trackcpp_acc.isequal(other.trackcpp_acc)
+        return backend.isequal(self.backend_acc, other.backend_acc)
 
     # --- private methods ---
 
     def _init_accelerator(self, kwargs):
         if 'accelerator' in kwargs:
             acc = kwargs['accelerator']
-            if isinstance(acc, _trackcpp.Accelerator):
-                trackcpp_acc = acc  # points to the same object in memory
+            if backend.bkd_isinstance(acc, backend.Accelerator):
+                backend_acc = acc  # points to the same object in memory
             elif isinstance(acc, Accelerator):  # creates another object.
-                trackcpp_acc = _trackcpp.Accelerator()
-                trackcpp_acc.lattice = acc.trackcpp_acc.lattice[:]
-                trackcpp_acc.energy = acc.energy
-                trackcpp_acc.cavity_on = acc.cavity_on
-                trackcpp_acc.radiation_on = acc.radiation_on
-                trackcpp_acc.vchamber_on = acc.vchamber_on
-                trackcpp_acc.harmonic_number = acc.harmonic_number
-                trackcpp_acc.lattice_version = acc.lattice_version
+                backend_acc = backend.Accelerator()
+                backend_acc.lattice = acc.backend_acc.lattice[:]
+                backend_acc.energy = acc.energy
+                backend_acc.cavity_on = acc.cavity_on
+                backend_acc.radiation_on = acc.radiation_on
+                backend_acc.vchamber_on = acc.vchamber_on
+                backend_acc.harmonic_number = acc.harmonic_number
+                backend.force_set(
+                    backend_acc, "lattice_version", acc.lattice_version
+                )
         else:
-            trackcpp_acc = _trackcpp.Accelerator()
-            trackcpp_acc.cavity_on = False
-            trackcpp_acc.radiation_on = 0  # 0 = radiation off
-            trackcpp_acc.vchamber_on = False
-            trackcpp_acc.harmonic_number = 0
-            trackcpp_acc.lattice_version = ''
-        return trackcpp_acc
+            backend_acc = backend.Accelerator()
+            backend_acc.cavity_on = False
+            backend_acc.radiation_on = 0  # 0 = radiation off
+            backend_acc.vchamber_on = False
+            backend_acc.harmonic_number = 0
+        return backend_acc
 
     def _init_lattice(self, kwargs):
         if 'lattice' in kwargs:
             lattice = kwargs['lattice']
-            if isinstance(lattice, _trackcpp.CppElementVector):
-                self.trackcpp_acc.lattice = lattice
+            if backend.bkd_isinstance(lattice, backend.ElementVector):
+                self.backend_acc.lattice = lattice
             elif isinstance(lattice, list):
                 for elem in lattice:
-                    self.trackcpp_acc.lattice.append(elem.trackcpp_e)
+                    self.backend_acc.lattice.append(elem.backend_e)
             else:
                 raise TypeError('values must be list of Element')
