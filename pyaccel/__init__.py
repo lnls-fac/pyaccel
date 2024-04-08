@@ -7,7 +7,7 @@ _backend = _Backend()
 
 def use(name):
     import importlib
-    module = importlib.import_module("jlpyaccel.backends._"+name)
+    module = importlib.import_module("pyaccel.backends._"+name)
     global _backend
     vars(_backend).update(vars(module))
 

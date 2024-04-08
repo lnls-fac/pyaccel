@@ -342,7 +342,7 @@ class Element:
     def __init__(self, element=None, fam_name='', length=0.0):
         """."""
 
-        self._backend_type = backend.backend_type
+        self._bkd_language = backend.language
 
         if element is None:
             element = backend.Element(fam_name)
@@ -353,7 +353,7 @@ class Element:
             pass
         else:
             raise TypeError(
-                f'element must be a {backend_package_name[backend.backend_type]}.Element or a Element object.')
+                f'element must be a {backend_package_name[backend.language]}.Element or a Element object.')
         self.backend_e = element
 
     @property
@@ -757,9 +757,9 @@ class Element:
     @polynom_a.setter
     def polynom_a(self, value):
         """."""
-        if self._backend_type == "cpp":
+        if self._bkd_language == "cpp":
             self.backend_e.polynom_a[:] = value[:]
-        elif self._backend_type == "julia":
+        elif self._bkd_language == "julia":
             self.backend_e.polynom_a = value
         else:
             ValueError("invalid backend")
@@ -772,9 +772,9 @@ class Element:
     @polynom_b.setter
     def polynom_b(self, value):
         """."""
-        if self._backend_type == "cpp":
+        if self._bkd_language == "cpp":
             self.backend_e.polynom_b[:] = value[:]
-        elif self._backend_type == "julia":
+        elif self._bkd_language == "julia":
             self.backend_e.polynom_b = value
         else:
             ValueError("invalid backend")
@@ -847,7 +847,7 @@ class Element:
         """."""
         if not isinstance(other, Element):
             return NotImplemented
-        if self._backend_type != other._backend_type:
+        if self._bkd_language != other._bkd_language:
             print("Different backends")
             return False
         for attr in _ELEM_ATTRIBUTES:
