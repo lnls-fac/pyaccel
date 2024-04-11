@@ -94,3 +94,6 @@ def bkd_isinstance(obj, class_or_tuple):
 
 def isequal(this, other):
     return _jl.isequal(this, other)
+
+def get_kicktable(index):
+    return _trjulia.Elements.kicktable_global_list[index]

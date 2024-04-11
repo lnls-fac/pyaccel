@@ -65,3 +65,6 @@ class Backend:
 
     def isequal(self, this, other):
         pass
+
+    def get_kicktable(self, index):
+        pass

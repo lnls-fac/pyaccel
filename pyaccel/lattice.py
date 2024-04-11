@@ -4,9 +4,10 @@ import math as _math
 from collections.abc import Iterable as _Iterable
 
 import numpy as _np
-
 import mathphys as _mp
-import trackcpp as _trackcpp
+
+from . import get_backend
+backend = get_backend()
 
 from .accelerator import Accelerator as _Accelerator
 from .elements import Element as _Element, marker as _marker
@@ -32,10 +33,10 @@ def flatten(elist):
 @_interactive
 def build(elist):
     """Build lattice from a list of elements and lines."""
-    lattice = _trackcpp.CppElementVector()
+    lattice = backend.ElementVector()
     elist = flatten(elist)
     for elem in elist:
-        lattice.append(elem.trackcpp_e)
+        lattice.append(elem.backend_e)
     return lattice
 
 
@@ -194,11 +195,10 @@ def split_element(element, fractions=None, nr_segs=None):
         e_out.angle_in = 0.0
         e_out.fint_in = 0.0
         elems.append(e_out)
-    elif ele.trackcpp_e.kicktable_idx != -1:
-        kicktable = _trackcpp.cvar.kicktable_list[
-            ele.trackcpp_e.kicktable_idx]
+    elif ele.backend_e.kicktable_idx != -1:
+        kicktable = backend.get_kicktable(ele.backend_e.kicktable_idx)
         for frac in fractions:
-            el_ = _trackcpp.kickmap_wrapper(
+            el_ = backend.kickmap(
                 ele.fam_name, kicktable.filename,
                 ele.nr_steps, frac, frac)
             elem = _Element(element=el_)
@@ -219,7 +219,7 @@ def length(lattice):
     """Return the length, in meters, of the given lattice."""
     if isinstance(lattice, _Accelerator):
         return lattice.length
-    elif isinstance(lattice, _trackcpp.Accelerator):
+    elif isinstance(lattice, backend.Accelerator):
         return lattice.get_length()
     else:
         return sum(map(lambda x: x.length, lattice))
@@ -383,38 +383,38 @@ def add_knob(lattice, fam_name, attribute_name, value):
         setattr(lattice[i], attribute_name, new_value)
 
 
-@_interactive
-def read_flat_file(filename):
-    """."""
-    energy = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
-    acc = _Accelerator(energy=energy)  # energy cannot be zero
-    fname = _trackcpp.String(filename)
-    rd_ = _trackcpp.read_flat_file_wrapper(fname, acc.trackcpp_acc, True)
-    if rd_ > 0:
-        raise LatticeError(_trackcpp.string_error_messages[rd_])
-    return acc
+# @_interactive
+# def read_flat_file(filename):
+#     """."""
+#     energy = _mp.constants.electron_rest_energy*_mp.units.joule_2_eV
+#     acc = _Accelerator(energy=energy)  # energy cannot be zero
+#     fname = _trackcpp.String(filename)
+#     rd_ = _trackcpp.read_flat_file_wrapper(fname, acc.trackcpp_acc, True)
+#     if rd_ > 0:
+#         raise LatticeError(_trackcpp.string_error_messages[rd_])
+#     return acc
 
 
-@_interactive
-def write_flat_file(accelerator, filename):
-    """."""
-    fname = _trackcpp.String(filename)
-    rd_ = _trackcpp.write_flat_file_wrapper(
-        fname, accelerator.trackcpp_acc, True)
-    if rd_ > 0:
-        raise LatticeError(_trackcpp.string_error_messages[rd_])
+# @_interactive
+# def write_flat_file(accelerator, filename):
+#     """."""
+#     fname = _trackcpp.String(filename)
+#     rd_ = _trackcpp.write_flat_file_wrapper(
+#         fname, accelerator.trackcpp_acc, True)
+#     if rd_ > 0:
+#         raise LatticeError(_trackcpp.string_error_messages[rd_])
 
 
-@_interactive
-def write_flat_file_to_string(accelerator):
-    """."""
-    str_ = _trackcpp.String()
-    rd_ = _trackcpp.write_flat_file_wrapper(
-        str_, accelerator.trackcpp_acc, False)
-    if rd_ > 0:
-        raise LatticeError(_trackcpp.string_error_messages[rd_])
+# @_interactive
+# def write_flat_file_to_string(accelerator):
+#     """."""
+#     str_ = _trackcpp.String()
+#     rd_ = _trackcpp.write_flat_file_wrapper(
+#         str_, accelerator.trackcpp_acc, False)
+#     if rd_ > 0:
+#         raise LatticeError(_trackcpp.string_error_messages[rd_])
 
-    return str_.data
+#     return str_.data
 
 
 @_interactive

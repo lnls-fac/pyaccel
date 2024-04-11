@@ -84,3 +84,6 @@ def bkd_isinstance(obj, class_or_tuple):
 
 def isequal(this, other):
     return this.isequal(other)
+
+def get_kicktable(index):
+    _trcpp.cvar.kicktable_list[index]

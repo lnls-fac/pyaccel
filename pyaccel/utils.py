@@ -4,8 +4,6 @@ import warnings
 
 import numpy as _numpy
 
-import trackcpp as _trackcpp
-
 from mathphys.functions import get_namedtuple as _get_namedtuple
 
 
