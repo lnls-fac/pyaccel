@@ -4,7 +4,6 @@ import math as _math
 from collections.abc import Iterable as _Iterable
 
 import numpy as _np
-import mathphys as _mp
 
 from . import get_backend
 backend = get_backend()
@@ -57,7 +56,7 @@ def shift(lattice, start: int):
     start = max(min(start, leng), -leng)
     if start < 0:
         start += leng
-    new_lattice = lattice[start:]
+    new_lattice = backend.ElementVector(lattice[start:])
     for i in range(start):
         new_lattice.append(lattice[i])
     return new_lattice
@@ -219,8 +218,8 @@ def length(lattice):
     """Return the length, in meters, of the given lattice."""
     if isinstance(lattice, _Accelerator):
         return lattice.length
-    elif isinstance(lattice, backend.Accelerator):
-        return lattice.get_length()
+    elif backend.bkd_isinstance(lattice, backend.Accelerator):
+        return backend.get_acc_length(lattice)
     else:
         return sum(map(lambda x: x.length, lattice))
 

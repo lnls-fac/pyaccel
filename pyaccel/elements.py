@@ -43,6 +43,10 @@ _ELEM_ATTRIBUTES = [
     'voltage'
 ]
 
+class VChamberShape:
+    rectangle = 0
+    ellipse   = 1
+    rhombus   = 2
 
 @_interactive
 def marker(fam_name):
@@ -74,7 +78,7 @@ def drift(fam_name, length):
     fam_name -- family name
     length -- [m]
     """
-    ele = backend.drift(fam_name, length)
+    ele = backend.drift(fam_name, float(length))
     return Element(element=ele)
 
 
@@ -86,7 +90,7 @@ def matrix(fam_name, length):
     fam_name -- family name
     length -- [m]
     """
-    ele = backend.matrix(fam_name, length)
+    ele = backend.matrix(fam_name, float(length))
     return Element(element=ele)
 
 
@@ -99,7 +103,7 @@ def hcorrector(fam_name, length=0.0, hkick=0.0):
     length -- [m]
     hkick -- horizontal kick [rad]
     """
-    ele = backend.hcorrector(fam_name, length, hkick)
+    ele = backend.hcorrector(fam_name, float(length), float(hkick))
     return Element(element=ele)
 
 
@@ -112,7 +116,7 @@ def vcorrector(fam_name, length=0.0, vkick=0.0):
     length -- [m]
     vkick -- vertical kick [rad]
     """
-    ele = backend.vcorrector(fam_name, length, vkick)
+    ele = backend.vcorrector(fam_name, float(length), float(vkick))
     return Element(element=ele)
 
 
@@ -126,7 +130,7 @@ def corrector(fam_name, length=0.0, hkick=0.0, vkick=0.0):
     hkick -- horizontal kick [rad]
     vkick -- vertical kick [rad]
     """
-    ele = backend.corrector(fam_name, length, hkick, vkick)
+    ele = backend.corrector(fam_name, float(length), float(hkick), float(vkick))
     return Element(element=ele)
 
 
@@ -151,8 +155,12 @@ def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
     if S is None:
         S = polynom_b[2]
     ele = backend.rbend(
-        fam_name, length, angle, angle_in, angle_out, gap, fint_in, fint_out,
-        polynom_a, polynom_b, K, S)
+        str(fam_name), float(length),
+        float(angle), float(angle_in), float(angle_out),
+        float(gap), float(fint_in), float(fint_out),
+        backend.FloatVector(polynom_a),
+        backend.FloatVector(polynom_b),
+        float(K), float(S))
     return Element(element=ele)
 
 
@@ -166,7 +174,7 @@ def quadrupole(fam_name, length, K, nr_steps=10):
     K -- [m^-2]
     nr_steps -- number of steps (default 10)
     """
-    ele = backend.quadrupole(fam_name, length, K, nr_steps)
+    ele = backend.quadrupole(fam_name, float(length), float(K), int(nr_steps))
     return Element(element=ele)
 
 
@@ -180,7 +188,7 @@ def sextupole(fam_name, length, S, nr_steps=5):
     S -- (1/2!)(d^2By/dx^2)/(Brho)[m^-3]
     nr_steps -- number of steps (default 5)
     """
-    e = backend.sextupole(fam_name, length, S, nr_steps)
+    e = backend.sextupole(fam_name, float(length), float(S), int(nr_steps))
     return Element(element=e)
 
 
@@ -196,7 +204,7 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     phase_lag -- [rad]
     """
     ele = backend.rfcavity(
-        fam_name, length, frequency, voltage, phase_lag)
+        fam_name, float(length), float(frequency), float(voltage), float(phase_lag))
     return Element(element=ele)
 
 
@@ -214,7 +222,7 @@ def kickmap(
     rescale_kicks -- rescale all kicktable length (default 1)
     """
     e = backend.kickmap(
-        fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks)
+        fam_name, kicktable_fname, int(nr_steps), float(rescale_length), float(rescale_kicks))
     return Element(element=e)
 
 
@@ -757,12 +765,7 @@ class Element:
     @polynom_a.setter
     def polynom_a(self, value):
         """."""
-        if self._bkd_language == "cpp":
-            self.backend_e.polynom_a[:] = value[:]
-        elif self._bkd_language == "julia":
-            self.backend_e.polynom_a = value
-        else:
-            ValueError("invalid backend")
+        backend.set_polynom(self.backend_e.polynom_a, value)
 
     @property
     def polynom_b(self):
@@ -772,12 +775,7 @@ class Element:
     @polynom_b.setter
     def polynom_b(self, value):
         """."""
-        if self._bkd_language == "cpp":
-            self.backend_e.polynom_b[:] = value[:]
-        elif self._bkd_language == "julia":
-            self.backend_e.polynom_b = value
-        else:
-            ValueError("invalid backend")
+        backend.set_polynom(self.backend_e.polynom_b, value)
 
     @property
     def matrix66(self):

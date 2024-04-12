@@ -5,7 +5,7 @@ from .backends import Backend as _Backend
 global _backend
 _backend = _Backend()
 
-def use(backend:str):
+def set_backend(backend:str):
     """Change the backend.
 
     Args:
@@ -18,7 +18,7 @@ def use(backend:str):
     global _backend
     vars(_backend).update(vars(module))
 
-use("cpp")
+set_backend("cpp")
 
 def get_backend():
     return _backend

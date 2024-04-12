@@ -31,19 +31,22 @@ class Backend:
         self.kickmap       = None
 
     def PassMethod(self, index):
-        return None
+        pass
 
     def Int(self, value):
-        return None
+        pass
+
+    def FloatVector(self, arr=None):
+        pass
 
     def VChamberShape(self, value):
-        return None
+        pass
 
     def get_array(self, pointer):
-        return None
+        pass
 
     def get_matrix(self, pointer):
-        return None
+        pass
 
     def set_array_from_vector(self, array, size, values):
         pass
@@ -67,4 +70,10 @@ class Backend:
         pass
 
     def get_kicktable(self, index):
+        pass
+
+    def insertElement(self, lattice, element, index):
+        pass
+
+    def set_polynom(self, polynom, val):
         pass

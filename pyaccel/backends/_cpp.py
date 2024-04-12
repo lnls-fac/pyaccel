@@ -38,6 +38,9 @@ def PassMethod(index):
 def Int(value):
     return int(value)
 
+def FloatVector(arr=None):
+    return arr
+
 def VChamberShape(value):
     return int(value)
 
@@ -87,3 +90,12 @@ def isequal(this, other):
 
 def get_kicktable(index):
     _trcpp.cvar.kicktable_list[index]
+
+def insertElement(lattice, element, index):
+    idx = lattice.begin()
+    if index != 0:
+        idx += int(index)
+    lattice.insert(idx, element)
+
+def set_polynom(polynom, val):
+    polynom[:] = val[:]

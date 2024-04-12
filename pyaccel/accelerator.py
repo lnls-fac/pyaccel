@@ -199,11 +199,11 @@ class Accelerator(object):
         """Set lattice version."""
         backend.force_set(self.backend_acc, "lattice_version", value)
 
-    def pop(self, index):
-        """."""
-        elem = self[index]
-        del self[index]
-        return elem
+    # def pop(self, index):
+    #     """."""
+    #     elem = self[index]
+    #     del self[index]
+    #     return elem
 
     def append(self, element: _elements.Element):
         """Append element to end of lattice.
@@ -239,8 +239,11 @@ class Accelerator(object):
         index = max(min(index, leng), -leng)
         if index < 0:
             index += leng
-        idx = self.backend_acc.lattice.begin() + index
-        self.backend_acc.lattice.insert(idx, element.backend_e)
+        backend.insertElement(
+            self.backend_acc.lattice,
+            element.backend_e,
+            index
+        )
 
     def extend(self, value):
         """."""

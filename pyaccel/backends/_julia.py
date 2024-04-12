@@ -48,6 +48,9 @@ def PassMethod(index):
 def Int(value):
     return int(_jl.Int(value))
 
+def FloatVector(arr=None):
+    return _jl.Vector[_jl.Float64](arr)
+
 def VChamberShape(value):
     return _trjulia.Auxiliary.VChamberShape(int(value))
 
@@ -97,3 +100,9 @@ def isequal(this, other):
 
 def get_kicktable(index):
     return _trjulia.Elements.kicktable_global_list[index]
+
+def insertElement(lattice, element, index):
+    _jl.insert_b(lattice, index+I_SHIFT, element)
+
+def set_polynom(polynom, val):
+    polynom = _jl.Vector[_jl.Float64](val)
