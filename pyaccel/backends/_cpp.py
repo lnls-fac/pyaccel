@@ -99,3 +99,11 @@ def insertElement(lattice, element, index):
 
 def set_polynom(polynom, val):
     polynom[:] = val[:]
+
+def matrix66_set_by_index(matrix, row, column, value):
+    lst = list(matrix[row])
+    lst[column] = value
+    matrix[row] = tuple(lst)
+
+def matrix66_get_by_index(matrix,  row, column):
+    return matrix[row][column]

@@ -106,3 +106,9 @@ def insertElement(lattice, element, index):
 
 def set_polynom(polynom, val):
     polynom = _jl.Vector[_jl.Float64](val)
+
+def matrix66_set_by_index(matrix, row, column, value):
+    matrix[row, column] = value
+
+def matrix66_get_by_index(matrix,  row, column):
+    return matrix[row, column]

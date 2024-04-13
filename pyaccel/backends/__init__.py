@@ -77,3 +77,9 @@ class Backend:
 
     def set_polynom(self, polynom, val):
         pass
+
+    def matrix66_set_by_index(self, matrix, row, column, value):
+        pass
+
+    def matrix66_get_by_index(self, matrix, row, column):
+        pass

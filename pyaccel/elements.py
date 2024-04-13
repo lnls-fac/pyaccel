@@ -653,26 +653,22 @@ class Element:
     @property
     def KxL(self):
         """."""
-        return -self.backend_e.matrix66[1][0]
+        return -backend.matrix66_get_by_index(self.backend_e.matrix66, 1, 0 )
 
     @KxL.setter
     def KxL(self, value):
         """."""
-        lst = list(self.backend_e.matrix66[1])
-        lst[0] = -value
-        self.backend_e.matrix66[1] = tuple(lst)
+        backend.matrix66_set_by_index(self.backend_e.matrix66, 1, 0, -value)
 
     @property
     def KyL(self):
         """."""
-        return -self.backend_e.matrix66[3][2]
+        return -backend.matrix66_get_by_index(self.backend_e.matrix66, 3, 2)
 
     @KyL.setter
     def KyL(self, value):
         """."""
-        lst = list(self.backend_e.matrix66[3])
-        lst[2] = -value
-        self.backend_e.matrix66[3] = tuple(lst)
+        backend.matrix66_set_by_index(self.backend_e.matrix66, 3, 2, -value)
 
     @property
     def S(self):
