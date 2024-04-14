@@ -30,6 +30,8 @@ class Backend:
         self.rfcavity      = None
         self.kickmap       = None
 
+        self.LOST_PLANES   = None
+
     def PassMethod(self, index):
         pass
 
@@ -82,4 +84,10 @@ class Backend:
         pass
 
     def matrix66_get_by_index(self, matrix, row, column):
+        pass
+
+    def element_pass(self, element, p_in, accelerator):
+        pass
+
+    def line_pass(self, accelerator, p_in, indices, element_offset):
         pass

@@ -26,7 +26,7 @@ def get_backend():
 from . import elements
 from . import accelerator
 from . import lattice
-# from . import tracking
+from . import tracking
 # from . import graphics
 # from . import intrabeam_scattering
 # from . import lifetime

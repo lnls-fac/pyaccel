@@ -31,6 +31,7 @@ sextupole     = _trcpp.sextupole_wrapper
 rfcavity      = _trcpp.rfcavity_wrapper
 kickmap       = _trcpp.kickmap_wrapper
 
+LOST_PLANES = (None, 'x', 'y', 'z', 'xy')  # See trackcpp.Plane
 
 def PassMethod(index):
     return index
@@ -107,3 +108,33 @@ def matrix66_set_by_index(matrix, row, column, value):
 
 def matrix66_get_by_index(matrix,  row, column):
     return matrix[row][column]
+
+def element_pass(element, p_in, accelerator):
+    p_out = p_in.copy()
+    ret = _trcpp.track_elementpass_wrapper(
+            element.backend_e, p_out, accelerator.backend_acc
+        )
+    return ret == 0, p_out
+
+def line_pass(accelerator, p_in, indices, element_offset):
+    # store only final position?
+    args = _trcpp.LinePassArgs()
+    for idx in indices:
+        args.indices.push_back(int(idx))
+    args.element_offset = int(element_offset)
+
+    n_part = p_in.shape[1]
+    p_out = _numpy.zeros((6, n_part * len(indices)), dtype=float)
+
+    # tracking
+    lost_flag = bool(_trcpp.track_linepass_wrapper(
+        accelerator.backend_acc, p_in, p_out, args))
+
+    p_out = p_out.reshape(6, n_part, -1)
+    p_out = _numpy.squeeze(p_out)
+
+    # fills vectors with info about particle loss
+    lost_element = list(args.lost_element)
+    lost_plane = [LOST_PLANES[lp] for lp in args.lost_plane]
+
+    return p_out, lost_flag, lost_element, lost_plane
