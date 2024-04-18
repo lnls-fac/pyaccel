@@ -200,7 +200,7 @@ def _calc_phys_apert_for_touschek(
             dcoxp = px - px0
             curh[idx] = _get_curlyh(betax, twi.alphax, dcox, dcoxp)
 
-            apper_loc = _np.minimum((hmax - rx)**2, (hmin + rx)**2)
+            apper_loc = _np.minimum((hmax - rx)**2, (hmin - rx)**2)
             ap_phys[idx] = _np.min(apper_loc / betax)
     except (_OpticsException, _tracking.TrackingException):
         pass
