@@ -762,6 +762,8 @@ class Element:
         """."""
         Element._check_type(value, Element._t_valid_types)
         Element._check_size(value, _NUM_COORDS)
+        self.trackcpp_e.t_in = Element._allocate_c_array_if_needed(
+            self.trackcpp_e.t_in, _NUM_COORDS)
         Element._set_c_array_from_vector(
             self.trackcpp_e.t_in, _NUM_COORDS, value)
 
@@ -775,6 +777,8 @@ class Element:
         """."""
         Element._check_type(value, Element._t_valid_types)
         Element._check_size(value, _NUM_COORDS)
+        self.trackcpp_e.t_out = Element._allocate_c_array_if_needed(
+            self.trackcpp_e.t_out, _NUM_COORDS)
         Element._set_c_array_from_vector(
             self.trackcpp_e.t_out, _NUM_COORDS, value)
 
@@ -788,6 +792,8 @@ class Element:
         """."""
         Element._check_type(value, Element._r_valid_types)
         Element._check_shape(value, _DIMS)
+        self.trackcpp_e.r_in = Element._allocate_c_array_if_needed(
+            self.trackcpp_e.r_in, int(_DIMS[0]*_DIMS[1]))
         Element._set_c_array_from_matrix(self.trackcpp_e.r_in, _DIMS, value)
 
     @property
@@ -800,6 +806,8 @@ class Element:
         """."""
         Element._check_type(value, Element._r_valid_types)
         Element._check_shape(value, _DIMS)
+        self.trackcpp_e.r_out = Element._allocate_c_array_if_needed(
+            self.trackcpp_e.r_out, int(_DIMS[0]*_DIMS[1]))
         Element._set_c_array_from_matrix(self.trackcpp_e.r_out, _DIMS, value)
 
     def __eq__(self, other):
@@ -891,6 +899,13 @@ class Element:
     # --- private methods ---
 
     @staticmethod
+    def _allocate_c_array_if_needed(array, size):
+        if _trackcpp.check_is_nullptr(array):
+            arr = _trackcpp.c_array_create(size)
+            return arr
+        return array
+
+    @staticmethod
     def _set_c_array_from_vector(array, size, values):
         """."""
         if not size == len(values):
@@ -929,15 +944,21 @@ class Element:
 
     @staticmethod
     def _get_coord_vector(pointer):
-        address = int(pointer)
-        c_array = _COORD_VECTOR.from_address(address)
-        return _numpy.ctypeslib.as_array(c_array)
+        if not _trackcpp.check_is_nullptr(pointer):
+            address = int(pointer)
+            c_array = _COORD_VECTOR.from_address(address)
+            return _numpy.ctypeslib.as_array(c_array)
+        else:
+            return _numpy.zeros(_NUM_COORDS)
 
     @staticmethod
     def _get_coord_matrix(pointer):
-        address = int(pointer)
-        c_array = _COORD_MATRIX.from_address(address)
-        return _numpy.ctypeslib.as_array(c_array)
+        if not _trackcpp.check_is_nullptr(pointer):
+            address = int(pointer)
+            c_array = _COORD_MATRIX.from_address(address)
+            return _numpy.ctypeslib.as_array(c_array)
+        else:
+            return _numpy.identity(_NUM_COORDS)
 
 
 _warnings.filterwarnings(
