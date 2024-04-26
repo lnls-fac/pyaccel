@@ -7,7 +7,7 @@ import numpy as _numpy
 
 import trackcpp as _trackcpp
 
-from .utils import interactive as _interactive, Polynom as _Polynom
+from .utils import interactive as _interactive
 
 
 _DBL_MAX = _trackcpp.get_double_max()
@@ -721,22 +721,22 @@ class Element:
     @property
     def polynom_a(self):
         """."""
-        return _Polynom(self.trackcpp_e.polynom_a)
+        return Element._get_cpp_vector(self.trackcpp_e.polynom_a)
 
     @polynom_a.setter
     def polynom_a(self, value):
         """."""
-        self.trackcpp_e.polynom_a[:] = value[:]
+        self.trackcpp_e.polynom_a[:] = value
 
     @property
     def polynom_b(self):
         """."""
-        return _Polynom(self.trackcpp_e.polynom_b)
+        return Element._get_cpp_vector(self.trackcpp_e.polynom_b)
 
     @polynom_b.setter
     def polynom_b(self, value):
         """."""
-        self.trackcpp_e.polynom_b[:] = value[:]
+        self.trackcpp_e.polynom_b[:] = value
 
     @property
     def matrix66(self):
@@ -937,6 +937,13 @@ class Element:
     def _get_coord_matrix(pointer):
         address = int(pointer)
         c_array = _COORD_MATRIX.from_address(address)
+        return _numpy.ctypeslib.as_array(c_array)
+
+    @staticmethod
+    def _get_cpp_vector(cppvector):
+        address = int(cppvector.data_())
+        c_empty_array = _ctypes.c_double * cppvector.size()
+        c_array = c_empty_array.from_address(address)
         return _numpy.ctypeslib.as_array(c_array)
 
 
