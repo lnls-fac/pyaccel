@@ -7,7 +7,7 @@ import numpy as _numpy
 
 import trackcpp as _trackcpp
 
-from .utils import interactive as _interactive, Polynom as _Polynom
+from .utils import interactive as _interactive
 
 
 _DBL_MAX = _trackcpp.get_double_max()
@@ -721,27 +721,22 @@ class Element:
     @property
     def polynom_a(self):
         """."""
-        return Poly(self.trackcpp_e, "polynom_a")
+        return Element._get_cpp_vector(self.trackcpp_e.polynom_a)
 
     @polynom_a.setter
     def polynom_a(self, value):
         """."""
-        Element._check_type(value, self._t_valid_types)
-        self.trackcpp_e.polynom_a.resize(len(value))
-        self.polynom_a[:] = value[:]
-
+        self.trackcpp_e.polynom_a[:] = value
 
     @property
     def polynom_b(self):
         """."""
-        return Poly(self.trackcpp_e, "polynom_b")
+        return Element._get_cpp_vector(self.trackcpp_e.polynom_b)
 
     @polynom_b.setter
     def polynom_b(self, value):
         """."""
-        Element._check_type(value, self._t_valid_types)
-        self.trackcpp_e.polynom_b.resize(len(value))
-        self.polynom_b[:] = value[:]
+        self.trackcpp_e.polynom_b[:] = value
 
     @property
     def matrix66(self):
@@ -954,6 +949,13 @@ class Element:
         c_array = _COORD_MATRIX.from_address(address)
         return _numpy.ctypeslib.as_array(c_array)
 
+    @staticmethod
+    def _get_cpp_vector(cppvector):
+        address = int(cppvector.data_())
+        nullvec = _ctypes.c_double*cppvector.size()
+        c_array = nullvec.from_address(address)
+        return _numpy.ctypeslib.as_array(c_array)
+
 
 class TransOrRotArray(_numpy.ndarray):
     """."""
@@ -985,18 +987,6 @@ class TransOrRotArray(_numpy.ndarray):
         """."""
         if self.is_identity():
             setattr(self._e, "has_"+self.field, False)
-
-class Poly(_numpy.ndarray):
-    """."""
-    def __new__(cls, c_element, field):
-        """."""
-        address = int(getattr(c_element, field).my_beautiful_pointer())
-        nullvec = _ctypes.c_double*getattr(c_element, field).size()
-        c_array = nullvec.from_address(address)
-        obj = _numpy.ctypeslib.as_array(c_array).view(cls)
-        obj._e = c_element
-        obj.field = field
-        return obj
 
 _warnings.filterwarnings(
     "ignore", "Item size computed from the PEP 3118 \
