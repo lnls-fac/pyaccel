@@ -721,22 +721,27 @@ class Element:
     @property
     def polynom_a(self):
         """."""
-        return _Polynom(self.trackcpp_e.polynom_a)
+        return Poly(self.trackcpp_e, "polynom_a")
 
     @polynom_a.setter
     def polynom_a(self, value):
         """."""
-        self.trackcpp_e.polynom_a[:] = value[:]
+        Element._check_type(value, self._t_valid_types)
+        self.trackcpp_e.polynom_a.resize(len(value))
+        self.polynom_a[:] = value[:]
+
 
     @property
     def polynom_b(self):
         """."""
-        return _Polynom(self.trackcpp_e.polynom_b)
+        return Poly(self.trackcpp_e, "polynom_b")
 
     @polynom_b.setter
     def polynom_b(self, value):
         """."""
-        self.trackcpp_e.polynom_b[:] = value[:]
+        Element._check_type(value, self._t_valid_types)
+        self.trackcpp_e.polynom_b.resize(len(value))
+        self.polynom_b[:] = value[:]
 
     @property
     def matrix66(self):
@@ -980,6 +985,18 @@ class TransOrRotArray(_numpy.ndarray):
         """."""
         if self.is_identity():
             setattr(self._e, "has_"+self.field, False)
+
+class Poly(_numpy.ndarray):
+    """."""
+    def __new__(cls, c_element, field):
+        """."""
+        address = int(getattr(c_element, field).my_beautiful_pointer())
+        nullvec = _ctypes.c_double*getattr(c_element, field).size()
+        c_array = nullvec.from_address(address)
+        obj = _numpy.ctypeslib.as_array(c_array).view(cls)
+        obj._e = c_element
+        obj.field = field
+        return obj
 
 _warnings.filterwarnings(
     "ignore", "Item size computed from the PEP 3118 \
