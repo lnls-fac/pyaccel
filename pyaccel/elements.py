@@ -6,7 +6,6 @@ import warnings as _warnings
 import numpy as _numpy
 
 import trackcpp as _trackcpp
-from trackcpp import c_array_get, c_array_set, c_array_create, check_is_nullptr
 
 from .utils import interactive as _interactive, Polynom as _Polynom
 
@@ -756,53 +755,46 @@ class Element:
     @property
     def t_in(self):
         """."""
-        # return T(self.trackcpp_e, "t_in")
-        return Element._get_coord_vector(self.trackcpp_e.t_in)
+        return TransOrRotArray(self.trackcpp_e, 't_in')
 
     @t_in.setter
     def t_in(self, value):
         """."""
         Element._check_type(value, Element._t_valid_types)
-        Element._check_size(value, _NUM_COORDS)
         Element._set_c_array_from_vector(
             self.trackcpp_e.t_in, _NUM_COORDS, value)
-        # self.t_in[:] = value[:]
+        self.trackcpp_e.has_t_in = True
 
     @property
     def t_out(self):
         """."""
-        # return T(self.trackcpp_e, "t_out")
-        return Element._get_coord_vector(self.trackcpp_e.t_out)
+        return TransOrRotArray(self.trackcpp_e, 't_out')
 
     @t_out.setter
     def t_out(self, value):
         """."""
         Element._check_type(value, Element._t_valid_types)
-        Element._check_size(value, _NUM_COORDS)
         Element._set_c_array_from_vector(
             self.trackcpp_e.t_out, _NUM_COORDS, value)
-        # self.t_out[:] = value[:]
+        self.trackcpp_e.has_t_out = True
 
     @property
     def r_in(self):
         """."""
-        # return R(self.trackcpp_e, "r_in")
-        return Element._get_coord_matrix(self.trackcpp_e.r_in)
+        return TransOrRotArray(self.trackcpp_e, 'r_in')
 
     @r_in.setter
     def r_in(self, value):
         """."""
         Element._check_type(value, Element._r_valid_types)
-        Element._check_shape(value, _DIMS)
         Element._set_c_array_from_matrix(
             self.trackcpp_e.r_in, _DIMS, value)
-        # self.r_in[:,:] = value[:,:]
+        self.trackcpp_e.has_r_in = True
 
     @property
     def r_out(self):
         """."""
-        # return R(self.trackcpp_e, "r_out")
-        return Element._get_coord_matrix(self.trackcpp_e.r_out)
+        return TransOrRotArray(self.trackcpp_e, 'r_out')
 
     @r_out.setter
     def r_out(self, value):
@@ -811,7 +803,7 @@ class Element:
         Element._check_shape(value, _DIMS)
         Element._set_c_array_from_matrix(
             self.trackcpp_e.r_out, _DIMS, value)
-        # self.r_out[:,:] = value[:,:]
+        self.trackcpp_e.has_r_out = True
 
     def __eq__(self, other):
         """."""
@@ -958,57 +950,36 @@ class Element:
         return _numpy.ctypeslib.as_array(c_array)
 
 
-# class T(_numpy.ndarray):
-#     def __new__(cls, c_element, field):
-#         obj = _numpy.ndarray.__new__(cls, shape=(6,), dtype=float)
-#         t = Element._get_coord_vector(getattr(c_element, field))
-#         obj[:] = t[:]
-#         obj._t = t
-#         obj._e = c_element
-#         obj.field = field
-#         return obj
+class TransOrRotArray(_numpy.ndarray):
+    """."""
 
-#     def __setitem__(self, index, value):
-#         """."""
-#         if hasattr(self, '_t'):
-#             self._t[index] = value
-#             setattr(self._e, "has_"+self.field, True)
-#         super().__setitem__(index, value)
+    def __new__(cls, c_element, field):
+        """."""
+        address = int(getattr(c_element, field))
+        if field[0] == 'r':
+            c_array = _COORD_MATRIX.from_address(address)
+            obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(_DIMS)
+        else:
+            c_array = _COORD_VECTOR.from_address(address)
+            obj = _numpy.ctypeslib.as_array(c_array).view(cls)
+        obj._e = c_element
+        obj.field = field
+        return obj
 
-#         if self.iszero() and hasattr(self, "_t"):
-#             setattr(self._e, "has_"+self.field, False)
+    def __setitem__(self, index, value):
+        """."""
+        setattr(self._e, "has_"+self.field, True)
+        super().__setitem__(index, value)
 
-#     def iszero(self):
-#         if _numpy.any(self != _numpy.zeros(6, dtype=float)):
-#             return False
-#         return True
+    def is_identity(self):
+        """."""
+        func = _numpy.eye if self.field[0] == 'r' else _numpy.zeros
+        return _numpy.array_equal(self, func(_NUM_COORDS, dtype=float))
 
-
-# class R(_numpy.ndarray):
-#     def __new__(cls, c_element, field):
-#         obj = _numpy.ndarray.__new__(cls, shape=(6,6), dtype=float)
-#         r = Element._get_coord_matrix(getattr(c_element, field))
-#         obj[:,:] = r[:,:]
-#         obj._r = r
-#         obj._e = c_element
-#         obj.field = field
-#         return obj
-
-#     def __setitem__(self, index, value):
-#         """."""
-#         if hasattr(self, '_r'):
-#             self._r[index] = value
-#             setattr(self._e, "has_"+self.field, True)
-#         super().__setitem__(index, value)
-
-#         if self.isidentity() and hasattr(self, "_r"):
-#             setattr(self._e, "has_"+self.field, False)
-
-#     def isidentity(self):
-#         if _numpy.any(self != _numpy.identity(6, dtype=float)):
-#             return False
-#         return True
-
+    def reflag(self):
+        """."""
+        if self.is_identity():
+            setattr(self._e, "has_"+self.field, False)
 
 _warnings.filterwarnings(
     "ignore", "Item size computed from the PEP 3118 \
