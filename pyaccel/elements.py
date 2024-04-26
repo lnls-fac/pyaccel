@@ -763,7 +763,7 @@ class Element:
         Element._check_type(value, Element._t_valid_types)
         Element._set_c_array_from_vector(
             self.trackcpp_e.t_in, _NUM_COORDS, value)
-        self.trackcpp_e.has_t_in = True
+        self.trackcpp_e.reflag_t_in()
 
     @property
     def t_out(self):
@@ -776,7 +776,7 @@ class Element:
         Element._check_type(value, Element._t_valid_types)
         Element._set_c_array_from_vector(
             self.trackcpp_e.t_out, _NUM_COORDS, value)
-        self.trackcpp_e.has_t_out = True
+        self.trackcpp_e.reflag_t_out()
 
     @property
     def r_in(self):
@@ -789,7 +789,7 @@ class Element:
         Element._check_type(value, Element._r_valid_types)
         Element._set_c_array_from_matrix(
             self.trackcpp_e.r_in, _DIMS, value)
-        self.trackcpp_e.has_r_in = True
+        self.trackcpp_e.reflag_r_in()
 
     @property
     def r_out(self):
@@ -800,10 +800,9 @@ class Element:
     def r_out(self, value):
         """."""
         Element._check_type(value, Element._r_valid_types)
-        Element._check_shape(value, _DIMS)
         Element._set_c_array_from_matrix(
             self.trackcpp_e.r_out, _DIMS, value)
-        self.trackcpp_e.has_r_out = True
+        self.trackcpp_e.reflag_r_out()
 
     def __eq__(self, other):
         """."""
@@ -975,8 +974,8 @@ class TransOrRotArray(_numpy.ndarray):
 
     def __setitem__(self, index, value):
         """."""
-        setattr(self._e, "has_"+self.field, True)
         super().__setitem__(index, value)
+        getattr(self._e, "reflag_"+self.field)()
 
     def is_identity(self):
         """."""
@@ -985,8 +984,7 @@ class TransOrRotArray(_numpy.ndarray):
 
     def reflag(self):
         """."""
-        if self.is_identity():
-            setattr(self._e, "has_"+self.field, False)
+        return getattr(self._e, "reflag_"+self.field)
 
 _warnings.filterwarnings(
     "ignore", "Item size computed from the PEP 3118 \
