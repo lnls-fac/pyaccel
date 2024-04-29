@@ -522,8 +522,6 @@ def set_error_misalignment_x(lattice, indices, values):
             lattice[idx].t_in[0] = yaw - val
             lattice[idx].t_out[0] = yaw + val
 
-    _reflag_translation_vectors(lattice, indices)
-
 
 @_interactive
 def add_error_misalignment_x(lattice, indices, values):
@@ -549,8 +547,6 @@ def add_error_misalignment_x(lattice, indices, values):
         for idx, val in zip(segs, vals):
             lattice[idx].t_in[0] += -val
             lattice[idx].t_out[0] += val
-
-    _reflag_translation_vectors(lattice, indices)
 
 
 @_interactive
@@ -609,8 +605,6 @@ def set_error_misalignment_y(lattice, indices, values):
             lattice[idx].t_in[2] = pitch - val
             lattice[idx].t_out[2] = pitch + val
 
-    _reflag_translation_vectors(lattice, indices)
-
 
 @_interactive
 def add_error_misalignment_y(lattice, indices, values):
@@ -637,7 +631,7 @@ def add_error_misalignment_y(lattice, indices, values):
             lattice[idx].t_in[2] += -val
             lattice[idx].t_out[2] += val
 
-    _reflag_translation_vectors(lattice, indices)
+
 
 
 @_interactive
@@ -709,7 +703,6 @@ def set_error_rotation_roll(lattice, indices, values):
                 ele.r_in = rot
                 ele.r_out = rot.T
 
-    _reflag_rotation_matrices(lattice, indices)
 
 
 @_interactive
@@ -752,7 +745,6 @@ def add_error_rotation_roll(lattice, indices, values):
                 ele.r_in = _np.dot(rot, ele.r_in)
                 ele.r_out = _np.dot(ele.r_out, rot.T)
 
-    _reflag_rotation_matrices(lattice, indices)
 
 
 @_interactive
@@ -822,7 +814,6 @@ def set_error_rotation_pitch(lattice, indices, values):
         lattice[segs[-1]].t_out[3] = -angy
         lattice[segs[-1]].t_out[5] = path
 
-    _reflag_translation_vectors(lattice, indices)
 
 
 @_interactive
@@ -859,7 +850,6 @@ def add_error_rotation_pitch(lattice, indices, values):
         lattice[segs[-1]].t_out += _np.array(
             [0, 0, -(L/2)*angy, -angy, 0, path])
 
-    _reflag_translation_vectors(lattice, indices)
 
 @_interactive
 def get_error_rotation_yaw(lattice, indices):
@@ -927,7 +917,6 @@ def set_error_rotation_yaw(lattice, indices, values):
         lattice[segs[-1]].t_out[1] = -angx
         lattice[segs[-1]].t_out[5] = path
 
-    _reflag_translation_vectors(lattice, indices)
 
 @_interactive
 def add_error_rotation_yaw(lattice, indices, values):
@@ -963,7 +952,6 @@ def add_error_rotation_yaw(lattice, indices, values):
         lattice[segs[-1]].t_out += _np.array(
             [-(L/2)*angx, -angx, 0, 0, 0, path])
 
-    _reflag_translation_vectors(lattice, indices)
 
 
 @_interactive
@@ -1199,30 +1187,3 @@ def _is_equal_val1_iterable(val1, val2):
     except TypeError:
         # 'val1' is iterable but 'val2' is not
         return False
-
-
-def _reflag_translation_vectors(lattice, indices):
-    _zeros = _np.zeros(6, dtype=float)
-    for i in _np.array(indices).ravel():
-        elem = lattice[i]
-        if _np.any(elem.t_in != _zeros):
-            elem.trackcpp_e.has_t_in = True
-        else:
-            elem.trackcpp_e.has_t_in = False
-        if _np.any(elem.t_out != _zeros):
-            elem.trackcpp_e.has_t_out = True
-        else:
-            elem.trackcpp_e.has_t_out = False
-
-def _reflag_rotation_matrices(lattice, indices):
-    _identity6 = _np.identity(6, dtype=float)
-    for i in _np.array(indices).ravel():
-        elem = lattice[i]
-        if _np.any(elem.r_in != _identity6):
-            elem.trackcpp_e.has_r_in = True
-        else:
-            elem.trackcpp_e.has_r_in = False
-        if _np.any(elem.r_out != _identity6):
-            elem.trackcpp_e.has_r_out = True
-        else:
-            elem.trackcpp_e.has_r_out = False
