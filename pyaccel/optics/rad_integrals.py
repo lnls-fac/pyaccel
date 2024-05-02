@@ -236,11 +236,10 @@ class EqParamsFromRadIntegrals:
 
     @property
     def U0(self):
-        """."""
-        E0 = self._acc.energy / 1e9  # [GeV]
-        E0 *= (1 + self._energy_offset)
-        rad_cgamma = _mp.constants.rad_cgamma
-        return rad_cgamma/(2*_math.pi) * E0**4 * self.I2 * 1e9  # [eV]
+        """Return U0 [eV]."""
+        res = _EqParamsXYModes.calc_U0(
+            self._acc.energy, self._energy_offset, self.I2)
+        return res
 
     @property
     def overvoltage(self):

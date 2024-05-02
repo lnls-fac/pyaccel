@@ -3,6 +3,8 @@
 import math as _math
 import copy as _copy
 
+import mathphys as _mp
+
 
 class _EqParams:
     """Equilibrium parameters base class."""
@@ -28,6 +30,13 @@ class _EqParams:
         """."""
         return cls.eqparam_to_string(cls)
 
+    @staticmethod
+    def calc_U0(energy, energy_offset, I2):
+        """."""
+        E0 = energy / 1e9  # [GeV]
+        E0 *= (1 + energy_offset)
+        rad_cgamma = _mp.constants.rad_cgamma
+        return rad_cgamma/(2*_math.pi) * E0**4 * I2 * 1e9  # [eV]
 
 class EqParamsXYModes(_EqParams):
     """Equilibrium parameters for XY modes."""

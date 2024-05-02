@@ -308,9 +308,9 @@ class EqParamsFromBeamEnvelope:
     @property
     def U0(self):
         """."""
-        E0 = self._acc.energy / 1e9  # [GeV]
-        rad_cgamma = _mp.constants.rad_cgamma
-        return rad_cgamma/(2*_math.pi) * E0**4 * self._integral2 * 1e9  # [eV]
+        res = _EqParamsNormalModes.calc_U0(
+            self._acc.energy, self.energy_offset, self._integral2)
+        return res
 
     @property
     def overvoltage(self):
