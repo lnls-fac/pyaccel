@@ -237,8 +237,7 @@ class EqParamsFromRadIntegrals:
     @property
     def U0(self):
         """Return U0 [eV]."""
-        res = _EqParamsXYModes.calc_U0(
-            self._acc.energy, self._energy_offset, self.I2)
+        res = _EqParamsXYModes.calc_U0(self._acc, self.I2, self.energy_offset)
         return res
 
     @property
@@ -250,7 +249,9 @@ class EqParamsFromRadIntegrals:
     @property
     def syncphase(self):
         """."""
-        return _math.pi - _math.asin(1/self.overvoltage)
+        res = _EqParamsXYModes.calc_syncphase(
+            self.overvoltage)
+        return res
 
     @property
     def alpha(self):
@@ -287,16 +288,9 @@ class EqParamsFromRadIntegrals:
     @property
     def rf_acceptance(self):
         """."""
-        E0 = self._acc.energy
-        sph = self.syncphase
-        V = _get_rf_voltage(self._acc)
-        ov = self.overvoltage
-        h = self._acc.harmonic_number
-        etac = self.etac
-
-        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
-        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
-        return _math.sqrt(eaccep2)
+        res = _EqParamsXYModes.calc_rf_acceptance(
+            self._acc, self.syncphase, self.overvoltage, self.etac)
+        return res
 
     @property
     def sigma_rx(self):

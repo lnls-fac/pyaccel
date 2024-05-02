@@ -5,6 +5,8 @@ import copy as _copy
 
 import mathphys as _mp
 
+from .miscellaneous import get_rf_voltage as _get_rf_voltage
+
 
 class _EqParams:
     """Equilibrium parameters base class."""
@@ -31,12 +33,31 @@ class _EqParams:
         return cls.eqparam_to_string(cls)
 
     @staticmethod
-    def calc_U0(energy, energy_offset, I2):
+    def calc_rf_acceptance(accelerator, syncphase, overvoltage, etac):
         """."""
-        E0 = energy / 1e9  # [GeV]
+        E0 = accelerator.energy
+        sph = syncphase
+        V = _get_rf_voltage(accelerator)
+        ov = overvoltage
+        h = accelerator.harmonic_number
+
+        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
+        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
+        return _math.sqrt(eaccep2)
+
+    @staticmethod
+    def calc_U0(accelerator, I2, energy_offset):
+        """Return U0 [eV]."""
+        E0 = accelerator.energy / 1e9  # [GeV]
         E0 *= (1 + energy_offset)
         rad_cgamma = _mp.constants.rad_cgamma
         return rad_cgamma/(2*_math.pi) * E0**4 * I2 * 1e9  # [eV]
+
+    @staticmethod
+    def calc_syncphase(overvoltage):
+        """."""
+        return _math.pi - _math.asin(1/overvoltage)
+
 
 class EqParamsXYModes(_EqParams):
     """Equilibrium parameters for XY modes."""
