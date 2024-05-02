@@ -35,29 +35,30 @@ class Lifetime:
     EQPARAMS = _get_namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])
     TOUSCHEKMODEL = _get_namedtuple('TouschekModel', ['Piwinski', 'FlatBeam'])
 
+    DEFAULT_BEAM_CURRENT = 100  # [mA]
+    DEFAULT_AVG_PRESSURE = 1e-9  # [mbar]
+    DEFAULT_ATOMIC_NUMBER = 7  # Nitrogen
+    DEFAULT_TEMPERATURE = 300  # [K]
+
     def __init__(self, accelerator, touschek_model=None,
-                 type_eqparams=None, type_optics=None):
+                 eqparams=None, type_optics=None):
         """."""
         self._acc = accelerator
 
-        self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
+        self._type_eqparams = None
+        self._eqparams_func = None
+        self._eqpar = None
+        self._process_eqparams(eqparams)
+
         self._type_optics = Lifetime.OPTICS.EdwardsTeng
         self._touschek_model = Lifetime.TOUSCHEKMODEL.Piwinski
-        self.type_eqparams = type_eqparams
         self.type_optics = type_optics
         self.touschek_model = touschek_model
-
-        if self.type_eqparams == self.EQPARAMS.BeamEnvelope:
-            self._eqparams_func = _optics.EqParamsFromBeamEnvelope
-        elif self.type_eqparams == self.EQPARAMS.RadIntegrals:
-            self._eqparams_func = _optics.EqParamsFromRadIntegrals
 
         if self.type_optics == self.OPTICS.EdwardsTeng:
             self._optics_func = _optics.calc_edwards_teng
         elif self._type_optics == self.OPTICS.Twiss:
             self._optics_func = _optics.calc_twiss
-
-        self._eqpar = self._eqparams_func(self._acc)
         self._optics_data, *_ = self._optics_func(self._acc, indices='closed')
         _twiss = self._optics_data
         if self.type_optics != self.OPTICS.Twiss:
@@ -65,10 +66,10 @@ class Lifetime:
         res = _optics.calc_transverse_acceptance(self._acc, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
-        self._curr_per_bun = 100/864  # [mA]
-        self._avg_pressure = 1e-9  # [mbar]
-        self._atomic_number = 7
-        self._temperature = 300  # [K]
+        self._curr_per_bun = self.DEFAULT_BEAM_CURRENT / self._acc.harmonic_number
+        self._avg_pressure = self.DEFAULT_AVG_PRESSURE
+        self._atomic_number = self.DEFAULT_ATOMIC_NUMBER
+        self._temperature = self.DEFAULT_TEMPERATURE
         self._tau1 = self._tau2 = self._tau3 = None
         self._emit1 = self._emit2 = self._espread0 = self._bunlen = None
         self._accepx = self._accepy = self._accepen = None
@@ -85,12 +86,7 @@ class Lifetime:
 
     @type_eqparams.setter
     def type_eqparams(self, value):
-        if value is None:
-            return
-        if isinstance(value, str):
-            self._type_eqparams = int(value in Lifetime.EQPARAMS._fields[1])
-        elif int(value) in Lifetime.EQPARAMS:
-            self._type_eqparams = int(value)
+        self._process_eqparams(value)
 
     @property
     def type_optics_str(self):
@@ -138,7 +134,8 @@ class Lifetime:
 
     @accelerator.setter
     def accelerator(self, val):
-        self._eqpar = self._eqparams_func(val)
+        if self._eqparams_func is not None:
+            self._eqpar = self._eqparams_func(val)
         self._optics_data, *_ = self._optics_func(val, indices='closed')
         _twiss = self._optics_data
         if self.type_optics != self.OPTICS.Twiss:
@@ -677,6 +674,7 @@ class Lifetime:
     def inelastic_data(self):
         """
         Calculate loss rate due to inelastic scattering beam lifetime.
+        Based on Ref[1].
 
         Parameters used in calculations:
         accepen       = Relative energy acceptance
@@ -690,6 +688,9 @@ class Lifetime:
             rate     = loss rate along the ring [1/s]
             avg_rate = average loss rate along the ring [1/s]
             pos      = longitudinal position where loss rate was calculated [m]
+
+        References:
+            [1] Beam losses and lifetime - A. Piwinski, em CERN 85-19.
         """
         en_accep = self.accepen
         pressure = self.avg_pressure
@@ -882,6 +883,29 @@ class Lifetime:
         return cls._KSI_TABLE, cls._D_TABLE
 
     # ----- private methods -----
+
+    def _process_eqparams(self, eqparams):
+        # equilibrium parameters argument
+        beamenv_set = (_optics.EqParamsFromBeamEnvelope, _optics.EqParamsNormalModes)
+        radiint_set = (_optics.EqParamsFromRadIntegrals, _optics.EqParamsXYModes)
+        if eqparams in (None, Lifetime.EQPARAMS.BeamEnvelope):
+            self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
+            self._eqparams_func = _optics.EqParamsFromBeamEnvelope
+            self._eqpar = self._eqparams_func(self._acc)
+        elif isinstance(eqparams, beamenv_set):
+            self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
+            self._eqparams_func = None
+            self._eqpar = eqparams
+        elif eqparams == Lifetime.EQPARAMS.RadIntegrals:
+            self._type_eqparams = eqparams
+            self._eqparams_func = _optics.EqParamsFromRadIntegrals
+            self._eqpar = self._eqparams_func(self._acc)
+        elif isinstance(eqparams, radiint_set):
+            self._type_eqparams = Lifetime.EQPARAMS.RadIntegrals
+            self._eqparams_func = None
+            self._eqpar = eqparams
+        else:
+            raise ValueError('Invalid equilibrium parameter argument!')
 
     @staticmethod
     def _calc_quantum_loss_rate(ksi, tau):
