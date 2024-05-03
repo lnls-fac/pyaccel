@@ -13,8 +13,6 @@ from .utils import interactive as _interactive, Polynom as _Polynom
 _DBL_MAX = _trackcpp.get_double_max()
 _NUM_COORDS = 6
 _DIMS = (_NUM_COORDS, _NUM_COORDS)
-_COORD_VECTOR = _ctypes.c_double*_NUM_COORDS
-_COORD_MATRIX = _ctypes.c_double*_DIMS[0]*_DIMS[1]
 
 PASS_METHODS = _trackcpp.pm_dict
 VChamberShape = _trackcpp.VChamberShape
@@ -755,52 +753,52 @@ class Element:
     @property
     def t_in(self):
         """."""
-        return Element._get_coord_vector(self.trackcpp_e.t_in)
+        return T(self.trackcpp_e, "in")
 
     @t_in.setter
     def t_in(self, value):
         """."""
         Element._check_type(value, Element._t_valid_types)
-        Element._check_size(value, _NUM_COORDS)
         Element._set_c_array_from_vector(
             self.trackcpp_e.t_in, _NUM_COORDS, value)
+        self.trackcpp_e.reflag_t_in()
 
     @property
     def t_out(self):
         """."""
-        return Element._get_coord_vector(self.trackcpp_e.t_out)
+        return T(self.trackcpp_e, "out")
 
     @t_out.setter
     def t_out(self, value):
         """."""
         Element._check_type(value, Element._t_valid_types)
-        Element._check_size(value, _NUM_COORDS)
         Element._set_c_array_from_vector(
             self.trackcpp_e.t_out, _NUM_COORDS, value)
+        self.trackcpp_e.reflag_t_out()
 
     @property
     def r_in(self):
         """."""
-        return Element._get_coord_matrix(self.trackcpp_e.r_in)
+        return R(self.trackcpp_e, "in")
 
     @r_in.setter
     def r_in(self, value):
         """."""
         Element._check_type(value, Element._r_valid_types)
-        Element._check_shape(value, _DIMS)
         Element._set_c_array_from_matrix(self.trackcpp_e.r_in, _DIMS, value)
+        self.trackcpp_e.reflag_r_in()
 
     @property
     def r_out(self):
         """."""
-        return Element._get_coord_matrix(self.trackcpp_e.r_out)
+        return R(self.trackcpp_e, "out")
 
     @r_out.setter
     def r_out(self, value):
         """."""
         Element._check_type(value, Element._r_valid_types)
-        Element._check_shape(value, _DIMS)
         Element._set_c_array_from_matrix(self.trackcpp_e.r_out, _DIMS, value)
+        self.trackcpp_e.reflag_r_out()
 
     def __eq__(self, other):
         """."""
@@ -927,18 +925,44 @@ class Element:
         if not value.shape == shape:
             raise ValueError("shape must be " + str(shape))
 
-    @staticmethod
-    def _get_coord_vector(pointer):
-        address = int(pointer)
-        c_array = _COORD_VECTOR.from_address(address)
-        return _numpy.ctypeslib.as_array(c_array)
 
-    @staticmethod
-    def _get_coord_matrix(pointer):
-        address = int(pointer)
-        c_array = _COORD_MATRIX.from_address(address)
-        return _numpy.ctypeslib.as_array(c_array)
+class CustomArray(_numpy.ndarray):
+    """."""
+    _COORD_ARRAY = None
+    def __new__(cls, c_element, field, shape):
+        """."""
+        address = int(getattr(c_element, field))
+        c_array = cls._COORD_ARRAY.from_address(address)
+        obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(shape)
+        obj._e = c_element
+        obj.field = field
+        return obj
 
+    def __setitem__(self, index, value):
+        """."""
+        super().__setitem__(index, value)
+        getattr(self._e, "reflag_"+self.field)()
+
+    def is_identity(self):
+        """."""
+        func = _numpy.eye if self.field[0] == 'r' else _numpy.zeros
+        return _numpy.array_equal(self, func(_NUM_COORDS, dtype=float))
+
+    def reflag(self):
+        """."""
+        return getattr(self._e, "reflag_"+self.field)
+
+
+class T(CustomArray):
+    _COORD_ARRAY = _ctypes.c_double*_NUM_COORDS
+    def __new__(cls, c_element, direction):
+        return super().__new__(cls, c_element, "t_"+direction, _NUM_COORDS)
+
+
+class R(CustomArray):
+    _COORD_ARRAY = _ctypes.c_double*_DIMS[0]*_DIMS[1]
+    def __new__(cls, c_element, direction):
+        return super().__new__(cls, c_element, "r_"+direction, _DIMS)
 
 _warnings.filterwarnings(
     "ignore", "Item size computed from the PEP 3118 \
