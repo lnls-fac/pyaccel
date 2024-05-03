@@ -5,23 +5,11 @@
 import warnings as _warnings
 import numpy as _numpy
 
-# import mymodule as _trackcpp
-
-from .utils import interactive as _interactive#, Polynom as _Polynom
-
-
-# _DBL_MAX = _trackcpp.get_double_max()
-# _NUM_COORDS = 6
-# _DIMS = (_NUM_COORDS, _NUM_COORDS)
-# _COORD_VECTOR = _ctypes.c_double*_NUM_COORDS
-# _COORD_MATRIX = _ctypes.c_double*_DIMS[0]*_DIMS[1]
-
-# PASS_METHODS = _trackcpp.pm_dict
-# VChamberShape = _trackcpp.VChamberShape
+from .utils import interactive as _interactive
 
 from mymodule import marker, bpm, drift, matrix, hcorrector, vcorrector, \
     corrector, rbend, quadrupole, sextupole, rfcavity, kickmap, \
-        Element as _Element
+    Element as _Element
 
 @_interactive
 class Kicktable:
@@ -181,7 +169,6 @@ class Element(_Element):
         lst[2] = -value
         self.trackcpp_e.matrix66[3] = tuple(lst)
 
-
     @property
     def Ks(self):
         """."""
@@ -225,26 +212,6 @@ class Element(_Element):
         lst = list(self.trackcpp_e.matrix66[3])
         lst[0] = -value
         self.trackcpp_e.matrix66[3] = tuple(lst)
-
-    @property
-    def hkick_polynom(self):
-        """."""
-        return self.trackcpp_e.polynom_b[0] * (-self.trackcpp_e.length)
-
-    @hkick_polynom.setter
-    def hkick_polynom(self, value):
-        """."""
-        self.trackcpp_e.polynom_b[0] = - value / self.trackcpp_e.length
-
-    @property
-    def vkick_polynom(self):
-        """."""
-        return self.trackcpp_e.polynom_a[0] * self.trackcpp_e.length
-
-    @vkick_polynom.setter
-    def vkick_polynom(self, value):
-        """."""
-        self.trackcpp_e.polynom_a[0] = value / self.trackcpp_e.length
 
     @property
     def matrix66(self):
