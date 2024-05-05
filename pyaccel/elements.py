@@ -953,14 +953,16 @@ class CustomArray(_numpy.ndarray):
         return getattr(self._e, "reflag_"+self.field)
 
 
+_CV = _ctypes.c_double*_NUM_COORDS
 class T(CustomArray):
-    _COORD_ARRAY = _ctypes.c_double*_NUM_COORDS
+    _COORD_ARRAY = _CV
     def __new__(cls, c_element, direction):
         return super().__new__(cls, c_element, "t_"+direction, _NUM_COORDS)
 
 
+_CM = _ctypes.c_double*_DIMS[0]*_DIMS[1]
 class R(CustomArray):
-    _COORD_ARRAY = _ctypes.c_double*_DIMS[0]*_DIMS[1]
+    _COORD_ARRAY = _CM
     def __new__(cls, c_element, direction):
         return super().__new__(cls, c_element, "r_"+direction, _DIMS)
 
