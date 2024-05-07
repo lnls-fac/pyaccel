@@ -150,6 +150,11 @@ class Lifetime:
         """Equilibrium parameters."""
         return self._eqpar
 
+    @equi_params.setter
+    def equi_params(self, eqparams):
+        """."""
+        self._process_eqparams(eqparams)
+
     @property
     def optics_data(self):
         """Optics data."""
