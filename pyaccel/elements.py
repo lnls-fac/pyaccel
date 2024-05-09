@@ -926,14 +926,15 @@ class Element:
             raise ValueError("shape must be " + str(shape))
 
 
-class CustomArray(_numpy.ndarray):
+_CV = _ctypes.c_double*_NUM_COORDS
+class T(_numpy.ndarray):
     """."""
-    _COORD_ARRAY = None
-    def __new__(cls, c_element, field, shape):
+    def __new__(cls, c_element, direction):
         """."""
+        field = "t_"+direction
         address = int(getattr(c_element, field))
-        c_array = cls._COORD_ARRAY.from_address(address)
-        obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(shape)
+        c_array = _CV.from_address(address)
+        obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(_NUM_COORDS)
         obj._e = c_element
         obj.field = field
         return obj
@@ -945,26 +946,38 @@ class CustomArray(_numpy.ndarray):
 
     def is_identity(self):
         """."""
-        func = _numpy.eye if self.field[0] == 'r' else _numpy.zeros
-        return _numpy.array_equal(self, func(_NUM_COORDS, dtype=float))
+        return _numpy.array_equal(self,  _numpy.zeros(_NUM_COORDS, dtype=float))
 
     def reflag(self):
         """."""
         return getattr(self._e, "reflag_"+self.field)
 
 
-_CV = _ctypes.c_double*_NUM_COORDS
-class T(CustomArray):
-    _COORD_ARRAY = _CV
-    def __new__(cls, c_element, direction):
-        return super().__new__(cls, c_element, "t_"+direction, _NUM_COORDS)
-
-
 _CM = _ctypes.c_double*_DIMS[0]*_DIMS[1]
-class R(CustomArray):
-    _COORD_ARRAY = _CM
+class R(_numpy.ndarray):
+    """."""
     def __new__(cls, c_element, direction):
-        return super().__new__(cls, c_element, "r_"+direction, _DIMS)
+        """."""
+        field = "r_"+direction
+        address = int(getattr(c_element, field))
+        c_array = _CM.from_address(address)
+        obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(_DIMS)
+        obj._e = c_element
+        obj.field = field
+        return obj
+
+    def __setitem__(self, index, value):
+        """."""
+        super().__setitem__(index, value)
+        getattr(self._e, "reflag_"+self.field)()
+
+    def is_identity(self):
+        """."""
+        return _numpy.array_equal(self,  _numpy.eye(_NUM_COORDS, dtype=float))
+
+    def reflag(self):
+        """."""
+        return getattr(self._e, "reflag_"+self.field)    
 
 _warnings.filterwarnings(
     "ignore", "Item size computed from the PEP 3118 \
