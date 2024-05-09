@@ -1,6 +1,5 @@
 """."""
 
-import math as _math
 import numpy as _np
 
 import mathphys as _mp
@@ -11,7 +10,9 @@ from .. import accelerator as _accelerator
 from .twiss import calc_twiss as _calc_twiss
 from .miscellaneous import get_rf_voltage as _get_rf_voltage, \
     get_revolution_frequency as _get_revolution_frequency, \
-    get_curlyh as _get_curlyh, get_mcf as _get_mcf
+    get_curlyh as _get_curlyh, get_mcf as _get_mcf, \
+    calc_rf_acceptance as _calc_rf_acceptance, calc_U0 as _calc_U0, \
+    calc_syncphase as _calc_syncphase
 from .eq_params import EqParamsXYModes as _EqParamsXYModes
 
 
@@ -58,7 +59,7 @@ class EqParamsFromRadIntegrals:
         rst += '\n' + fmti.format(', '.join(ints))
         rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
-        rst += _EqParamsXYModes.eqparam_to_string(self)
+        rst += '\n' + _EqParamsXYModes.eqparam_to_string(self)
         return rst
 
     @property
@@ -71,6 +72,11 @@ class EqParamsFromRadIntegrals:
         if isinstance(acc, _accelerator.Accelerator):
             self._acc = acc
             self._calc_radiation_integrals()
+
+    @property
+    def energy(self):
+        """."""
+        return self._acc.energy
 
     @property
     def energy_offset(self):
@@ -210,7 +216,7 @@ class EqParamsFromRadIntegrals:
         Cq = _mp.constants.Cq
         gamma = self._acc.gamma_factor
         gamma *= (1 + self._energy_offset)
-        return _math.sqrt(
+        return _np.sqrt(
             Cq * gamma**2 * self.I3 / (2*self.I2 + self.I4x + self.I4y))
 
     @property
@@ -237,7 +243,7 @@ class EqParamsFromRadIntegrals:
     @property
     def U0(self):
         """Return U0 [eV]."""
-        res = _EqParamsXYModes.calc_U0(self._acc, self.I2, self.energy_offset)
+        res = _calc_U0(self._acc.energy, self.energy_offset, self.I2)
         return res
 
     @property
@@ -249,8 +255,7 @@ class EqParamsFromRadIntegrals:
     @property
     def syncphase(self):
         """."""
-        res = _EqParamsXYModes.calc_syncphase(
-            self.overvoltage)
+        res = _calc_syncphase(self.overvoltage)
         return res
 
     @property
@@ -272,8 +277,8 @@ class EqParamsFromRadIntegrals:
         E0 *= (1 + self._energy_offset)
         v_cav = _get_rf_voltage(self._acc)
         harmon = self._acc.harmonic_number
-        return _math.sqrt(
-            self.etac*harmon*v_cav*_math.cos(self.syncphase)/(2*_math.pi*E0))
+        return _np.sqrt(
+            self.etac*harmon*v_cav*_np.cos(self.syncphase)/(2*_np.pi*E0))
 
     @property
     def bunlen(self):
@@ -282,14 +287,16 @@ class EqParamsFromRadIntegrals:
         rev_freq = _get_revolution_frequency(self._acc)
 
         bunlen = vel * abs(self.etac) * self.espread0
-        bunlen /= 2*_math.pi * self.synctune * rev_freq
+        bunlen /= 2*_np.pi * self.synctune * rev_freq
         return bunlen
 
     @property
     def rf_acceptance(self):
         """."""
-        res = _EqParamsXYModes.calc_rf_acceptance(
-            self._acc, self.syncphase, self.overvoltage, self.etac)
+        rf_voltage = _get_rf_voltage(self._acc)
+        res = _calc_rf_acceptance(
+            self._acc.energy, self.energy_offset, self._acc.harmonic_number,
+            rf_voltage, self.overvoltage, self.etac)
         return res
 
     @property

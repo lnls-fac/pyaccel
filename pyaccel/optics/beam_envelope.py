@@ -11,7 +11,9 @@ from .. import accelerator as _accelerator
 from ..utils import interactive as _interactive
 
 from .miscellaneous import get_rf_voltage as _get_rf_voltage, \
-    get_revolution_frequency as _get_revolution_frequency
+    get_revolution_frequency as _get_revolution_frequency, \
+    calc_rf_acceptance as _calc_rf_acceptance, calc_U0 as _calc_U0, \
+    calc_syncphase as _calc_syncphase
 from .eq_params import EqParamsNormalModes as _EqParamsNormalModes
 
 
@@ -56,16 +58,7 @@ class EqParamsFromBeamEnvelope:
 
     def __str__(self):
         """."""
-        rst = ''
-        fmtr = '{:33s}: '
-        fmtn = '{:.4g}'
-
-        fmte = fmtr + fmtn
-        rst += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
-        rst += fmte.format('\nEnergy Deviation [%]', self.energy_offset*100)
-
-        rst += _EqParamsNormalModes.eqparam_to_string(self)
-        return rst
+        return _EqParamsNormalModes.eqparam_to_string(self)
 
     @property
     def accelerator(self):
@@ -77,6 +70,11 @@ class EqParamsFromBeamEnvelope:
         if isinstance(acc, _accelerator.Accelerator):
             self._acc = acc
             self._calc_envelope()
+
+    @property
+    def energy(self):
+        """."""
+        return self._acc.energy
 
     @property
     def energy_offset(self):
@@ -308,8 +306,7 @@ class EqParamsFromBeamEnvelope:
     @property
     def U0(self):
         """."""
-        res = _EqParamsNormalModes.calc_U0(
-            self._acc, self._integral2, self.energy_offset)
+        res = _calc_U0(self._acc.energy, self.energy_offset, self._integral2)
         return res
 
     @property
@@ -321,8 +318,7 @@ class EqParamsFromBeamEnvelope:
     @property
     def syncphase(self):
         """."""
-        res = _EqParamsNormalModes.calc_syncphase(
-            self.overvoltage)
+        res = _calc_syncphase(self.overvoltage)
         return res
 
     @property
@@ -351,8 +347,10 @@ class EqParamsFromBeamEnvelope:
     @property
     def rf_acceptance(self):
         """."""
-        res = _EqParamsNormalModes.calc_rf_acceptance(
-            self._acc, self.syncphase, self.overvoltage, self.etac)
+        rf_voltage = _get_rf_voltage(self._acc)
+        res = _calc_rf_acceptance(
+            self._acc.energy, self.energy_offset, self._acc.harmonic_number,
+            rf_voltage, self.overvoltage, self.etac)
         return res
 
     def as_dict(self):

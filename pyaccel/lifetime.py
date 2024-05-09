@@ -70,9 +70,49 @@ class Lifetime:
         self._avg_pressure = self.DEFAULT_AVG_PRESSURE
         self._atomic_number = self.DEFAULT_ATOMIC_NUMBER
         self._temperature = self.DEFAULT_TEMPERATURE
-        self._tau1 = self._tau2 = self._tau3 = None
-        self._emit1 = self._emit2 = self._espread0 = self._bunlen = None
         self._accepx = self._accepy = self._accepen = None
+
+    def __str__(self):
+        """."""
+        fmtr = '{:33s}: '
+        fmtn = '{:.4g}'
+        fmte = fmtr + fmtn
+        rst = ''
+
+        rst += '--- particles ---'
+        rst += fmte.format('\ntotal current [mA]', self.curr_per_bunch * self._acc.harmonic_number)
+        rst += fmte.format('\ncurr per bunch [mA]', self.curr_per_bunch)
+        rst += fmte.format('\navg pressure [mbar]', self.avg_pressure)
+
+        rst += '\n--- acceptances ---'
+        accp, accn = self.accepen['accp'], self.accepen['accn']
+        rst += fmte.format('\naccepen_pos [%] (min,max)', 100*min(accp), 100*max(accp))
+        rst += fmte.format('\naccepen_neg [%] (min,max)', 100*min(accn), 100*max(accn))
+        accx, accy = self.accepx['acc'], self.accepy['acc']
+        rst += fmte.format('\naccepx [mm.mrad] (min,max)', 1e6*min(accx), 1e6*max(accy))
+        rst += fmte.format('\naccepy [mm.mrad] (min,max)', 1e6*min(accy), 1e6*max(accy))
+
+        rst += '\n--- equilibrium parameters ---'
+        rst += '\n' + self.equi_params.__str__()
+
+        rst += '\n--- loss rates [1/s] ---'
+        rst += fmte.format('\ntotal', self.lossrate_total)
+        rst += fmte.format('\n  touschek', self.lossrate_touschek)
+        rst += fmte.format('\n  elastic', self.lossrate_elastic)
+        rst += fmte.format('\n  inelastic', self.lossrate_inelastic)
+        rst += fmte.format('\n  quantum', self.lossrate_quantum)
+        rst += fmte.format('\n    quantumx', self.lossrate_quantumx)
+        rst += fmte.format('\n    quantumy', self.lossrate_quantumy)
+        rst += fmte.format('\n    quantume', self.lossrate_quantume)
+
+        rst += '\n--- lifetime [h] ---'
+        rst += fmte.format('\ntotal', self.lifetime_total / 3600)
+        rst += fmte.format('\n  touschek', self.lifetime_touschek / 3600)
+        rst += fmte.format('\n  elastic', self.lifetime_elastic / 3600)
+        rst += fmte.format('\n  inelastic', self.lifetime_inelastic / 3600)
+        rst += fmte.format('\n  quantum', self.lifetime_quantum / 3600)
+
+        return rst
 
     @property
     def type_eqparams_str(self):
@@ -146,6 +186,16 @@ class Lifetime:
         self._acc = val
 
     @property
+    def energy(self):
+        """."""
+        return self._eqpar.energy
+
+    @property
+    def energy_offset(self):
+        """."""
+        return self._eqpar.energy_offset
+
+    @property
     def equi_params(self):
         """Equilibrium parameters."""
         return self._eqpar
@@ -206,89 +256,47 @@ class Lifetime:
     @property
     def emit1(self):
         """Stationary emittance of mode 1 [m.rad]."""
-        if self._emit1 is not None:
-            return self._emit1
         attr = 'emitx' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'emit1'
         return getattr(self._eqpar, attr)
 
-    @emit1.setter
-    def emit1(self, val):
-        self._emit1 = float(val)
-
     @property
     def emit2(self):
         """Stationary emittance of mode 2 [m.rad]."""
-        if self._emit2 is not None:
-            return self._emit2
         attr = 'emity' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'emit2'
         return getattr(self._eqpar, attr)
 
-    @emit2.setter
-    def emit2(self, val):
-        self._emit2 = float(val)
-
     @property
     def espread0(self):
         """Relative energy spread."""
-        if self._espread0 is not None:
-            return self._espread0
         return self._eqpar.espread0
-
-    @espread0.setter
-    def espread0(self, val):
-        self._espread0 = float(val)
 
     @property
     def bunlen(self):
         """Bunch length [m]."""
-        if self._bunlen is not None:
-            return self._bunlen
         return self._eqpar.bunlen
-
-    @bunlen.setter
-    def bunlen(self, val):
-        self._bunlen = float(val)
 
     @property
     def tau1(self):
         """Mode 1 damping Time [s]."""
-        if self._tau1 is not None:
-            return self._tau1
         attr = 'taux' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau1'
         return getattr(self._eqpar, attr)
 
-    @tau1.setter
-    def tau1(self, val):
-        self._tau1 = float(val)
-
     @property
     def tau2(self):
         """Mode 2 damping Time [s]."""
-        if self._tau2 is not None:
-            return self._tau2
         attr = 'tauy' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau2'
         return getattr(self._eqpar, attr)
 
-    @tau2.setter
-    def tau2(self, val):
-        self._tau2 = float(val)
-
     @property
     def tau3(self):
         """Mode 3 damping Time [s]."""
-        if self._tau3 is not None:
-            return self._tau3
         attr = 'taue' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau3'
         return getattr(self._eqpar, attr)
-
-    @tau3.setter
-    def tau3(self, val):
-        self._tau3 = float(val)
 
     @property
     def accepen(self):

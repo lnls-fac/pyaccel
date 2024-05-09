@@ -12,9 +12,9 @@ class _EqParams:
     """Equilibrium parameters base class."""
 
     PARAMETERS = {
-        'espread0',
-        'bunlen',
-        'U0', 'overvoltage', 'syncphase', 'synctune',
+        'energy', 'energy_offset',
+        'espread0', 'bunlen',
+        'rf_voltage', 'U0', 'overvoltage', 'syncphase', 'synctune',
         'alpha', 'etac', 'rf_acceptance',
         'sigma_rx', 'sigma_px',
         'sigma_ry', 'sigma_py',
@@ -31,32 +31,6 @@ class _EqParams:
     def __str__(cls):
         """."""
         return cls.eqparam_to_string(cls)
-
-    @staticmethod
-    def calc_rf_acceptance(accelerator, syncphase, overvoltage, etac):
-        """."""
-        E0 = accelerator.energy
-        sph = syncphase
-        V = _get_rf_voltage(accelerator)
-        ov = overvoltage
-        h = accelerator.harmonic_number
-
-        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
-        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
-        return _math.sqrt(eaccep2)
-
-    @staticmethod
-    def calc_U0(accelerator, I2, energy_offset):
-        """Return U0 [eV]."""
-        E0 = accelerator.energy / 1e9  # [GeV]
-        E0 *= (1 + energy_offset)
-        rad_cgamma = _mp.constants.rad_cgamma
-        return rad_cgamma/(2*_math.pi) * E0**4 * I2 * 1e9  # [eV]
-
-    @staticmethod
-    def calc_syncphase(overvoltage):
-        """."""
-        return _math.pi - _math.asin(1/overvoltage)
 
 
 class EqParamsXYModes(_EqParams):
@@ -77,6 +51,9 @@ class EqParamsXYModes(_EqParams):
         fmtr = '{:33s}: '
         fmtn = '{:.4g}'
         fmte = fmtr + fmtn
+
+        rst += fmte.format('Energy [GeV]', eqparam.energy*1e-9)
+        rst += fmte.format('\nEnergy offset [%]', eqparam.energy_offset*100)
 
         ints = 'Jx,Jy,Je'.split(',')
         rst += '\n' + fmti.format(', '.join(ints))
@@ -107,6 +84,7 @@ class EqParamsXYModes(_EqParams):
 class EqParamsNormalModes(_EqParams):
     """Equilibrium Parameters for normal modes."""
 
+    CHR_MODE1, CHR_MODE2, CHR_MODE3 = '1', '2', '3'
     PARAMETERS = _EqParams.PARAMETERS.union({
         'J1', 'J2', 'J3',
         'alpha1', 'alpha2', 'alpha3',
@@ -125,6 +103,9 @@ class EqParamsNormalModes(_EqParams):
         fmtn = '{:.4g}'
 
         fmte = fmtr + fmtn
+
+        rst += fmte.format('Energy [GeV]', eqparam.energy*1e-9)
+        rst += fmte.format('\nEnergy offset [%]', eqparam.energy_offset*100)
 
         ints = 'J1,J2,J3'.split(',')
         rst += '\n' + fmti.format(', '.join(ints))
