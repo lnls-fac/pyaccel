@@ -753,7 +753,7 @@ class Element:
     @property
     def t_in(self):
         """."""
-        return T(self.trackcpp_e, "in")
+        return TransVector(self.trackcpp_e, "in")
 
     @t_in.setter
     def t_in(self, value):
@@ -766,7 +766,7 @@ class Element:
     @property
     def t_out(self):
         """."""
-        return T(self.trackcpp_e, "out")
+        return TransVector(self.trackcpp_e, "out")
 
     @t_out.setter
     def t_out(self, value):
@@ -779,7 +779,7 @@ class Element:
     @property
     def r_in(self):
         """."""
-        return R(self.trackcpp_e, "in")
+        return RotMatrix(self.trackcpp_e, "in")
 
     @r_in.setter
     def r_in(self, value):
@@ -791,7 +791,7 @@ class Element:
     @property
     def r_out(self):
         """."""
-        return R(self.trackcpp_e, "out")
+        return RotMatrix(self.trackcpp_e, "out")
 
     @r_out.setter
     def r_out(self, value):
@@ -926,15 +926,14 @@ class Element:
             raise ValueError("shape must be " + str(shape))
 
 
-_CV = _ctypes.c_double*_NUM_COORDS
-class T(_numpy.ndarray):
+class CustomArray(_numpy.ndarray):
     """."""
-    def __new__(cls, c_element, direction):
+    _COORD_ARRAY = None
+    def __new__(cls, c_element, field, shape):
         """."""
-        field = "t_"+direction
         address = int(getattr(c_element, field))
-        c_array = _CV.from_address(address)
-        obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(_NUM_COORDS)
+        c_array = cls._COORD_ARRAY.from_address(address)
+        obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(shape)
         obj._e = c_element
         obj.field = field
         return obj
@@ -946,38 +945,25 @@ class T(_numpy.ndarray):
 
     def is_identity(self):
         """."""
-        return _numpy.array_equal(self,  _numpy.zeros(_NUM_COORDS, dtype=float))
+        func = _numpy.eye if self.field[0] == 'r' else _numpy.zeros
+        return _numpy.array_equal(self, func(_NUM_COORDS, dtype=float))
 
     def reflag(self):
         """."""
         return getattr(self._e, "reflag_"+self.field)
 
 
-_CM = _ctypes.c_double*_DIMS[0]*_DIMS[1]
-class R(_numpy.ndarray):
-    """."""
+class TransVector(CustomArray):
+    _COORD_ARRAY = _ctypes.c_double*_NUM_COORDS
     def __new__(cls, c_element, direction):
-        """."""
-        field = "r_"+direction
-        address = int(getattr(c_element, field))
-        c_array = _CM.from_address(address)
-        obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(_DIMS)
-        obj._e = c_element
-        obj.field = field
-        return obj
+        return super().__new__(cls, c_element, "t_"+direction, _NUM_COORDS)
 
-    def __setitem__(self, index, value):
-        """."""
-        super().__setitem__(index, value)
-        getattr(self._e, "reflag_"+self.field)()
 
-    def is_identity(self):
-        """."""
-        return _numpy.array_equal(self,  _numpy.eye(_NUM_COORDS, dtype=float))
+class RotMatrix(CustomArray):
+    _COORD_ARRAY = _ctypes.c_double*_DIMS[0]*_DIMS[1]
+    def __new__(cls, c_element, direction):
+        return super().__new__(cls, c_element, "r_"+direction, _DIMS)
 
-    def reflag(self):
-        """."""
-        return getattr(self._e, "reflag_"+self.field)    
 
 _warnings.filterwarnings(
     "ignore", "Item size computed from the PEP 3118 \
