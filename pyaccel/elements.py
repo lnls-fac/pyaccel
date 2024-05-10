@@ -926,7 +926,7 @@ class Element:
             raise ValueError("shape must be " + str(shape))
 
 
-class CustomArray(_numpy.ndarray):
+class _CustomArray(_numpy.ndarray):
     """."""
     _COORD_ARRAY = None
     def __new__(cls, c_element, field, shape):
@@ -953,13 +953,13 @@ class CustomArray(_numpy.ndarray):
         return getattr(self._e, "reflag_"+self.field)
 
 
-class TransVector(CustomArray):
+class TransVector(_CustomArray):
     _COORD_ARRAY = _ctypes.c_double*_NUM_COORDS
     def __new__(cls, c_element, direction):
         return super().__new__(cls, c_element, "t_"+direction, _NUM_COORDS)
 
 
-class RotMatrix(CustomArray):
+class RotMatrix(_CustomArray):
     _COORD_ARRAY = _ctypes.c_double*_DIMS[0]*_DIMS[1]
     def __new__(cls, c_element, direction):
         return super().__new__(cls, c_element, "r_"+direction, _DIMS)
