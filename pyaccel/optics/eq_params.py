@@ -48,12 +48,11 @@ class EqParamsXYModes(_EqParams):
         """."""
         rst = ''
         fmti = '{:32s}: '
-        fmtr = '{:33s}: '
         fmtn = '{:.4g}'
-        fmte = fmtr + fmtn
+        fmte = fmti + fmtn
 
         rst += fmte.format('Energy [GeV]', eqparam.energy*1e-9)
-        rst += fmte.format('\nEnergy offset [%]', eqparam.energy_offset*100)
+        rst += '\n' + fmte.format('Energy offset [%]', eqparam.energy_offset*100)
 
         ints = 'Jx,Jy,Je'.split(',')
         rst += '\n' + fmti.format(', '.join(ints))
@@ -67,17 +66,17 @@ class EqParamsXYModes(_EqParams):
         rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
         rst += ', '.join([fmtn.format(getattr(eqparam, x)) for x in ints])
 
-        rst += fmte.format('\nmomentum compaction x 1e4', eqparam.alpha*1e4)
-        rst += fmte.format('\nenergy loss [keV]', eqparam.U0/1000)
-        rst += fmte.format('\novervoltage', eqparam.overvoltage)
-        rst += fmte.format('\nsync phase [°]', eqparam.syncphase*180/_math.pi)
-        rst += fmte.format('\nsync tune', eqparam.synctune)
-        rst += fmte.format('\nhorizontal emittance [nm.rad]', eqparam.emitx*1e9)
-        rst += fmte.format('\nvertical emittance [pm.rad]', eqparam.emity*1e12)
-        rst += fmte.format('\nnatural emittance [nm.rad]', eqparam.emit0*1e9)
-        rst += fmte.format('\nnatural espread [%]', eqparam.espread0*100)
-        rst += fmte.format('\nbunch length [mm]', eqparam.bunlen*1000)
-        rst += fmte.format('\nRF energy accep. [%]', eqparam.rf_acceptance*100)
+        rst += '\n' + fmte.format('momentum compaction x 1e4', eqparam.alpha*1e4)
+        rst += '\n' + fmte.format('energy loss [keV]', eqparam.U0/1000)
+        rst += '\n' + fmte.format('overvoltage', eqparam.overvoltage)
+        rst += '\n' + fmte.format('sync phase [°]', eqparam.syncphase*180/_math.pi)
+        rst += '\n' + fmte.format('sync tune', eqparam.synctune)
+        rst += '\n' + fmte.format('horizontal emittance [nm.rad]', eqparam.emitx*1e9)
+        rst += '\n' + fmte.format('vertical emittance [pm.rad]', eqparam.emity*1e12)
+        rst += '\n' + fmte.format('natural emittance [nm.rad]', eqparam.emit0*1e9)
+        rst += '\n' + fmte.format('natural espread [%]', eqparam.espread0*100)
+        rst += '\n' + fmte.format('bunch length [mm]', eqparam.bunlen*1000)
+        rst += '\n' + fmte.format('RF energy accep. [%]', eqparam.rf_acceptance*100)
         return rst
 
 
@@ -99,13 +98,12 @@ class EqParamsNormalModes(_EqParams):
         """."""
         rst = ''
         fmti = '{:32s}: '
-        fmtr = '{:33s}: '
         fmtn = '{:.4g}'
 
-        fmte = fmtr + fmtn
+        fmte = fmti + fmtn
 
         rst += fmte.format('Energy [GeV]', eqparam.energy*1e-9)
-        rst += fmte.format('\nEnergy offset [%]', eqparam.energy_offset*100)
+        rst += '\n' + fmte.format('Energy offset [%]', eqparam.energy_offset*100)
 
         ints = 'J1,J2,J3'.split(',')
         rst += '\n' + fmti.format(', '.join(ints))
@@ -123,13 +121,13 @@ class EqParamsNormalModes(_EqParams):
         rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
         rst += ', '.join([fmtn.format(getattr(eqparam, x)) for x in ints])
 
-        rst += fmte.format('\nmomentum compaction x 1e4', eqparam.alpha*1e4)
-        rst += fmte.format('\nenergy loss [keV]', eqparam.U0/1000)
-        rst += fmte.format('\novervoltage', eqparam.overvoltage)
-        rst += fmte.format('\nsync phase [°]', eqparam.syncphase*180/_math.pi)
-        rst += fmte.format('\nmode 1 emittance [nm.rad]', eqparam.emit1*1e9)
-        rst += fmte.format('\nmode 2 emittance [pm.rad]', eqparam.emit2*1e12)
-        rst += fmte.format('\nnatural espread [%]', eqparam.espread0*100)
-        rst += fmte.format('\nbunch length [mm]', eqparam.bunlen*1000)
-        rst += fmte.format('\nRF energy accep. [%]', eqparam.rf_acceptance*100)
+        rst += '\n' + fmte.format('momentum compaction x 1e4', eqparam.alpha*1e4)
+        rst += '\n' + fmte.format('energy loss [keV]', eqparam.U0/1000)
+        rst += '\n' + fmte.format('overvoltage', eqparam.overvoltage)
+        rst += '\n' + fmte.format('sync phase [°]', eqparam.syncphase*180/_math.pi)
+        rst += '\n' + fmte.format('mode 1 emittance [nm.rad]', eqparam.emit1*1e9)
+        rst += '\n' + fmte.format('mode 2 emittance [pm.rad]', eqparam.emit2*1e12)
+        rst += '\n' + fmte.format('natural espread [%]', eqparam.espread0*100)
+        rst += '\n' + fmte.format('bunch length [mm]', eqparam.bunlen*1000)
+        rst += '\n' + fmte.format('RF energy accep. [%]', eqparam.rf_acceptance*100)
         return rst
