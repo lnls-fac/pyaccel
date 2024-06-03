@@ -2,8 +2,6 @@
 
 import warnings
 
-import numpy as _numpy
-
 import trackcpp as _trackcpp
 
 from mathphys.functions import get_namedtuple as _get_namedtuple
@@ -55,34 +53,6 @@ def deprecated(function):
     new_function.__dict__.update(function.__dict__)
 
     return new_function
-
-
-class Polynom(_numpy.ndarray):
-    """."""
-
-    def __new__(cls, polynom):
-        """."""
-        shape = (len(polynom),)
-        array = _numpy.ndarray.__new__(cls, shape=shape)
-        array[:] = polynom[:]
-        array._polynom = polynom
-        return array
-
-    def __setitem__(self, index, value):
-        """."""
-        if hasattr(self, '_polynom'):
-            self._polynom[index] = value
-        super().__setitem__(index, value)
-
-    def __eq__(self, other):
-        """."""
-        if not isinstance(other, Polynom):
-            return NotImplemented
-        if len(self) != len(other):
-            return False
-        if (self != other).any():
-            return False
-        return True
 
 
 @interactive
