@@ -173,9 +173,8 @@ def set_6d_tracking(accelerator, rad_full=False):
     accelerator.cavity_on = True
     accelerator.radiation_on = 'full' if rad_full else 'damping'
 
-
 @_interactive
-def element_pass(element, particles, energy, **kwargs):
+def element_pass(element, particles, energy, nturn=0, **kwargs):
     """Track particle(s) through an element.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -208,6 +207,8 @@ def element_pass(element, particles, energy, **kwargs):
     """
     # checks if all necessary arguments have been passed
     kwargs['energy'] = energy
+    if not isinstance(nturn, (int, _np.integer)):
+        raise ValueError("nturn arg must be a integer")
 
     # creates accelerator for tracking
     accelerator = _accelerator.Accelerator(**kwargs)
@@ -217,7 +218,7 @@ def element_pass(element, particles, energy, **kwargs):
 
     # tracks through the list of pos
     ret = _trackcpp.track_elementpass_wrapper(
-        element.trackcpp_e, p_in, accelerator.trackcpp_acc)
+        element.trackcpp_e, p_in, accelerator.trackcpp_acc, float(nturn))
     if ret > 0:
         raise TrackingException
 
@@ -227,7 +228,7 @@ def element_pass(element, particles, energy, **kwargs):
 @_interactive
 def line_pass(
         accelerator, particles, indices=None, element_offset=0,
-        parallel=False):
+        parallel=False, nturn=0):
     """Track particle(s) along a line.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -318,14 +319,14 @@ def line_pass(
 
     if not parallel:
         p_out, lost_flag, lost_element, lost_plane = _line_pass(
-            accelerator, p_in, indices, element_offset)
+            accelerator, p_in, indices, element_offset, nturn)
     else:
         slcs = _get_slices_multiprocessing(parallel, p_in.shape[1])
         with _multiproc.Pool(processes=len(slcs)) as pool:
             res = []
             for slc in slcs:
                 res.append(pool.apply_async(_line_pass, (
-                    accelerator, p_in[:, slc], indices, element_offset, True)))
+                    accelerator, p_in[:, slc], indices, element_offset, nturn, True)))
 
             p_out, lost_element, lost_plane = [], [], []
             lost_flag = False
@@ -345,12 +346,13 @@ def line_pass(
     return p_out, lost_flag, lost_element, lost_plane
 
 
-def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
+def _line_pass(accelerator, p_in, indices, element_offset, nturn=0, set_seed=False):
     # store only final position?
     args = _trackcpp.LinePassArgs()
     for idx in indices:
         args.indices.push_back(int(idx))
     args.element_offset = int(element_offset)
+    args.nturn = int(nturn)
 
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
@@ -632,6 +634,33 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     ret = _trackcpp.track_findorbit6(
         accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
+
+    accelerator.radiation_on = rad_stt
+
+    if ret > 0:
+        raise TrackingException(_trackcpp.string_error_messages[ret])
+
+    closed_orbit = _CppDoublePosVector2Numpy(_closed_orbit)
+    return closed_orbit[:, indices]
+
+@_interactive
+def find_orbit6_dct(accelerator, indices=None, fixed_point_guess=None, dct=0):
+    """."""
+    indices = _process_indices(accelerator, indices)
+
+    # The orbit can't be found when quantum excitation is on.
+    rad_stt = accelerator.radiation_on
+    accelerator.radiation_on = 'damping'
+
+    if fixed_point_guess is None:
+        fixed_point_guess = _trackcpp.CppDoublePos()
+    else:
+        fixed_point_guess = _Numpy2CppDoublePos(fixed_point_guess)
+
+    _closed_orbit = _trackcpp.CppDoublePosVector()
+
+    ret = _trackcpp.track_findorbit6_dct(
+        accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess, float(dct))
 
     accelerator.radiation_on = rad_stt
 
