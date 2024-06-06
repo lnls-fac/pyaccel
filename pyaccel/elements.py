@@ -925,6 +925,13 @@ class Element:
         if not value.shape == shape:
             raise ValueError("shape must be " + str(shape))
 
+    @staticmethod
+    def _get_cpp_vector(cppvector):
+        address = int(cppvector.data_())
+        c_empty_array = _ctypes.c_double * cppvector.size()
+        c_array = c_empty_array.from_address(address)
+        return _numpy.ctypeslib.as_array(c_array)
+
 
 class _CustomArray(_numpy.ndarray):
     """."""
@@ -963,13 +970,6 @@ class RotMatrix(_CustomArray):
     _COORD_ARRAY = _ctypes.c_double*_DIMS[0]*_DIMS[1]
     def __new__(cls, c_element, direction):
         return super().__new__(cls, c_element, "r_"+direction, _DIMS)
-
-    @staticmethod
-    def _get_cpp_vector(cppvector):
-        address = int(cppvector.data_())
-        c_empty_array = _ctypes.c_double * cppvector.size()
-        c_array = c_empty_array.from_address(address)
-        return _numpy.ctypeslib.as_array(c_array)
 
 
 _warnings.filterwarnings(
