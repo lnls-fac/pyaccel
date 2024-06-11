@@ -355,8 +355,7 @@ def _line_pass(accelerator, p_in, indices, element_offset, nturn=0, set_seed=Fal
 
     args.line_length = accelerator.trackcpp_acc.get_time_aware_elements_info(
         args.time_aware_element_indices,
-        args.time_aware_element_positions,
-        int(element_offset)
+        args.time_aware_element_positions
     )
 
     n_part = p_in.shape[1]
