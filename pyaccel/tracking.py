@@ -352,7 +352,12 @@ def _line_pass(accelerator, p_in, indices, element_offset, nturn=0, set_seed=Fal
     for idx in indices:
         args.indices.push_back(int(idx))
     args.element_offset = int(element_offset)
-    args.nturn = int(nturn)
+
+    args.line_length = accelerator.trackcpp_acc.get_time_aware_elements_info(
+        args.time_aware_element_indices,
+        args.time_aware_element_positions,
+        int(element_offset)
+    )
 
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
@@ -621,10 +626,6 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     """
     indices = _process_indices(accelerator, indices)
 
-    # The orbit can't be found when quantum excitation is on.
-    rad_stt = accelerator.radiation_on
-    accelerator.radiation_on = 'damping'
-
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()
     else:
@@ -634,35 +635,6 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     ret = _trackcpp.track_findorbit6(
         accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
-
-    accelerator.radiation_on = rad_stt
-
-    if ret > 0:
-        raise TrackingException(_trackcpp.string_error_messages[ret])
-
-    closed_orbit = _CppDoublePosVector2Numpy(_closed_orbit)
-    return closed_orbit[:, indices]
-
-@_interactive
-def find_orbit6_dct(accelerator, indices=None, fixed_point_guess=None, dct=0):
-    """."""
-    indices = _process_indices(accelerator, indices)
-
-    # The orbit can't be found when quantum excitation is on.
-    rad_stt = accelerator.radiation_on
-    accelerator.radiation_on = 'damping'
-
-    if fixed_point_guess is None:
-        fixed_point_guess = _trackcpp.CppDoublePos()
-    else:
-        fixed_point_guess = _Numpy2CppDoublePos(fixed_point_guess)
-
-    _closed_orbit = _trackcpp.CppDoublePosVector()
-
-    ret = _trackcpp.track_findorbit6_dct(
-        accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess, float(dct))
-
-    accelerator.radiation_on = rad_stt
 
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
@@ -755,6 +727,13 @@ def find_m66(accelerator, indices='m66', fixed_point=None):
     else:
         trackcpp_idx.push_back(len(accelerator))
 
+    timeaware_element_indices = _trackcpp.CppUnsigIntVector()
+    timeaware_element_positions = _trackcpp.CppDoubleVector()
+    linelength = accelerator.trackcpp_acc.get_time_aware_elements_info(
+        timeaware_element_indices,
+        timeaware_element_positions
+    )
+
     if fixed_point is None:
         # Closed orbit is calculated by trackcpp
         fixed_point_guess = _trackcpp.CppDoublePos()
@@ -772,8 +751,15 @@ def find_m66(accelerator, indices='m66', fixed_point=None):
     m66 = _np.zeros((6, 6), dtype=float)
     _v0 = _trackcpp.CppDoublePos()
     ret = _trackcpp.track_findm66_wrapper(
-        accelerator.trackcpp_acc, _closed_orbit[0], cumul_trans_matrices,
-        m66, _v0, trackcpp_idx)
+        accelerator.trackcpp_acc,
+        _closed_orbit[0],
+        cumul_trans_matrices,
+        m66,
+        _v0,
+        trackcpp_idx,
+        linelength,
+        timeaware_element_indices,
+        timeaware_element_positions)
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 
@@ -831,12 +817,26 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, fixed_point=None):
         _closed_orbit = _trackcpp.CppDoublePosVector()
         _closed_orbit.push_back(_fixed_point)
 
+    timeaware_element_indices = _trackcpp.CppUnsigIntVector()
+    timeaware_element_positions = _trackcpp.CppDoubleVector()
+    linelength = accelerator.trackcpp_acc.get_time_aware_elements_info(
+        timeaware_element_indices,
+        timeaware_element_positions
+    )
+
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 4, 4), dtype=float)
     m44 = _np.zeros((4, 4), dtype=float)
     _v0 = _trackcpp.CppDoublePos()
     ret = _trackcpp.track_findm66_wrapper(
-        accelerator.trackcpp_acc, _closed_orbit[0], cumul_trans_matrices,
-        m44, _v0, trackcpp_idx)
+        accelerator.trackcpp_acc,
+        _closed_orbit[0],
+        cumul_trans_matrices,
+        m44,
+        _v0,
+        trackcpp_idx,
+        linelength,
+        timeaware_element_indices,
+        timeaware_element_positions)
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 
