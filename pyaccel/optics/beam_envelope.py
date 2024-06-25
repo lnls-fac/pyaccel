@@ -11,7 +11,10 @@ from .. import accelerator as _accelerator
 from ..utils import interactive as _interactive
 
 from .miscellaneous import get_rf_voltage as _get_rf_voltage, \
-    get_revolution_frequency as _get_revolution_frequency
+    get_revolution_frequency as _get_revolution_frequency, \
+    calc_rf_acceptance as _calc_rf_acceptance, calc_U0 as _calc_U0, \
+    calc_syncphase as _calc_syncphase
+from .eq_params import EqParamsNormalModes as _EqParamsNormalModes
 
 
 class EqParamsFromBeamEnvelope:
@@ -35,6 +38,8 @@ class EqParamsFromBeamEnvelope:
 
     """
 
+    PARAMETERS = _EqParamsNormalModes.PARAMETERS.union({})
+
     def __init__(self, accelerator, energy_offset=0.0):
         """."""
         self._acc = _accelerator.Accelerator()
@@ -53,41 +58,7 @@ class EqParamsFromBeamEnvelope:
 
     def __str__(self):
         """."""
-        rst = ''
-        fmti = '{:32s}: '
-        fmtr = '{:33s}: '
-        fmtn = '{:.4g}'
-
-        fmte = fmtr + fmtn
-        rst += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
-        rst += fmte.format('\nEnergy Deviation [%]', self.energy_offset*100)
-
-        ints = 'J1,J2,J3'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints))
-        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        ints = 'tau1,tau2,tau3'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints) + ' [ms]')
-        rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
-
-        ints = 'alpha1,alpha2,alpha3'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
-        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        ints = 'tune1,tune2,tune3'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
-        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        rst += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
-        rst += fmte.format('\nenergy loss [keV]', self.U0/1000)
-        rst += fmte.format('\novervoltage', self.overvoltage)
-        rst += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
-        rst += fmte.format('\nmode 1 emittance [nm.rad]', self.emit1*1e9)
-        rst += fmte.format('\nmode 2 emittance [pm.rad]', self.emit2*1e12)
-        rst += fmte.format('\nnatural espread [%]', self.espread0*100)
-        rst += fmte.format('\nbunch length [mm]', self.bunlen*1000)
-        rst += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
-        return rst
+        return _EqParamsNormalModes.eqparam_to_string(self)
 
     @property
     def accelerator(self):
@@ -99,6 +70,11 @@ class EqParamsFromBeamEnvelope:
         if isinstance(acc, _accelerator.Accelerator):
             self._acc = acc
             self._calc_envelope()
+
+    @property
+    def energy(self):
+        """."""
+        return self._acc.energy
 
     @property
     def energy_offset(self):
@@ -330,9 +306,8 @@ class EqParamsFromBeamEnvelope:
     @property
     def U0(self):
         """."""
-        E0 = self._acc.energy / 1e9  # in GeV
-        rad_cgamma = _mp.constants.rad_cgamma
-        return rad_cgamma/(2*_math.pi) * E0**4 * self._integral2 * 1e9  # in eV
+        res = _calc_U0(self._acc.energy, self.energy_offset, self._integral2)
+        return res
 
     @property
     def overvoltage(self):
@@ -343,7 +318,8 @@ class EqParamsFromBeamEnvelope:
     @property
     def syncphase(self):
         """."""
-        return _math.pi - _math.asin(1/self.overvoltage)
+        res = _calc_syncphase(self.overvoltage)
+        return res
 
     @property
     def etac(self):
@@ -371,31 +347,15 @@ class EqParamsFromBeamEnvelope:
     @property
     def rf_acceptance(self):
         """."""
-        E0 = self._acc.energy
-        sph = self.syncphase
-        V = _get_rf_voltage(self._acc)
-        ov = self.overvoltage
-        h = self._acc.harmonic_number
-        etac = self.etac
-
-        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
-        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
-        return _math.sqrt(eaccep2)
+        rf_voltage = _get_rf_voltage(self._acc)
+        res = _calc_rf_acceptance(
+            self._acc.energy, self.energy_offset, self._acc.harmonic_number,
+            rf_voltage, self.overvoltage, self.etac)
+        return res
 
     def as_dict(self):
         """."""
-        pars = {
-            'J1', 'J2', 'J3',
-            'alpha1', 'alpha2', 'alpha3',
-            'tau1', 'tau2', 'tau3',
-            'tune1', 'tune2', 'tune3',
-            'espread0',
-            'emit1', 'emit2',
-            'bunlen',
-            'U0', 'overvoltage', 'syncphase',
-            'alpha', 'etac', 'rf_acceptance',
-            }
-        dic = {par: getattr(self, par) for par in pars}
+        dic = {par: getattr(self, par) for par in self.PARAMETERS}
         dic['energy'] = self.accelerator.energy
         return dic
 
@@ -459,7 +419,7 @@ class EqParamsFromBeamEnvelope:
 
         # we can also extract the value of the second integral:
         Ca = _mp.constants.Ca
-        E0 = self._acc.energy / 1e9  # in GeV
+        E0 = self._acc.energy / 1e9  # [GeV]
         E0 *= (1 + self._energy_offset)
         leng = self._acc.length
         self._integral2 = fac / (Ca * E0**3 / leng)
