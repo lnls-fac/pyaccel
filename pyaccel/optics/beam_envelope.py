@@ -21,7 +21,7 @@ class EqParamsFromBeamEnvelope:
     """Calculate equilibrium beam parameters from beam envelope matrix.
 
     It employs Ohmi formalism to do so:
-        Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
+        Ohmi, Hirata, Oide 'From the beam-envelope matrix to synchrotron
         radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
         https://doi.org/10.1103/PhysRevE.49.751
     Other useful reference is:
@@ -432,14 +432,14 @@ def calc_beamenvelope(
     """Calculate equilibrium beam envelope matrix or transport initial one.
 
     It employs Ohmi formalism to do so:
-        Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
+        Ohmi, Hirata, Oide 'From the beam-envelope matrix to synchrotron
         radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
         https://doi.org/10.1103/PhysRevE.49.751
 
     Keyword arguments:
     accelerator : Accelerator object. Only non-optional argument.
 
-    fixed_point : 6D position at the start of first element. I might be the
+    fixed_point : 6D position at the start of first element. It might be the
       fixed point of the one turn map or an arbitrary initial condition.
 
     indices : may be a (list,tuple, numpy.ndarray) of element indices where
@@ -453,7 +453,7 @@ def calc_beamenvelope(
       fixed_point is not None).
 
     cumul_trans_matrices : cumulated transfer matrices for all elements of the
-      rin. Must include matrix at the end of the last element. If not passed
+      ring. Must include matrix at the end of the last element. If not passed
       or has the wrong shape it will be calculated internally.
       CAUTION: In case init_env is not passed and equilibrium solution is to
       be found, it must be calculated with cavity and radiation on.
@@ -461,10 +461,19 @@ def calc_beamenvelope(
     init_env: initial envelope matrix to be transported. In case it is not
       provided, the equilibrium solution will be returned.
 
-    Returns:
-    envelope -- rank-3 numpy array with shape (len(indices), 6, 6). Of the
-      beam envelope matrices at the desired indices.
+    full: whether to return the envelope matrices as well as the the
+      cumulative transfer matrices, the diffusion matrix and the fixed point.
+      Defaults to False, in which case only the envelope is returned.
 
+    Returns:
+    envelope, if `full==False` -- rank-3 numpy array with shape
+      (len(indices), 6, 6). Of the beam envelope matrices at the desired
+      indices.
+
+    envelope, cum_mat, bdiffs & fixed_point, if `full==True` -- the beam
+      envelope matrices, the cumulated transfer matrices, and the diffusion
+      matrices at the desired indices (rank-3 numpy arrays with shape
+      (len(indices), 6, 6)); and the 6D position at the start of first element.
     """
     indices = _tracking._process_indices(accelerator, indices)
 
