@@ -290,7 +290,10 @@ class Accelerator(object):
             ele = _elements.Element()
             ele.trackcpp_e = self.trackcpp_acc.lattice[int(index)]
             return ele
-        elif isinstance(index, (list, tuple, _np.ndarray)):
+        if isinstance(index, slice):
+            index = list(range(*index.indices(len(self))))
+
+        if isinstance(index, (list, tuple, _np.ndarray)):
             try:
                 index = _np.array(index, dtype=int)
             except TypeError:
@@ -298,9 +301,6 @@ class Accelerator(object):
             lattice = _trackcpp.CppElementVector()
             for i in index:
                 lattice.append(self.trackcpp_acc.lattice[int(i)])
-        elif isinstance(index, slice):
-            index = slice(*index.indices(len(self)))
-            lattice = self.trackcpp_acc.lattice[index]
         else:
             raise TypeError('invalid index')
         acc = Accelerator(
