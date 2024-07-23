@@ -1,6 +1,5 @@
 """."""
 
-import math as _math
 import numpy as _np
 
 import mathphys as _mp
@@ -11,11 +10,20 @@ from .. import accelerator as _accelerator
 from .twiss import calc_twiss as _calc_twiss
 from .miscellaneous import get_rf_voltage as _get_rf_voltage, \
     get_revolution_frequency as _get_revolution_frequency, \
-    get_curlyh as _get_curlyh, get_mcf as _get_mcf
+    get_curlyh as _get_curlyh, get_mcf as _get_mcf, \
+    calc_rf_acceptance as _calc_rf_acceptance, calc_U0 as _calc_U0, \
+    calc_syncphase as _calc_syncphase
+from .eq_params import EqParamsXYModes as _EqParamsXYModes
 
 
 class EqParamsFromRadIntegrals:
     """."""
+
+    PARAMETERS = _EqParamsXYModes.PARAMETERS.union({
+        'energy_offset', 'twiss',
+        'I1x', 'I2', 'I3', 'I3a', 'I4x', 'I5x', 'I6x',
+        'I1y', 'I4y', 'I5y', 'I6y'
+        })
 
     def __init__(self, accelerator, energy_offset=0.0):
         """."""
@@ -51,29 +59,7 @@ class EqParamsFromRadIntegrals:
         rst += '\n' + fmti.format(', '.join(ints))
         rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
 
-        ints = 'Jx,Jy,Je'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints))
-        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        ints = 'taux,tauy,taue'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints) + ' [ms]')
-        rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
-
-        ints = 'alphax,alphay,alphae'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
-        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        rst += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
-        rst += fmte.format('\nenergy loss [keV]', self.U0/1000)
-        rst += fmte.format('\novervoltage', self.overvoltage)
-        rst += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
-        rst += fmte.format('\nsync tune', self.synctune)
-        rst += fmte.format('\nhorizontal emittance [nm.rad]', self.emitx*1e9)
-        rst += fmte.format('\nvertical emittance [pm.rad]', self.emity*1e12)
-        rst += fmte.format('\nnatural emittance [nm.rad]', self.emit0*1e9)
-        rst += fmte.format('\nnatural espread [%]', self.espread0*100)
-        rst += fmte.format('\nbunch length [mm]', self.bunlen*1000)
-        rst += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
+        rst += '\n' + _EqParamsXYModes.eqparam_to_string(self)
         return rst
 
     @property
@@ -86,6 +72,11 @@ class EqParamsFromRadIntegrals:
         if isinstance(acc, _accelerator.Accelerator):
             self._acc = acc
             self._calc_radiation_integrals()
+
+    @property
+    def energy(self):
+        """."""
+        return self._acc.energy
 
     @property
     def energy_offset(self):
@@ -181,7 +172,7 @@ class EqParamsFromRadIntegrals:
     def alphax(self):
         """."""
         Ca = _mp.constants.Ca
-        E0 = self._acc.energy / 1e9  # in GeV
+        E0 = self._acc.energy / 1e9  # [GeV]
         E0 *= (1 + self._energy_offset)
         leng = self._acc.length
         return Ca * E0**3 * self.I2 * self.Jx / leng
@@ -190,7 +181,7 @@ class EqParamsFromRadIntegrals:
     def alphay(self):
         """."""
         Ca = _mp.constants.Ca
-        E0 = self._acc.energy / 1e9  # in GeV
+        E0 = self._acc.energy / 1e9  # [GeV]
         E0 *= (1 + self._energy_offset)
         leng = self._acc.length
         return Ca * E0**3 * self.I2 * self.Jy / leng
@@ -199,7 +190,7 @@ class EqParamsFromRadIntegrals:
     def alphae(self):
         """."""
         Ca = _mp.constants.Ca
-        E0 = self._acc.energy / 1e9  # in GeV
+        E0 = self._acc.energy / 1e9  # [GeV]
         E0 *= (1 + self._energy_offset)
         leng = self._acc.length
         return Ca * E0**3 * self.I2 * self.Je / leng
@@ -225,7 +216,7 @@ class EqParamsFromRadIntegrals:
         Cq = _mp.constants.Cq
         gamma = self._acc.gamma_factor
         gamma *= (1 + self._energy_offset)
-        return _math.sqrt(
+        return _np.sqrt(
             Cq * gamma**2 * self.I3 / (2*self.I2 + self.I4x + self.I4y))
 
     @property
@@ -251,11 +242,9 @@ class EqParamsFromRadIntegrals:
 
     @property
     def U0(self):
-        """."""
-        E0 = self._acc.energy / 1e9  # in GeV
-        E0 *= (1 + self._energy_offset)
-        rad_cgamma = _mp.constants.rad_cgamma
-        return rad_cgamma/(2*_math.pi) * E0**4 * self.I2 * 1e9  # in eV
+        """Return U0 [eV]."""
+        res = _calc_U0(self._acc.energy, self.energy_offset, self.I2)
+        return res
 
     @property
     def overvoltage(self):
@@ -266,7 +255,8 @@ class EqParamsFromRadIntegrals:
     @property
     def syncphase(self):
         """."""
-        return _math.pi - _math.asin(1/self.overvoltage)
+        res = _calc_syncphase(self.overvoltage)
+        return res
 
     @property
     def alpha(self):
@@ -287,8 +277,8 @@ class EqParamsFromRadIntegrals:
         E0 *= (1 + self._energy_offset)
         v_cav = _get_rf_voltage(self._acc)
         harmon = self._acc.harmonic_number
-        return _math.sqrt(
-            self.etac*harmon*v_cav*_math.cos(self.syncphase)/(2*_math.pi*E0))
+        return _np.sqrt(
+            self.etac*harmon*v_cav*_np.cos(self.syncphase)/(2*_np.pi*E0))
 
     @property
     def bunlen(self):
@@ -297,22 +287,17 @@ class EqParamsFromRadIntegrals:
         rev_freq = _get_revolution_frequency(self._acc)
 
         bunlen = vel * abs(self.etac) * self.espread0
-        bunlen /= 2*_math.pi * self.synctune * rev_freq
+        bunlen /= 2*_np.pi * self.synctune * rev_freq
         return bunlen
 
     @property
     def rf_acceptance(self):
         """."""
-        E0 = self._acc.energy
-        sph = self.syncphase
-        V = _get_rf_voltage(self._acc)
-        ov = self.overvoltage
-        h = self._acc.harmonic_number
-        etac = self.etac
-
-        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
-        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
-        return _math.sqrt(eaccep2)
+        rf_voltage = _get_rf_voltage(self._acc)
+        res = _calc_rf_acceptance(
+            self._acc.energy, self.energy_offset, self._acc.harmonic_number,
+            rf_voltage, self.overvoltage, self.etac)
+        return res
 
     @property
     def sigma_rx(self):
@@ -326,7 +311,7 @@ class EqParamsFromRadIntegrals:
         """."""
         emitx = self.emitx
         espread0 = self.espread0
-        return _np.sqrt(emitx*self._twi.alphax + (espread0*self._twi.etapx)**2)
+        return _np.sqrt(emitx*self._twi.gammax + (espread0*self._twi.etapx)**2)
 
     @property
     def sigma_ry(self):
@@ -340,24 +325,11 @@ class EqParamsFromRadIntegrals:
         """."""
         emity = self.emity
         espread0 = self.espread0
-        return _np.sqrt(emity*self._twi.alphay + (espread0*self._twi.etapy)**2)
+        return _np.sqrt(emity*self._twi.gammay + (espread0*self._twi.etapy)**2)
 
     def as_dict(self):
         """."""
-        pars = {
-            'energy_offset', 'twiss',
-            'I1x', 'I2', 'I3', 'I3a', 'I4x', 'I5x', 'I6x',
-            'I1y', 'I4y', 'I5y', 'I6y',
-            'Jx', 'Jy', 'Je',
-            'alphax', 'alphay', 'alphae',
-            'taux', 'tauy', 'taue',
-            'espread0',
-            'emitx', 'emity', 'emit0',
-            'bunch_length',
-            'U0', 'overvoltage', 'syncphase', 'synctune',
-            'alpha', 'etac', 'rf_acceptance',
-            }
-        dic = {par: getattr(self, par) for par in pars}
+        dic = {par: getattr(self, par) for par in self.PARAMETERS}
         dic['energy'] = self.accelerator.energy
         return dic
 

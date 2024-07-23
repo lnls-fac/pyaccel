@@ -35,29 +35,30 @@ class Lifetime:
     EQPARAMS = _get_namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])
     TOUSCHEKMODEL = _get_namedtuple('TouschekModel', ['Piwinski', 'FlatBeam'])
 
+    DEFAULT_BEAM_CURRENT = 100  # [mA]
+    DEFAULT_AVG_PRESSURE = 1e-9  # [mbar]
+    DEFAULT_ATOMIC_NUMBER = 7  # Nitrogen
+    DEFAULT_TEMPERATURE = 300  # [K]
+
     def __init__(self, accelerator, touschek_model=None,
-                 type_eqparams=None, type_optics=None):
+                 eqparams=None, type_optics=None):
         """."""
         self._acc = accelerator
 
-        self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
+        self._type_eqparams = None
+        self._eqparams_func = None
+        self._eqpar = None
+        self._process_eqparams(eqparams)
+
         self._type_optics = Lifetime.OPTICS.EdwardsTeng
         self._touschek_model = Lifetime.TOUSCHEKMODEL.Piwinski
-        self.type_eqparams = type_eqparams
         self.type_optics = type_optics
         self.touschek_model = touschek_model
-
-        if self.type_eqparams == self.EQPARAMS.BeamEnvelope:
-            self._eqparams_func = _optics.EqParamsFromBeamEnvelope
-        elif self.type_eqparams == self.EQPARAMS.RadIntegrals:
-            self._eqparams_func = _optics.EqParamsFromRadIntegrals
 
         if self.type_optics == self.OPTICS.EdwardsTeng:
             self._optics_func = _optics.calc_edwards_teng
         elif self._type_optics == self.OPTICS.Twiss:
             self._optics_func = _optics.calc_twiss
-
-        self._eqpar = self._eqparams_func(self._acc)
         self._optics_data, *_ = self._optics_func(self._acc, indices='closed')
         _twiss = self._optics_data
         if self.type_optics != self.OPTICS.Twiss:
@@ -65,13 +66,53 @@ class Lifetime:
         res = _optics.calc_transverse_acceptance(self._acc, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
-        self._curr_per_bun = 100/864  # [mA]
-        self._avg_pressure = 1e-9  # [mbar]
-        self._atomic_number = 7
-        self._temperature = 300  # [K]
-        self._tau1 = self._tau2 = self._tau3 = None
-        self._emit1 = self._emit2 = self._espread0 = self._bunlen = None
+        self._curr_per_bun = self.DEFAULT_BEAM_CURRENT / self._acc.harmonic_number
+        self._avg_pressure = self.DEFAULT_AVG_PRESSURE
+        self._atomic_number = self.DEFAULT_ATOMIC_NUMBER
+        self._temperature = self.DEFAULT_TEMPERATURE
         self._accepx = self._accepy = self._accepen = None
+
+    def __str__(self):
+        """."""
+        fmtr = '{:33s}: '
+        fmtn = '{:.4g}'
+        fmte = fmtr + fmtn
+        rst = ''
+
+        rst += '--- particles ---'
+        rst += fmte.format('\ntotal current [mA]', self.curr_per_bunch * self._acc.harmonic_number)
+        rst += fmte.format('\ncurr per bunch [mA]', self.curr_per_bunch)
+        rst += fmte.format('\navg pressure [mbar]', self.avg_pressure)
+
+        rst += '\n--- acceptances ---'
+        accp, accn = self.accepen['accp'], self.accepen['accn']
+        rst += fmte.format('\naccepen_pos [%] (min,max)', 100*min(accp), 100*max(accp))
+        rst += fmte.format('\naccepen_neg [%] (min,max)', 100*min(accn), 100*max(accn))
+        accx, accy = self.accepx['acc'], self.accepy['acc']
+        rst += fmte.format('\naccepx [mm.mrad] (min,max)', 1e6*min(accx), 1e6*max(accy))
+        rst += fmte.format('\naccepy [mm.mrad] (min,max)', 1e6*min(accy), 1e6*max(accy))
+
+        rst += '\n--- equilibrium parameters ---'
+        rst += '\n' + self.equi_params.__str__()
+
+        rst += '\n--- loss rates [1/s] ---'
+        rst += fmte.format('\ntotal', self.lossrate_total)
+        rst += fmte.format('\n  touschek', self.lossrate_touschek)
+        rst += fmte.format('\n  elastic', self.lossrate_elastic)
+        rst += fmte.format('\n  inelastic', self.lossrate_inelastic)
+        rst += fmte.format('\n  quantum', self.lossrate_quantum)
+        rst += fmte.format('\n    quantumx', self.lossrate_quantumx)
+        rst += fmte.format('\n    quantumy', self.lossrate_quantumy)
+        rst += fmte.format('\n    quantume', self.lossrate_quantume)
+
+        rst += '\n--- lifetime [h] ---'
+        rst += fmte.format('\ntotal', self.lifetime_total / 3600)
+        rst += fmte.format('\n  touschek', self.lifetime_touschek / 3600)
+        rst += fmte.format('\n  elastic', self.lifetime_elastic / 3600)
+        rst += fmte.format('\n  inelastic', self.lifetime_inelastic / 3600)
+        rst += fmte.format('\n  quantum', self.lifetime_quantum / 3600)
+
+        return rst
 
     @property
     def type_eqparams_str(self):
@@ -85,12 +126,7 @@ class Lifetime:
 
     @type_eqparams.setter
     def type_eqparams(self, value):
-        if value is None:
-            return
-        if isinstance(value, str):
-            self._type_eqparams = int(value in Lifetime.EQPARAMS._fields[1])
-        elif int(value) in Lifetime.EQPARAMS:
-            self._type_eqparams = int(value)
+        self._process_eqparams(value)
 
     @property
     def type_optics_str(self):
@@ -138,7 +174,8 @@ class Lifetime:
 
     @accelerator.setter
     def accelerator(self, val):
-        self._eqpar = self._eqparams_func(val)
+        if self._eqparams_func is not None:
+            self._eqpar = self._eqparams_func(val)
         self._optics_data, *_ = self._optics_func(val, indices='closed')
         _twiss = self._optics_data
         if self.type_optics != self.OPTICS.Twiss:
@@ -149,9 +186,24 @@ class Lifetime:
         self._acc = val
 
     @property
+    def energy(self):
+        """."""
+        return self._eqpar.energy
+
+    @property
+    def energy_offset(self):
+        """."""
+        return self._eqpar.energy_offset
+
+    @property
     def equi_params(self):
         """Equilibrium parameters."""
         return self._eqpar
+
+    @equi_params.setter
+    def equi_params(self, eqparams):
+        """."""
+        self._process_eqparams(eqparams)
 
     @property
     def optics_data(self):
@@ -204,89 +256,47 @@ class Lifetime:
     @property
     def emit1(self):
         """Stationary emittance of mode 1 [m.rad]."""
-        if self._emit1 is not None:
-            return self._emit1
         attr = 'emitx' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'emit1'
         return getattr(self._eqpar, attr)
 
-    @emit1.setter
-    def emit1(self, val):
-        self._emit1 = float(val)
-
     @property
     def emit2(self):
         """Stationary emittance of mode 2 [m.rad]."""
-        if self._emit2 is not None:
-            return self._emit2
         attr = 'emity' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'emit2'
         return getattr(self._eqpar, attr)
 
-    @emit2.setter
-    def emit2(self, val):
-        self._emit2 = float(val)
-
     @property
     def espread0(self):
         """Relative energy spread."""
-        if self._espread0 is not None:
-            return self._espread0
         return self._eqpar.espread0
-
-    @espread0.setter
-    def espread0(self, val):
-        self._espread0 = float(val)
 
     @property
     def bunlen(self):
         """Bunch length [m]."""
-        if self._bunlen is not None:
-            return self._bunlen
         return self._eqpar.bunlen
-
-    @bunlen.setter
-    def bunlen(self, val):
-        self._bunlen = float(val)
 
     @property
     def tau1(self):
         """Mode 1 damping Time [s]."""
-        if self._tau1 is not None:
-            return self._tau1
         attr = 'taux' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau1'
         return getattr(self._eqpar, attr)
 
-    @tau1.setter
-    def tau1(self, val):
-        self._tau1 = float(val)
-
     @property
     def tau2(self):
         """Mode 2 damping Time [s]."""
-        if self._tau2 is not None:
-            return self._tau2
         attr = 'tauy' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau2'
         return getattr(self._eqpar, attr)
 
-    @tau2.setter
-    def tau2(self, val):
-        self._tau2 = float(val)
-
     @property
     def tau3(self):
         """Mode 3 damping Time [s]."""
-        if self._tau3 is not None:
-            return self._tau3
         attr = 'taue' if \
             self.type_eqparams == self.EQPARAMS.RadIntegrals else 'tau3'
         return getattr(self._eqpar, attr)
-
-    @tau3.setter
-    def tau3(self, val):
-        self._tau3 = float(val)
 
     @property
     def accepen(self):
@@ -677,6 +687,7 @@ class Lifetime:
     def inelastic_data(self):
         """
         Calculate loss rate due to inelastic scattering beam lifetime.
+        Based on Ref[1].
 
         Parameters used in calculations:
         accepen       = Relative energy acceptance
@@ -690,6 +701,9 @@ class Lifetime:
             rate     = loss rate along the ring [1/s]
             avg_rate = average loss rate along the ring [1/s]
             pos      = longitudinal position where loss rate was calculated [m]
+
+        References:
+            [1] Beam losses and lifetime - A. Piwinski, em CERN 85-19.
         """
         en_accep = self.accepen
         pressure = self.avg_pressure
@@ -882,6 +896,29 @@ class Lifetime:
         return cls._KSI_TABLE, cls._D_TABLE
 
     # ----- private methods -----
+
+    def _process_eqparams(self, eqparams):
+        # equilibrium parameters argument
+        beamenv_set = (_optics.EqParamsFromBeamEnvelope, _optics.EqParamsNormalModes)
+        radiint_set = (_optics.EqParamsFromRadIntegrals, _optics.EqParamsXYModes)
+        if eqparams in (None, Lifetime.EQPARAMS.BeamEnvelope):
+            self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
+            self._eqparams_func = _optics.EqParamsFromBeamEnvelope
+            self._eqpar = self._eqparams_func(self._acc)
+        elif isinstance(eqparams, beamenv_set):
+            self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
+            self._eqparams_func = None
+            self._eqpar = eqparams
+        elif eqparams == Lifetime.EQPARAMS.RadIntegrals:
+            self._type_eqparams = eqparams
+            self._eqparams_func = _optics.EqParamsFromRadIntegrals
+            self._eqpar = self._eqparams_func(self._acc)
+        elif isinstance(eqparams, radiint_set):
+            self._type_eqparams = Lifetime.EQPARAMS.RadIntegrals
+            self._eqparams_func = None
+            self._eqpar = eqparams
+        else:
+            raise ValueError('Invalid equilibrium parameter argument!')
 
     @staticmethod
     def _calc_quantum_loss_rate(ksi, tau):
