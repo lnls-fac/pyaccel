@@ -560,6 +560,20 @@ class Lifetime:
             volume=vol, pos=s_calc, touschek_coeffs=touschek_coeffs
         )
 
+    def calc_energy_acceptance(self, **kwargs):
+        """."""
+        dic = _optics.calc_touschek_energy_acceptance(
+            self.accelerator, **kwargs
+        )
+        self.accepen = dic
+        return dic
+
+    _doc = _optics.calc_touschek_energy_acceptance.__doc__
+    _doc = [d for d in _doc.splitlines() if 'accelerator (py' not in d]
+    _doc = '\n'.join(_doc)
+    calc_energy_acceptance.__doc__ = _doc
+    del _doc
+
     @staticmethod
     def f_function_arg(kappa, kappam, b1_, b2_):
         """Integrand in the F(taum, B1, B2) expression.
