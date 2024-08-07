@@ -217,7 +217,8 @@ def element_pass(element, particles, energy, **kwargs):
 
     # tracks through the list of pos
     ret = _trackcpp.track_elementpass_wrapper(
-        element.trackcpp_e, p_in, accelerator.trackcpp_acc)
+        accelerator.trackcpp_acc, element.trackcpp_e, p_in
+    )
     if ret > 0:
         raise TrackingException
 
@@ -226,8 +227,12 @@ def element_pass(element, particles, energy, **kwargs):
 
 @_interactive
 def line_pass(
-        accelerator, particles, indices=None, element_offset=0,
-        parallel=False):
+    accelerator,
+    particles,
+    indices=None,
+    element_offset=0,
+    parallel=False
+):
     """Track particle(s) along a line.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -236,39 +241,36 @@ def line_pass(
     elements are output variables, as well as information on whether particles
     have been lost along the tracking and where they were lost.
 
-    Keyword arguments: (accelerator, particles, indices, element_offset)
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator object.
+        particles (list|numpy.ndarray): initial 6D particle(s) position(s):
+            Few examples
+                ex.1: particles = [rx,px,ry,py,de,dl]
+                ex.2: particles = numpy.array([rx,px,ry,py,de,dl])
+                ex.3: particles = numpy.zeros((6, Np))
+        indices (list|str|tuple|numpy.ndarray, optional): list of indices
+            corresponding to accelerator elements at whose entrances, tracked
+            particles positions are to be stored. If string:
+                'open': corresponds to selecting all elements.
+                'closed' : equal 'open' plus the position at the end of the
+                    last element.
+            Defaults to None, which means only the position at the end of the
+            last element will be returned.
+        element_offset (int, optional): element offset (default 0) for
+            tracking. Tracking will start at the element with index
+            'element_offset'. Defaults to 0.
+        parallel (bool, optional): whether to parallelize calculation or not.
+            If an integer is passed that many processes will be used. If True,
+            the number of processes will be determined automatically.
+            Defaults to False.
 
-    accelerator -- Accelerator object
-
-    particles   -- initial 6D particle(s) position(s).
-                   Few examples
-                        ex.1: particles = [rx,px,ry,py,de,dl]
-                        ex.2: particles = numpy.array([rx,px,ry,py,de,dl])
-                        ex.3: particles = numpy.zeros((6, Np))
-
-    indices     -- list of indices corresponding to accelerator elements at
-                   whose entrances, tracked particles positions are to be
-                   stored; string:
-                   'open': corresponds to selecting all elements.
-                   'closed' : equal 'open' plus the position at the end of the
-                              last element.
-
-    element_offset -- element offset (default 0) for tracking. tracking will
-                      start at the element with index 'element_offset'
-
-    parallel -- whether to parallelize calculation or not. If an integer is
-                passed that many processes will be used. If True, the number
-                of processes will be determined automatically.
-
-    Returns: (part_out, lost_flag, lost_element, lost_plane)
-
-    part_out -- 6D position for each particle at entrance of each element.
-                The structure of 'part_out' depends on inputs
-                'particles' and 'indices'. If 'indices' is None then only
-                tracked positions at the end of the line are returned.
-                There are still two possibilities for the structure of
-                part_out, depending on 'particles':
-
+    Returns:
+        part_out (numpy.ndarray): 6D position for each particle at entrance of
+            each element. The structure of 'part_out' depends on inputs
+            'particles' and 'indices'. If 'indices' is None then only tracked
+            positions at the end of the line are returned. There are still two
+            possibilities for the structure of part_out, depending on
+            'particles':
                 (1) if 'particles' is a single particle:
                     ex.:particles = [rx1,px1,ry1,py1,de1,dl1]
                         indices = None
@@ -295,21 +297,23 @@ def line_pass(
                     and the third index is the element index at whose
                     entrances particles coordinates are returned.
 
-    lost_flag    -- a general flag indicating whether there has been particle
-                    loss.
-    lost_element -- list of element index where each particle was lost
-                    If the particle survived the tracking through the line its
-                    corresponding element in this list is set to None. When
-                    there is only one particle defined as a python list (not as
-                    a numpy matrix with one column) 'lost_element' returns a
-                    single number.
-    lost_plane   -- list of strings representing on what plane each particle
-                    was lost while being tracked. If the particle is not lost
-                    then its corresponding element in the list is set to None.
-                    If it is lost in the horizontal or vertical plane it is set
-                    to string 'x' or 'y', correspondingly. If tracking is
-                    performed with a single particle described as a python list
-                    then 'lost_plane' returns a single string
+        lost_flag (list): list of booleans indicating whether each particle
+            was lost.
+        lost_element(list): list of element index where each particle was lost.
+            If the particle survived the tracking through the line its
+            corresponding element in this list is set to -1. When there is
+            only one particle defined as a python list 'lost_element' returns
+            a single number.
+        lost_plane (list): list of strings representing on what plane each
+            particle was lost while being tracked. If the particle is not lost
+            then its corresponding element in the list is set to None. If it
+            is lost in the horizontal or vertical plane it is set to string
+            'x' or 'y', correspondingly. If tracking is performed with a
+            single particle described as a python list then 'lost_plane'
+            returns a single string.
+        lost_pos (numpy.ndarray, (6, Np)): 6D position vector of each lost
+            particle at the moment they were lost. Position is set to NaN when
+            particle is not lost.
 
     """
     # checks whether single or multiple particles, reformats particles
@@ -317,7 +321,7 @@ def line_pass(
     indices = indices if indices is not None else [len(accelerator), ]
 
     if not parallel:
-        p_out, lost_flag, lost_element, lost_plane = _line_pass(
+        p_out, lost_flag, lost_element, lost_plane, lost_pos = _line_pass(
             accelerator, p_in, indices, element_offset)
     else:
         slcs = _get_slices_multiprocessing(parallel, p_in.shape[1])
@@ -327,22 +331,27 @@ def line_pass(
                 res.append(pool.apply_async(_line_pass, (
                     accelerator, p_in[:, slc], indices, element_offset, True)))
 
-            p_out, lost_element, lost_plane = [], [], []
-            lost_flag = False
+            lost_pos, p_out = [], []
+            lost_flag, lost_element, lost_plane = [], [], []
             for re_ in res:
-                part_out, lflag, lelement, lplane = re_.get()
-                lost_flag |= lflag
+                part_out, lflag, lelement, lplane, part_lost = re_.get()
                 p_out.append(part_out)
+                lost_pos.append(part_lost)
+                lost_flag.extend(lflag)
                 lost_element.extend(lelement)
                 lost_plane.extend(lplane)
         p_out = _np.concatenate(p_out, axis=1)
+        lost_pos = _np.concatenate(lost_pos, axis=1)
 
     # simplifies output structure in case of single particle
+    p_out = _np.squeeze(p_out)
+    lost_pos = _np.squeeze(lost_pos)
     if len(lost_element) == 1:
+        lost_flag = lost_flag[0]
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
 
-    return p_out, lost_flag, lost_element, lost_plane
+    return p_out, lost_flag, lost_element, lost_plane, lost_pos
 
 
 def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
@@ -352,6 +361,7 @@ def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
         args.indices.push_back(int(idx))
     args.element_offset = int(element_offset)
 
+    p_in = p_in.copy()
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
 
@@ -363,20 +373,27 @@ def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
     lost_flag = bool(_trackcpp.track_linepass_wrapper(
         accelerator.trackcpp_acc, p_in, p_out, args))
 
+    # After tracking, the input vector contains the lost positions.
+    lost_pos = p_in
     p_out = p_out.reshape(6, n_part, -1)
-    p_out = _np.squeeze(p_out)
 
     # fills vectors with info about particle loss
     lost_element = list(args.lost_element)
     lost_plane = [LOST_PLANES[lp] for lp in args.lost_plane]
+    lost_flag = list(args.lost_flag)
 
-    return p_out, lost_flag, lost_element, lost_plane
+    return p_out, lost_flag, lost_element, lost_plane, lost_pos
 
 
 @_interactive
 def ring_pass(
-        accelerator, particles, nr_turns=1, turn_by_turn=None,
-        element_offset=0, parallel=False):
+    accelerator,
+    particles,
+    nr_turns=1,
+    turn_by_turn=False,
+    element_offset=0,
+    parallel=False
+):
     """Track particle(s) along a ring.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -385,95 +402,88 @@ def ring_pass(
     the ring are output variables, as well as information on whether particles
     have been lost along the tracking and where they were lost.
 
-    Keyword arguments: (accelerator, particles, nr_turns,
-                        turn_by_turn, elment_offset)
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator object.
+        particles (list|numpy.ndarray): initial 6D particle(s) position(s).
+            Few examples
+            ex.1: particles = [rx,px,ry,py,de,dl]
+            ex.2: particles = numpy.array([rx,px,ry,py,de,dl])
+            ex.3: particles = numpy.zeros((6, Np))
+        nr_turns (int, optional): number of turns around ring to track each
+            particle. Defaults to 1.
+        turn_by_turn (bool, optional): parameter indicating whether turn by
+            turn positions are to be returned. If False ringpass returns
+            particles positions only at the end of the ring, at the last turn.
+            If True, ringpass returns positions at the beginning of every turn
+            (including the first) and at the end of the ring in the last
+            turn. Defaults to False.
+        element_offset (int, optional): element offset for tracking. tracking
+            will start at the element with index 'element_offset'.
+            Defaults to 0.
+        parallel (bool, optional): whether to parallelize calculation or not.
+            If an integer is passed that many processes will be used. If True,
+            the number of processes will be determined automatically.
+            Defaults to False.
 
-    accelerator    -- Accelerator object
-    particles      -- initial 6D particle(s) position(s).
-                      Few examples
-                        ex.1: particles = [rx,px,ry,py,de,dl]
-                        ex.2: particles = numpy.array([rx,px,ry,py,de,dl])
-                        ex.3: particles = numpy.zeros((6, Np))
-    nr_turns       -- number of turns around ring to track each particle.
-    turn_by_turn   -- parameter indicating what turn by turn positions are to
-                      be returned. If None ringpass returns particles
-                      positions only at the end of the ring, at the last turn.
-                      If bool(turn_by_turn) is True, ringpass returns positions
-                      at the beginning of every turn (including the first) and
-                      at the end of the ring in the last turn.
-
-    element_offset -- element offset (default 0) for tracking. tracking will
-                      start at the element with index 'element_offset'
-
-    parallel -- whether to parallelize calculation or not. If an integer is
-                passed that many processes will be used. If True, the number
-                of processes will be determined automatically.
-
-    Returns: (part_out, lost_flag, lost_turn, lost_element, lost_plane)
-
-    part_out -- 6D position for each particle at end of ring. The
-                     structure of 'part_out' depends on inputs
-                     'particles' and 'turn_by_turn'. If 'turn_by_turn' is None
-                     then only tracked positions at the end 'nr_turns' are
-                     returned. There are still two possibilities for the
-                     structure of part_out, depending on 'particles':
-
-                    (1) if 'particles' is a single particle, 'part_out' will
-                        also be a unidimensional numpy array:
-                        ex.:particles = [rx1,px1,ry1,py1,de1,dl1]
+    Returns:
+        part_out (numpy.ndarray, (6, Np, N)): 6D position for each particle at
+            end of ring. The structure of 'part_out' depends on inputs
+            'particles' and 'turn_by_turn'. If 'turn_by_turn' is False then
+            only tracked positions at the end 'nr_turns' are returned. There
+            are still two possibilities for the structure of part_out,
+            depending on 'particles':
+            (1) if 'particles' is a single particle, 'part_out' will also be a
+                unidimensional numpy array:
+                    ex.:particles = [rx1,px1,ry1,py1,de1,dl1]
+                        turn_by_turn = False
+                        part_out = numpy.array([rx2,px2,ry2,py2,de2,dl2])
+            (2) if 'particles' is either a numpy matrix with several particles
+                then 'part_out' will be a 2D numpy whose
+                first index selects the coordinate rx, px, ry, py, de or dl,
+                in this order, and the second index selects a particular
+                particle.
+                    ex.: particles.shape == (6, Np)
                             turn_by_turn = False
-                            part_out = numpy.array([rx2,px2,ry2,py2,de2,dl2])
+                            part_out.shape == (6, Np))
 
-                    (2) if 'particles' is either a numpy matrix with several
-                        particles then 'part_out' will be a matrix (numpy
-                        array of arrays) whose first index selects the
-                        coordinate rx, px, ry, py, de or dl, in this order,
-                        and the second index selects a particular particle.
-                        ex.: particles.shape == (6, Np)
-                             turn_by_turn = False
-                             part_out.shape == (6, Np))
+            In case 'turn_by_turn' is True, 'part_out' will have tracked
+            positions at the beggining of every turn and at the end of the
+            last turn. The format of 'part_out' is
+            (3) a numpy matrix, when 'particles' is a single particle. The
+                first index of 'part_out' runs through coordinates rx, px, ry,
+                py, de or dl and the second index runs through the turn number.
+            (4) a 3D numpy, when 'particles' is the initial positions of many
+                particles. The first index runs through coordinates, the
+                second through particles and the third through turn number.
 
-                     'turn_by_turn' can also be either 'closed' or 'open'. In
-                     either case 'part_out' will have tracked positions at
-                     the entrances of the elements. The difference is that for
-                     'closed' it will have an additional tracked position at
-                     the exit of the last element, thus closing the data, in
-                     case the line is a ring. The format of 'part_out' is
-                     ...
-
-                    (3) a numpy matrix, when 'particles' is a single particle.
-                        The first index of 'part_out' runs through coordinates
-                        rx, px, ry, py, de or dl and the second index runs
-                        through the turn number.
-
-                    (4) a numpy rank-3 tensor, when 'particles' is the initial
-                        positions of many particles. The first index runs
-                        through coordinates, the second through particles and
-                        the third through turn number.
-
-    lost_flag    -- a general flag indicating whether there has been particle
-                    loss.
-    lost_turn    -- list of turn index where each particle was lost.
-    lost_element -- list of element index where each particle was lost
-                    If the particle survived the tracking through the ring its
-                    corresponding element in this list is set to None. When
-                    there is only one particle defined as a python list (not as
-                    a numpy matrix with one column) 'lost_element' returns a
-                    single number.
-    lost_plane   -- list of strings representing on what plane each particle
-                    was lost while being tracked. If the particle is not lost
-                    then its corresponding element in the list is set to None.
-                    If it is lost in the horizontal or vertical plane it is set
-                    to string 'x' or 'y', correspondingly. If tracking is
-                    performed with a single particle described as a python list
-                    then 'lost_plane' returns a single string.
+        lost_flag (list): list of booleans indicating whether each particle
+            was lost.
+        lost_flag (list): list of turn index where each particle was lost. Is
+            set to -1 if particle was not lost.
+        lost_element (list): list of element index where each particle was
+            lost. If the particle survived the tracking through the line its
+            corresponding element in this list is set to -1. When there is
+            only one particle defined as a python list 'lost_element' returns
+            a single number.
+        lost_plane (list): list of strings representing on what plane each
+            particle was lost while being tracked. If the particle is not lost
+            then its corresponding element in the list is set to None. If it
+            is lost in the horizontal or vertical plane it is set to string
+            'x' or 'y', correspondingly. If tracking is performed with a
+            single particle described as a python list then 'lost_plane'
+            returns a single string.
+        lost_pos (numpy.ndarray, (6, Np)): 6D position vector of each lost
+            particle at the moment they were lost. Position is set to NaN when
+            particle is not lost.
     """
     # checks whether single or multiple particles, reformats particles
     p_in, *_ = _process_args(accelerator, particles, indices=None)
 
     if not parallel:
-        p_out, lost_flag, lost_turn, lost_element, lost_plane = _ring_pass(
-            accelerator, p_in, nr_turns, turn_by_turn, element_offset)
+        out = _ring_pass(
+            accelerator, p_in, nr_turns, turn_by_turn, element_offset
+        )
+        p_out, lost_flag, lost_turn, lost_element, lost_plane, lost_pos = out
     else:
         slcs = _get_slices_multiprocessing(parallel, p_in.shape[1])
         with _multiproc.Pool(processes=len(slcs)) as pool:
@@ -483,34 +493,46 @@ def ring_pass(
                     accelerator, p_in[:, slc], nr_turns, turn_by_turn,
                     element_offset, True)))
 
-            p_out, lost_turn, lost_element, lost_plane = [], [], [], []
-            lost_flag = False
+            p_out, lost_pos = [], []
+            lost_flag, lost_turn, lost_element, lost_plane = [], [], [], []
             for re_ in res:
-                part_out, lflag, lturn, lelement, lplane = re_.get()
-                lost_flag |= lflag
+                part_out, lflag, lturn, lelement, lplane, lpos = re_.get()
                 p_out.append(part_out)
+                lost_pos.append(lpos)
                 lost_turn.extend(lturn)
                 lost_element.extend(lelement)
                 lost_plane.extend(lplane)
+                lost_flag.extend(lflag)
         p_out = _np.concatenate(p_out, axis=1)
+        lost_pos = _np.concatenate(lost_pos, axis=1)
 
     p_out = _np.squeeze(p_out)
+    lost_pos = _np.squeeze(lost_pos)
     # simplifies output structure in case of single particle
     if len(lost_element) == 1:
         lost_turn = lost_turn[0]
         lost_element = lost_element[0]
         lost_plane = lost_plane[0]
+        lost_flag = lost_flag[0]
 
-    return p_out, lost_flag, lost_turn, lost_element, lost_plane
+    return p_out, lost_flag, lost_turn, lost_element, lost_plane, lost_pos
 
 
-def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset, set_seed=False):
+def _ring_pass(
+    accelerator,
+    p_in,
+    nr_turns,
+    turn_by_turn,
+    element_offset,
+    set_seed=False
+):
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
     args.nr_turns = int(nr_turns)
-    args.trajectory = bool(turn_by_turn)
+    args.turn_by_turn = bool(turn_by_turn)
     args.element_offset = int(element_offset)
 
+    p_in = p_in.copy()
     n_part = p_in.shape[1]
     if bool(turn_by_turn):
         p_out = _np.zeros((6, n_part*(nr_turns+1)), dtype=float)
@@ -522,17 +544,21 @@ def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset, set_se
         _set_random_seed()
 
     # tracking
-    lost_flag = bool(_trackcpp.track_ringpass_wrapper(
-        accelerator.trackcpp_acc, p_in, p_out, args))
+    _trackcpp.track_ringpass_wrapper(
+        accelerator.trackcpp_acc, p_in, p_out, args
+    )
 
     p_out = p_out.reshape(6, n_part, -1)
+    # After tracking, the input vector contains the lost positions.
+    p_lost = p_in
 
     # fills vectors with info about particle loss
     lost_turn = list(args.lost_turn)
     lost_element = list(args.lost_element)
     lost_plane = [LOST_PLANES[lp] for lp in args.lost_plane]
+    lost_flag = list(args.lost_flag)
 
-    return p_out, lost_flag, lost_turn, lost_element, lost_plane
+    return p_out, lost_flag, lost_turn, lost_element, lost_plane, p_lost
 
 
 @_interactive
