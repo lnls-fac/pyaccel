@@ -947,14 +947,6 @@ def _get_slices_multiprocessing(parallel, nparticles):
     return [slice(parts_proc[i], parts_proc[i+1]) for i in range(nrproc)]
 
 
-def _CppMatrix2Numpy(_m):
-    return _np.array(_m)
-
-
-def _CppMatrix24Numpy(_m):
-    return _np.array(_m)[:4, :4]
-
-
 def _Numpy2CppDoublePos(p_in):
     p_out = _trackcpp.CppDoublePos(
         float(p_in[0]), float(p_in[1]),
@@ -977,36 +969,6 @@ def _CppDoublePos2Numpy(p_in):
 
 def _CppDoublePos24Numpy(p_in):
     return _np.array((p_in.rx, p_in.px, p_in.ry, p_in.py))
-
-
-def _Numpy2CppDoublePosVector(poss):
-    if isinstance(poss, _trackcpp.CppDoublePosVector):
-        return poss
-
-    conds = isinstance(poss, _np.ndarray)
-    conds &= len(poss.shape) == 2 and poss.shape[0] == 6
-    if not conds:
-        raise TrackingException('invalid positions argument')
-
-    poss_out = _trackcpp.CppDoublePosVector()
-    for pos in poss.T:
-        poss_out.push_back(_Numpy2CppDoublePos(pos))
-    return poss_out
-
-
-def _4Numpy2CppDoublePosVector(poss, de=0.0):
-    if isinstance(poss, _trackcpp.CppDoublePosVector):
-        return poss
-
-    conds = isinstance(poss, _np.ndarray)
-    conds &= len(poss.shape) == 2 and poss.shape[0] == 4
-    if not conds:
-        raise TrackingException('invalid positions argument')
-
-    poss_out = _trackcpp.CppDoublePosVector()
-    for pos in poss.T:
-        poss_out.push_back(_4Numpy2CppDoublePos(pos, de=de))
-    return poss_out
 
 
 def _CppDoublePosVector2Numpy(poss):
@@ -1073,24 +1035,3 @@ def _process_indices(accelerator, indices, closed=True, proc_none=True):
     else:
         raise TrackingError("invalid value for 'indices'")
     return indices
-
-
-def _print_CppDoublePos(pos):
-    print('\n{0:+.16f}'.format(pos.rx))
-    print('{0:+.16f}'.format(pos.px))
-    print('{0:+.16f}'.format(pos.ry))
-    print('{0:+.16f}'.format(pos.py))
-    print('{0:+.16f}'.format(pos.de))
-    print('{0:+.16f}\n'.format(pos.dl))
-
-
-# Legacy API
-elementpass = _utils.deprecated(element_pass)
-linepass = _utils.deprecated(line_pass)
-ringpass = _utils.deprecated(ring_pass)
-set4dtracking = _utils.deprecated(set_4d_tracking)
-set6dtracking = _utils.deprecated(set_6d_tracking)
-findorbit4 = _utils.deprecated(find_orbit4)
-findorbit6 = _utils.deprecated(find_orbit6)
-findm66 = _utils.deprecated(find_m66)
-findm44 = _utils.deprecated(find_m44)

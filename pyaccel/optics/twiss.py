@@ -476,6 +476,6 @@ def calc_twiss(
         raise _OpticsError(_trackcpp.string_error_messages[r])
 
     twiss = TwissArray(twiss, copy=False)
-    m66 = _tracking._CppMatrix2Numpy(_m66)
+    m66 = _np.array(_m66)
 
     return twiss[indices], m66
