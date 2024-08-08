@@ -9,7 +9,7 @@ from . import elements as _elements
 from .utils import interactive as _interactive
 
 
-class AcceleratorException(Exception):
+class AcceleratorError(Exception):
     """."""
 
 
@@ -126,7 +126,7 @@ class Accelerator(object):
     def harmonic_number(self, value):
         """Set accelerator harmonic number."""
         if not isinstance(value, int) or value < 1:
-            raise AcceleratorException(
+            raise AcceleratorError(
                 'harmonic number has to be a positive integer')
         self.trackcpp_acc.harmonic_number = value
 
@@ -139,7 +139,7 @@ class Accelerator(object):
     def cavity_on(self, value):
         """Set cavity on state."""
         if self.trackcpp_acc.harmonic_number < 1:
-            raise AcceleratorException('invalid harmonic number')
+            raise AcceleratorError('invalid harmonic number')
         self.trackcpp_acc.cavity_on = value
 
     @property
@@ -266,7 +266,7 @@ class Accelerator(object):
     def __setattr__(self, key, value):
         """."""
         if self.__isfrozen and not hasattr(self, key):
-            raise AcceleratorException("%r is a frozen class" % self)
+            raise AcceleratorError("%r is a frozen class" % self)
         object.__setattr__(self, key, value)
 
     def __delitem__(self, index):
