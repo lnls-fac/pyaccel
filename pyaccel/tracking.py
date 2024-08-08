@@ -731,7 +731,8 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     # The orbit can't be found when quantum excitation is on.
     rad_stt = accelerator.radiation_on
-    accelerator.radiation_on = 'damping'
+    if rad_stt == accelerator.RadiationStates.Full:
+        accelerator.radiation_on = accelerator.RadiationStates.Damping
 
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()
