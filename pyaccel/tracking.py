@@ -619,10 +619,6 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     """
     indices = _process_indices(accelerator, indices)
 
-    # The orbit can't be found when quantum excitation is on.
-    rad_stt = accelerator.radiation_on
-    accelerator.radiation_on = 'damping'
-
     if fixed_point_guess is None:
         fixed_point_guess = _trackcpp.CppDoublePos()
     else:
@@ -632,8 +628,6 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     ret = _trackcpp.track_findorbit6(
         accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
-
-    accelerator.radiation_on = rad_stt
 
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
