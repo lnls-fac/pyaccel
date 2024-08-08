@@ -262,7 +262,7 @@ class TestTracking(unittest.TestCase):
             self.assertAlmostEqual(sum(r[0,:]),
                                    0.040352947331718, places=15)
 
-        except pyaccel.tracking.TrackingException:
+        except pyaccel.tracking.TrackingError:
             self.assertTrue(False)
 
 
@@ -302,7 +302,7 @@ class TestMatrixList(unittest.TestCase):
 
     def test_append_str(self):
         self.assertRaises(
-            pyaccel.tracking.TrackingException,
+            pyaccel.tracking.TrackingError,
             self.ml.append,
             ('matrix')
         )
@@ -345,7 +345,7 @@ class TestMatrixListInit(unittest.TestCase):
     def test_matrix_list_init_invalid_arg(self):
         ml_invalid = [self.m]
 
-        with self.assertRaises(pyaccel.tracking.TrackingException):
+        with self.assertRaises(pyaccel.tracking.TrackingError):
             pyaccel.tracking.MatrixList(ml_invalid)
 
 

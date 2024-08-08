@@ -1,5 +1,4 @@
-"""
-This module to performs linear analysis of coupled lattices.
+"""This module to performs linear analysis of coupled lattices.
 
 Notation is the same as in reference [3]
 In case some strange results appear in phase advances or beta functions,
@@ -19,14 +18,11 @@ References:
 """
 
 import numpy as _np
-
 from mathphys.functions import get_namedtuple as _get_namedtuple
 
-from .. import lattice as _lattice
-from .. import tracking as _tracking
+from .. import lattice as _lattice, tracking as _tracking
 from ..utils import interactive as _interactive
-
-from .miscellaneous import OpticsException as _OpticsException
+from .miscellaneous import OpticsError as _OpticsError
 
 
 class EdwardsTeng(_np.record):
@@ -610,10 +606,10 @@ class EdwardsTengArray(_np.ndarray):
         if isinstance(edteng_list, (list, tuple)):
             for val in edteng_list:
                 if not isinstance(val, (EdwardsTeng, EdwardsTengArray)):
-                    raise _OpticsException(
+                    raise _OpticsError(
                         'can only compose lists of Twiss objects.')
         else:
-            raise _OpticsException('can only compose lists of Twiss objects.')
+            raise _OpticsError('can only compose lists of Twiss objects.')
 
         arrs = list()
         for val in edteng_list:
@@ -680,7 +676,7 @@ def calc_edwards_teng(
             # Turn cavity and radiation states back to their original values.
             accelerator.cavity_on = cav_stt
             accelerator.radiation_on = rad_stt
-            raise _OpticsException(
+            raise _OpticsError(
                 'energy_offset and init_teng are mutually '
                 'exclusive options. Add the desired energy deviation to the '
                 'appropriate position of init_edteng object.')
@@ -692,7 +688,7 @@ def calc_edwards_teng(
             # Turn cavity and radiation states back to their original values.
             accelerator.cavity_on = cav_stt
             accelerator.radiation_on = rad_stt
-            raise _OpticsException(
+            raise _OpticsError(
                 'Either harmonic number was not set or calc_edwards_teng was '
                 'invoked for transport line without initial  EdwardsTeng')
         cod = _tracking.find_orbit(
