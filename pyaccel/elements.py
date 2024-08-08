@@ -14,7 +14,7 @@ _DBL_MAX = _trackcpp.get_double_max()
 _NUM_COORDS = 6
 _DIMS = (_NUM_COORDS, _NUM_COORDS)
 
-PASS_METHODS = _trackcpp.pm_dict
+PASS_METHODS  = tuple(_trackcpp.pm_dict)
 VChamberShape = _trackcpp.VChamberShape
 
 
