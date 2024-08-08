@@ -163,15 +163,27 @@ def generate_bunch(
 
 
 @_interactive
-def set_4d_tracking(accelerator):
+def set_4d_tracking(accelerator: _Accelerator):
+    """Turn off radiation and cavity of accelerator.
+
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator object.
+    """
     accelerator.cavity_on = False
-    accelerator.radiation_on = 'off'
+    accelerator.radiation_on = 'Off'
 
 
 @_interactive
-def set_6d_tracking(accelerator, rad_full=False):
+def set_6d_tracking(accelerator: _Accelerator, rad_full=False):
+    """Turn on radiation and cavity of accelerator.
+
+    Args:
+        accelerator (_type_): accelerator object.
+        rad_full (bool, optional): whether to consider quantum excitation in
+            tracking. Defaults to False.
+    """
     accelerator.cavity_on = True
-    accelerator.radiation_on = 'full' if rad_full else 'damping'
+    accelerator.radiation_on = 'Full' if rad_full else 'Damping'
 
 
 @_interactive

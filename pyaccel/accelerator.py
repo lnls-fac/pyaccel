@@ -1,13 +1,12 @@
 """Accelerator class."""
 
-import numpy as _np
-
 import mathphys as _mp
+import numpy as _np
 import trackcpp as _trackcpp
+from mathphys.functions import get_namedtuple as _get_namedtuple
 
 from . import elements as _elements
 from .utils import interactive as _interactive
-from .utils import RADIATION_STATES_NAMES as _RADIATION_STATES_NAMES
 
 
 class AcceleratorException(Exception):
@@ -17,6 +16,10 @@ class AcceleratorException(Exception):
 @_interactive
 class Accelerator(object):
     """."""
+
+    _states_str = tuple(state.title() for state in _trackcpp.rad_dict)
+    RadiationStates = _get_namedtuple('RadiationStates', _states_str)
+    del _states_str
 
     __isfrozen = False  # this is used to prevent creation of new attributes
 
@@ -147,36 +150,32 @@ class Accelerator(object):
     @property
     def radiation_on_str(self):
         """Return radiation_on state in string format."""
-        return _RADIATION_STATES_NAMES[self.trackcpp_acc.radiation_on]
+        return self.RadiationStates._fields[self.trackcpp_acc.radiation_on]
 
     @radiation_on.setter
     def radiation_on(self, value):
         """Set radiation on state.
 
         Args:
-            value (int, bool or string): Radiation state to be set,
-            the options are:
-            - 0, False, "off"    = No radiative effects.
-            - 1, True, "damping" = Turns on radiation damping, without
-                quantum excitation.
-            - 2, "full" = Turns on radiation damping with quantum excitation
+            value (int, bool or string): Radiation state to be set, the
+                options are:
+                    - 0, False, "Off"    = No radiative effects.
+                    - 1, True, "Damping" = Turns on radiation damping, without
+                        quantum excitation.
+                    - 2, "Full" = Turns on radiation damping with quantum
+                        excitation
+
         Raises:
-            ValueError
+            ValueError: for wrong values in `value` input.
         """
-        nr_states = len(_RADIATION_STATES_NAMES)
-        if isinstance(value, (int, bool, float)) and \
-                0 <= value <= nr_states:
+        radstts = self.RadiationStates
+        if isinstance(value, (int, bool, float)) and int(value) in radstts:
             self.trackcpp_acc.radiation_on = int(value)
-        elif isinstance(value, str) and value in _RADIATION_STATES_NAMES:
+        elif isinstance(value, str) and value.title() in radstts._fields:
             self.trackcpp_acc.radiation_on = \
-                _RADIATION_STATES_NAMES.index(value)
+                radstts._fields.index(value.title())
         else:
-            errtxt = (
-                'Value not valid, radiation_on must be '
-                f'0 < int < {nr_states} or one of'
-                f'the strings: {_RADIATION_STATES_NAMES}'
-                )
-            raise ValueError(errtxt)
+            raise ValueError('Value not valid.')
 
     @property
     def vchamber_on(self):

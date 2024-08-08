@@ -13,18 +13,9 @@ INTERACTIVE_LIST = []
 DISTRIBUTIONS_NAMES = _trackcpp.distributions_dict
 _states_str = tuple(state.upper() for state in _trackcpp.distributions_dict)
 _indices = (idx for idx in range(len(_states_str)))
-DISTRIBUTIONS_NAMES = _get_namedtuple('DISTRIBUTIONS_NAMES',
-    _states_str, _indices)
-del(_states_str)
-del(_indices)
-
-
-RADIATION_STATES_NAMES = _trackcpp.rad_dict
-_states_str = tuple(state.upper() for state in _trackcpp.rad_dict)
-_indices = (idx for idx in range(len(_states_str)))
-RADIATION_STATES = _get_namedtuple('RADIATION_STATES', _states_str, _indices)
-del(_states_str)
-del(_indices)
+DISTRIBUTIONS_NAMES = _get_namedtuple(
+    'DISTRIBUTIONS_NAMES', _states_str, _indices)
+del _states_str, _indices
 
 
 def interactive(obj):
