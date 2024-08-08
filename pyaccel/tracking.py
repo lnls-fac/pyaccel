@@ -61,9 +61,9 @@ class TrackingLossInfo:
                 None. If None, then associated attribute will not be created.
 
         """
-        self.lost_flag = _np.ndarray(lost_flag)
-        self.lost_plane = _np.ndarray(lost_plane)
-        self.lost_element = _np.ndarray(lost_element)
+        self.lost_flag = _np.array(lost_flag)
+        self.lost_plane = _np.array(lost_plane)
+        self.lost_element = _np.array(lost_element)
         self.lost_pos = lost_pos
         if lost_turn is not None:
             self.lost_turn = lost_turn
