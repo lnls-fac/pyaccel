@@ -1,4 +1,4 @@
-""" Pyaccel tracking module
+"""Pyaccel tracking module.
 
 This module concentrates all tracking routines of the accelerator.
 Most of them take a structure called 'positions' as an argument which
@@ -103,8 +103,15 @@ class TrackingLossInfo:
 
 @_interactive
 def generate_bunch(
-        n_part, envelope=None, emit1=None, emit2=None, sigmae=None,
-        sigmas=None, optics=None, cutoff=3):
+    n_part,
+    envelope=None,
+    emit1=None,
+    emit2=None,
+    sigmae=None,
+    sigmas=None,
+    optics=None,
+    cutoff=3
+):
     """Create centered bunch with the desired equilibrium and optics params.
 
     Args:
@@ -155,7 +162,7 @@ def generate_bunch(
         try:
             env_chol = _np.linalg.cholesky(envelope)
         except _np.linalg.LinAlgError:
-            # In case there is no coupling the envelope matrix is only
+            # In case there is no coupling, the envelope matrix is only
             # positive semi-definite and we must disconsider the vertical
             # plane for the decomposition algorithm to work:
             env_chol = _np.zeros((6, 6))
@@ -255,7 +262,15 @@ def set_6d_tracking(accelerator: _Accelerator, rad_full=False):
 
 
 @_interactive
-def element_pass(element, particles, energy, **kwargs):
+def element_pass(
+    element,
+    particles,
+    energy,
+    harmonic_number=1,
+    cavity_on=False,
+    radiation_on='Off',
+    vchamber_on=False,
+):
     """Track particle(s) through an element.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -263,34 +278,38 @@ def element_pass(element, particles, energy, **kwargs):
     should be given as input; also, outputs get an additional dimension,
     with particle as second index.
 
-    Keyword arguments:
-    element         -- 'Element' object
-    particles       -- initial 6D particle(s) position(s)
-                       ex.1: particles = [rx,px,ry,py,de,dl]
-                       ex.3: particles = numpy.zeros((6, Np))
-    energy          -- energy of the beam [eV]
-    harmonic_number -- harmonic number of the lattice (optional, default=1)
-    cavity_on       -- cavity on state (True/False) (optional, default=False)
-    radiation_on    -- radiation on state (0 or "off", 1 or "damping", 2 or
-        "full") (optional, default="off")
-    vchamber_on     -- vacuum chamber on state (True/False) (optional,
-        default=False)
+    Args:
+        element (pyaccel.element.Element): element object.
+        particles (list|numpy.ndarray): initial 6D particle(s) position(s)
+            ex.1: particles = [rx,px,ry,py,de,dl]
+            ex.3: particles = numpy.zeros((6, Np))
+        energy (float): Energy to define magnetic rigidity in [eV];
+        harmonic_number (int, optional): harmonic number of the lattice.
+            Defaults to 1.
+        cavity_on (bool, optional): cavity state. Defaults to False.
+        radiation_on (int, optional): radiation state:
+            (0 or "Off", 1 or "Damping", 2 or "Full"). Defaults to "off".
+        vchamber_on (bool, optional): vacuum chamber state. Defaults to False.
+
+    Raises:
+        TrackingError: When there is some problem in tracking;
 
     Returns:
-    part_out -- a numpy array with tracked 6D position(s) of the particle(s).
-        If elementpass is invoked for a single particle then 'part_out' is a
-        simple vector with one index that refers to the particle coordinates.
-        If 'particles' represents many particles, the first index of
-        'part_out' selects the coordinate and the second index selects the
-        particle.
-
-    Raises TrackingException
+        part_out (numpy.ndarray): a numpy array with tracked 6D position(s) of
+            the particle(s). If elementpass is invoked for a single particle
+            then 'part_out' is a simple vector with one index that refers to
+            the particle coordinates. If 'particles' represents many
+            particles, the first index of 'part_out' selects the coordinate
+            and the second index selects the particle.
     """
-    # checks if all necessary arguments have been passed
-    kwargs['energy'] = energy
-
     # creates accelerator for tracking
-    accelerator = _accelerator.Accelerator(**kwargs)
+    accelerator = _Accelerator(
+        energy=energy,
+        harmonic_number=harmonic_number,
+        cavity_on=cavity_on,
+        radiation_on=radiation_on,
+        vchamber_on=vchamber_on,
+    )
 
     # checks whether single or multiple particles
     p_in, _ = _process_args(accelerator, particles)
@@ -307,13 +326,13 @@ def element_pass(element, particles, energy, **kwargs):
 
 @_interactive
 def line_pass(
-    accelerator,
+    accelerator: _Accelerator,
     particles,
     indices=None,
-    element_offset=0,
+    element_offset: float = 0,
     parallel=False
 ):
-    """Track particle(s) along a line.
+    """Track particle(s) along an accelerator.
 
     Accepts one or multiple particles initial positions. In the latter case,
     a list of particles or a numpy 2D array (with particle as second index)
@@ -339,9 +358,9 @@ def line_pass(
         element_offset (int, optional): element offset (default 0) for
             tracking. Tracking will start at the element with index
             'element_offset'. Defaults to 0.
-        parallel (bool, optional): whether to parallelize calculation or not.
-            If an integer is passed that many processes will be used. If True,
-            the number of processes will be determined automatically.
+        parallel (bool|int, optional): whether to parallelize calculation or
+            not. If an integer is passed that many processes will be used. If
+            True, the number of processes will be determined automatically.
             Defaults to False.
 
     Returns:
@@ -469,11 +488,11 @@ def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
 
 @_interactive
 def ring_pass(
-    accelerator,
+    accelerator: _Accelerator,
     particles,
-    nr_turns=1,
-    turn_by_turn=False,
-    element_offset=0,
+    nr_turns: int = 1,
+    turn_by_turn: bool = False,
+    element_offset: float = 0,
     parallel=False
 ):
     """Track particle(s) along a ring.
@@ -502,9 +521,9 @@ def ring_pass(
         element_offset (int, optional): element offset for tracking. tracking
             will start at the element with index 'element_offset'.
             Defaults to 0.
-        parallel (bool, optional): whether to parallelize calculation or not.
-            If an integer is passed that many processes will be used. If True,
-            the number of processes will be determined automatically.
+        parallel (bool|int, optional): whether to parallelize calculation or
+            not. If an integer is passed that many processes will be used. If
+            True, the number of processes will be determined automatically.
             Defaults to False.
 
     Returns:
@@ -646,35 +665,44 @@ def _ring_pass(
 
 
 @_interactive
-def find_orbit4(accelerator, energy_offset=0.0, indices=None,
-                fixed_point_guess=None):
-    """Calculate 4D closed orbit of accelerator and return it.
+def find_orbit4(
+    accelerator: _Accelerator,
+    energy_offset=None,
+    indices=None,
+    fixed_point_guess=None
+):
+    """Calculate closed orbit of accelerator and return it.
 
     Accepts an optional list of indices of ring elements where closed orbit
     coordinates are to be returned. If this argument is not passed, closed
     orbit positions are returned at the start of the first element. In
     addition a guess fixed point at the entrance of the ring may be provided.
 
-    Keyword arguments:
-    accelerator : Accelerator object
-    energy_offset : relative energy deviation from nominal energy
-    indices : may be a (list,tuple, numpy.ndarray) of element indices where
-        closed orbit data is to be returned or a string:
-            'open'  : return the closed orbit at the entrance of all elements.
-            'closed' : equal 'open' plus the orbit at the end of the last
-                element.
-        If indices is None the closed orbit is returned only at the entrance
-        of the first element.
-    fixed_point_guess : A 6D position where to start the search of the closed
-        orbit at the entrance of the first element. If not provided the
-        algorithm will start with zero orbit.
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator object;
+        energy_offset (float, optional): relative energy deviation from
+            nominal energy. Defaults to 0.0.
+        indices (list|tuple|numpy.ndarray|str, optional): indices of element
+            where `cumul_trans_matrices` are to be returned. Possible values
+            for strings are:
+                'open': return the matrices at the entrance of all elements.
+                'closed': equal 'open' plus at the end of the last element.
+            Defaults to None, which means the closed orbit will be returned
+            only at the entrance of the first element;
+        fixed_point_guess (list|numpy.ndarray, (4, )|(4, 1), optional):
+            position where to start the search of the closed orbit at the
+            entrance of the first element. Defaults to None, which means the
+            algorithm will start with zero orbit.
+
+    Raises:
+        TrackingError: When closed orbit cannot be found.
 
     Returns:
-    orbit : 4D closed orbit at the entrance of the selected elements as a 2D
-        numpy array with the 4 phase space variables in the first dimension and
-        the indices of the elements in the second dimension.
+        closed_orbit (numpy.ndarray, (4, )| (4, len(indices))): closed orbit
+            at the entrance of the selected elements as a 2D numpy array with
+            the 4 phase space variables in the first dimension and the indices
+            of the elements in the second dimension.
 
-    Raises TrackingException
     """
     indices = _process_indices(accelerator, indices)
 
@@ -695,8 +723,12 @@ def find_orbit4(accelerator, energy_offset=0.0, indices=None,
 
 
 @_interactive
-def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
-    """Calculate 6D closed orbit of accelerator and return it.
+def find_orbit6(
+    accelerator: _Accelerator,
+    indices=None,
+    fixed_point_guess=None
+):
+    """Calculate closed orbit of accelerator and return it.
 
     Accepts an optional list of indices of ring elements where closed orbit
     coordinates are to be returned. If this argument is not passed, closed
@@ -706,25 +738,30 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     The radiation_on property will be temporarily set to "damping" to perform
     this calculation, regardless the initial radiation state.
 
-    Keyword arguments:
-    accelerator : Accelerator object
-    indices : may be a (list,tuple, numpy.ndarray) of element indices
-        where closed orbit data is to be returned or a string:
-            'open'  : return the closed orbit at the entrance of all elements.
-            'closed' : equal 'open' plus the orbit at the end of the last
-                element.
-        If indices is None the closed orbit is returned only at the entrance
-        of the first element.
-    fixed_point_guess : A 6D position where to start the search of the closed
-        orbit at the entrance of the first element. If not provided the
-        algorithm will start with zero orbit.
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator object;
+        energy_offset (float, optional): relative energy deviation from
+            nominal energy. Defaults to 0.0.
+        indices (list|tuple|numpy.ndarray|str, optional): indices of element
+            where `cumul_trans_matrices` are to be returned. Possible values
+            for strings are:
+                'open': return the matrices at the entrance of all elements.
+                'closed': equal 'open' plus at the end of the last element.
+            Defaults to None, which means the closed orbit will be returned
+            only at the entrance of the first element;
+        fixed_point_guess (list|numpy.ndarray, (6,)|(6, 1), optional):
+            position where to start the search of the closed orbit at the
+            entrance of the first element. Defaults to None, which means the
+            algorithm will start with zero orbit.
+
+    Raises:
+        TrackingError: When closed orbit cannot be found.
 
     Returns:
-        orbit : 6D closed orbit at the entrance of the selected elements as
-            a 2D numpy array with the 6 phase space variables in the first
-            dimension and the indices of the elements in the second dimension.
-
-    Raises TrackingException
+        closed_orbit (numpy.ndarray, (6, )| (6, len(indices))): closed orbit
+            at the entrance of the selected elements as a 2D numpy array with
+            the 6 phase space variables in the first dimension and the indices
+            of the elements in the second dimension.
 
     """
     indices = _process_indices(accelerator, indices)
@@ -755,8 +792,12 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
 @_interactive
 def find_orbit(
-        accelerator, energy_offset=None, indices=None, fixed_point_guess=None):
-    """Calculate 6D closed orbit of accelerator and return it.
+    accelerator: _Accelerator,
+    energy_offset=None,
+    indices=None,
+    fixed_point_guess=None
+):
+    """Calculate closed orbit of accelerator and return it.
 
     Automatically identifies if find_orbit4 or find_orbit6 must be used based
     on the state of `radiation_on` and `cavity_on` properties of accelerator.
@@ -766,32 +807,43 @@ def find_orbit(
     orbit positions are returned at the start of the first element. In
     addition a guess fixed point at the entrance of the ring may be provided.
 
-    Keyword arguments:
-    accelerator : Accelerator object
-    indices : may be a (list,tuple, numpy.ndarray) of element indices
-        where closed orbit data is to be returned or a string:
-            'open'  : return the closed orbit at the entrance of all elements.
-            'closed' : equal 'open' plus the orbit at the end of the last
-                element.
-        If indices is None the closed orbit is returned only at the entrance
-        of the first element.
-    fixed_point_guess : A 6D position where to start the search of the closed
-        orbit at the entrance of the first element. If not provided the
-        algorithm will start with zero orbit.
+    If `cavity_on` is True, and `radiation_on` is 'full', then `radiation_on`
+    will be temporarily set to "damping" to perform this calculation.
+
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator object;
+        energy_offset (float, optional): relative energy deviation from
+            nominal energy. Defaults to 0.0.
+        indices (list|tuple|numpy.ndarray|str, optional): indices of element
+            where `cumul_trans_matrices` are to be returned. Possible values
+            for strings are:
+                'open': return the matrices at the entrance of all elements.
+                'closed': equal 'open' plus at the end of the last element.
+            Defaults to None, which means the closed orbit will be returned
+            only at the entrance of the first element;
+        fixed_point_guess (list|numpy.ndarray, (6,)|(6, 1), optional):
+            position where to start the search of the closed orbit at the
+            entrance of the first element. Defaults to None, which means the
+            algorithm will start with zero orbit.
+
+    Raises:
+        TrackingError: When closed orbit cannot be found.
 
     Returns:
-        orbit : 6D closed orbit at the entrance of the selected elements as
-            a 2D numpy array with the 6 phase space variables in the first
-            dimension and the indices of the elements in the second dimension.
-
-    Raises TrackingException
+        closed_orbit (numpy.ndarray, (6, )| (6, len(indices))): closed orbit
+            at the entrance of the selected elements as a 2D numpy array with
+            the 6 phase space variables in the first dimension and the indices
+            of the elements in the second dimension.
 
     """
     if not accelerator.cavity_on and not accelerator.radiation_on:
         energy_offset = energy_offset or 0.0
         orb = find_orbit4(
-            accelerator, indices=indices, energy_offset=energy_offset,
-            fixed_point_guess=fixed_point_guess)
+            accelerator,
+            indices=indices,
+            energy_offset=energy_offset,
+            fixed_point_guess=fixed_point_guess
+        )
         corb = _np.zeros((6, orb.shape[1]))
         corb[:4, :] = orb
         corb[4, :] = energy_offset
@@ -805,29 +857,38 @@ def find_orbit(
 
 
 @_interactive
-def find_m66(accelerator, indices='m66', fixed_point=None):
+def find_m66(
+    accelerator: _Accelerator,
+    indices=None,
+    fixed_point=None
+):
     """Calculate 6D transfer matrices of elements in an accelerator.
 
-    Keyword arguments:
-    accelerator : Accelerator object
-    indices : may be a (list, tuple, numpy.ndarray) of element indices where
-              cumul_trans_matrices is to be returned or a string:
-               'open' : return the cumul_trans_matrices at the entrance of all
-                         elements.
-               'closed' : equal 'open' plus the matrix at the end of the last
-                        element.
-               'm66'  : the cumul_trans_matrices is not returned.
-              If indices is None the cumul_trans_matrices is not returned.
-    fixed_point (numpy.ndarray, (6, )): phase space position at the start of
-        the lattice where the matrices will be calculated around.
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator object.
+        indices (list|tuple|numpy.ndarray|str, optional): indices of element
+            where `cumul_trans_matrices` are to be returned. Possible values
+            for strings are:
+                'open': return the matrices at the entrance of all elements.
+                'closed': equal 'open' plus at the end of the last element.
+            Defaults to None, which means the matrices will not be returned.
+        fixed_point (numpy.ndarray, (6, ), optional): phase space position at
+            the start of the lattice, defining the trajectory around which the
+            matrices will be calculated around. Defaults to None, which means
+            the closed orbit will be used.
 
-    Return values:
-    m66
-    cumul_trans_matrices -- values at the start of each lattice element
+    Raises:
+        TrackingError: If closed orbit cannot be calculated.
+        TrackingError: If matrices cannot be calculated.
+
+    Returns:
+        m44 (numpy.ndarray, (6, 6)): one turn transfer matrix of the
+            accelerator;
+        cumul_trans_matrices (numpy.ndarray, (len(indices), 6, 6)): cumulated
+            transfer matrices from the beginning of the accelerator to the
+            entrance of the corresponding element.
 
     """
-    if isinstance(indices, str) and indices == 'm66':
-        indices = None
     indices = _process_indices(accelerator, indices, proc_none=False)
 
     trackcpp_idx = _trackcpp.CppUnsigIntVector()
@@ -866,29 +927,41 @@ def find_m66(accelerator, indices='m66', fixed_point=None):
 
 
 @_interactive
-def find_m44(accelerator, indices='m44', energy_offset=0.0, fixed_point=None):
+def find_m44(
+    accelerator: _Accelerator,
+    indices=None,
+    energy_offset=0.0,
+    fixed_point=None
+):
     """Calculate 4D transfer matrices of elements in an accelerator.
 
-    Keyword arguments:
-    accelerator : Accelerator object
-    indices : may be a (list, tuple, numpy.ndarray) of element indices where
-              cumul_trans_matrices is to be returned or a string:
-               'open' : return the cumul_trans_matrices at the entrance of all
-                         elements.
-                'closed' : equal 'open' plus the matrix at the end of the last
-                        element.
-               'm44'  : the cumul_trans_matrices is not returned.
-              If indices is None the cumul_trans_matrices is not returned.
-    energy_offset (float, ): energy offset
-    fixed_point (numpy.ndarray, (4, )): phase space position at the start of
-        the lattice where the matrices will be calculated around.
+    Args:
+        accelerator (pyaccel.accelerator.Accelerator): accelerator object.
+        indices (list|tuple|numpy.ndarray|str, optional): indices of element
+            where `cumul_trans_matrices` are to be returned. Possible values
+            for strings are:
+                'open': return the matrices at the entrance of all elements.
+                'closed': equal 'open' plus at the end of the last element.
+            Defaults to None, which means the matrices will not be returned.
+        energy_offset (float, optional): relative energy offset of the
+            particles. Defaults to 0.0.
+        fixed_point (numpy.ndarray, (4, ), optional): phase space position at
+            the start of the lattice, defining the trajectory around which the
+            matrices will be calculated around. Defaults to None, which means
+            the closed orbit will be used.
 
-    Return values:
-    m44
-    cumul_trans_matrices -- values at the start of each lattice element
+    Raises:
+        TrackingError: If closed orbit cannot be calculated.
+        TrackingError: If matrices cannot be calculated.
+
+    Returns:
+        m44 (numpy.ndarray, (4, 4)): one turn transfer matrix of the
+            accelerator;
+        cumul_trans_matrices (numpy.ndarray, (len(indices), 4, 4)): cumulated
+            transfer matrices from the beginning of the accelerator to the
+            entrance of the corresponding element.
+
     """
-    if isinstance(indices, str) and indices == 'm44':
-        indices = None
     indices = _process_indices(accelerator, indices, proc_none=False)
 
     trackcpp_idx = _trackcpp.CppUnsigIntVector()
