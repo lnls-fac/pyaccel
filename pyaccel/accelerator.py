@@ -172,8 +172,9 @@ class Accelerator(object):
         if isinstance(value, (int, bool, float)) and int(value) in radstts:
             self.trackcpp_acc.radiation_on = int(value)
         elif isinstance(value, str) and value.title() in radstts._fields:
-            self.trackcpp_acc.radiation_on = \
-                radstts._fields.index(value.title())
+            self.trackcpp_acc.radiation_on = radstts._fields.index(
+                value.title()
+            )
         else:
             raise ValueError('Value not valid.')
 
@@ -295,8 +296,8 @@ class Accelerator(object):
         if isinstance(index, (list, tuple, _np.ndarray)):
             try:
                 index = _np.array(index, dtype=int)
-            except TypeError:
-                raise TypeError('invalid index')
+            except TypeError as err:
+                raise TypeError('invalid index') from err
             lattice = _trackcpp.CppElementVector()
             for i in index:
                 lattice.append(self.trackcpp_acc.lattice[int(i)])

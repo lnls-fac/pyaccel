@@ -4,18 +4,9 @@ import warnings
 
 import trackcpp as _trackcpp
 
-from mathphys.functions import get_namedtuple as _get_namedtuple
-
-
 INTERACTIVE_LIST = []
 
-# Distributions = _trackcpp.distributions_dict
-DISTRIBUTIONS_NAMES = _trackcpp.distributions_dict
-_states_str = tuple(state.upper() for state in _trackcpp.distributions_dict)
-_indices = (idx for idx in range(len(_states_str)))
-DISTRIBUTIONS_NAMES = _get_namedtuple(
-    'DISTRIBUTIONS_NAMES', _states_str, _indices)
-del _states_str, _indices
+DISTRIBUTIONS_NAMES = tuple(_trackcpp.distributions_dict)
 
 
 def interactive(obj):
@@ -60,13 +51,12 @@ def get_random_number():
 
 @interactive
 def set_distribution(distribution):
-    """Sets the distribution of the random numbers used to simulate quantum
-    excitation effects.
+    """Set distribution of random numbers used to simulate quantum excitation.
 
     Args:
-        distribution (str or int):
-        - 0 or 'normal': Normal distribution,
-        - 1 or 'uniform': Uniform distribution.
+        distribution (str|int): distribution to be used.
+            - 0 or 'normal': Normal distribution,
+            - 1 or 'uniform': Uniform distribution.
 
     Raises:
         ValueError
@@ -77,8 +67,6 @@ def set_distribution(distribution):
     elif isinstance(dist, str) and (dist in DISTRIBUTIONS_NAMES):
         _trackcpp.set_random_distribution(DISTRIBUTIONS_NAMES.index(dist))
     else:
-        errstr = (
-            'The distribution must be one of the options: '
-            f'{DISTRIBUTIONS_NAMES}',
-            )
+        errstr = 'The distribution must be one of the options: ' + \
+            f"{DISTRIBUTIONS_NAMES}"
         raise ValueError(errstr)
