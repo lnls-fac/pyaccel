@@ -100,6 +100,36 @@ class TrackingLossInfo:
         """
         return _np.array(self.lost_flag).nonzero()[0]
 
+    def to_dict(self):
+        """."""
+        dic = {
+            'lost_flag': self.lost_flag,
+            'lost_plane': self.lost_plane,
+            'lost_element': self.lost_element,
+            'lost_pos': self.lost_pos,
+        }
+        if hasattr(self, 'lost_turn'):
+            dic['lost_turn'] = self.lost_turn
+        return dic
+
+    def from_dict(self, dic):
+        """."""
+        self.lost_flag = dic['lost_flag']
+        self.lost_plane = dic['lost_plane']
+        self.lost_element = dic['lost_element']
+        self.lost_pos = dic['lost_pos']
+        lost_turn = dic.get('lost_turn')
+        if lost_turn:
+            self.lost_turn = lost_turn
+
+    def __getstate__(self):
+        """."""
+        return self.to_dict()
+
+    def __setstate__(self, data):
+        """."""
+        self.from_dict(data)
+
 
 @_interactive
 def generate_bunch(
