@@ -159,7 +159,7 @@ class TwissArray(_np.ndarray):
     def __new__(cls, twiss=None, copy=True):
         """."""
         length = 1
-        if isinstance(twiss, (int, _np.int)):
+        if isinstance(twiss, int):
             length = twiss
             twiss = None
         elif isinstance(twiss, TwissArray):
@@ -425,7 +425,7 @@ def calc_twiss(
     indices = _tracking._process_indices(accelerator, indices)
 
     _m66 = _trackcpp.Matrix()
-    twiss = _np.zeros((len(accelerator)+1, len(Twiss.ORDER)), dtype=_np.float)
+    twiss = _np.zeros((len(accelerator)+1, len(Twiss.ORDER)), dtype=float)
 
     if init_twiss is not None:
         # as a transport line: uses init_twiss

@@ -276,7 +276,7 @@ class EdwardsTengArray(_np.ndarray):
     def __new__(cls, edteng=None, copy=True):
         """."""
         length = 1
-        if isinstance(edteng, (int, _np.int)):
+        if isinstance(edteng, (int, _np.int_)):
             length = edteng
             edteng = None
         elif isinstance(edteng, EdwardsTengArray):
@@ -672,7 +672,7 @@ def calc_edwards_teng(
     cav_stt = accelerator.cavity_on
     rad_stt = accelerator.radiation_on
     accelerator.cavity_on = False
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 'off'
 
     cod = None
     if init_edteng is not None:

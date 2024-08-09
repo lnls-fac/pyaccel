@@ -7,6 +7,7 @@ import trackcpp as _trackcpp
 
 from . import elements as _elements
 from .utils import interactive as _interactive
+from .utils import RADIATION_STATES as _RADIATION_STATES
 
 
 class AcceleratorException(Exception):
@@ -29,11 +30,13 @@ class Accelerator(object):
         if 'harmonic_number' in kwargs:
             self.trackcpp_acc.harmonic_number = kwargs['harmonic_number']
         if 'radiation_on' in kwargs:
-            self.trackcpp_acc.radiation_on = kwargs['radiation_on']
+            self.radiation_on = kwargs['radiation_on']
         if 'cavity_on' in kwargs:
             self.trackcpp_acc.cavity_on = kwargs['cavity_on']
         if 'vchamber_on' in kwargs:
             self.trackcpp_acc.vchamber_on = kwargs['vchamber_on']
+        if 'lattice_version' in kwargs:
+            self.trackcpp_acc.lattice_version = kwargs['lattice_version']
 
         if self.trackcpp_acc.energy == 0:
             self._brho, self._velocity, self._beta, self._gamma, \
@@ -101,12 +104,12 @@ class Accelerator(object):
 
     @property
     def brho(self):
-        """Return beam rigidity [T.m]"""
+        """Return beam rigidity [T.m]."""
         return self._brho
 
     @brho.setter
     def brho(self, value):
-        """Set beam rigidity [T.m]"""
+        """Set beam rigidity [T.m]."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(brho=value)
         self.trackcpp_acc.energy = energy * 1e9
@@ -141,10 +144,39 @@ class Accelerator(object):
         """Return radiation on state."""
         return self.trackcpp_acc.radiation_on
 
+    @property
+    def radiation_on_str(self):
+        """Return radiation_on state in string format."""
+        return _RADIATION_STATES[self.trackcpp_acc.radiation_on]
+
     @radiation_on.setter
     def radiation_on(self, value):
-        """Set radiation on state."""
-        self.trackcpp_acc.radiation_on = value
+        """Set radiation on state.
+
+        Args:
+            value (int, bool or string): Radiation state to be set,
+            the options are:
+            - 0, False, "off"    = No radiative effects.
+            - 1, True, "damping" = Turns on radiation damping, without
+                quantum excitation.
+            - 2, "full" = Turns on radiation damping with quantum excitation
+        Raises:
+            ValueError
+        """
+        nr_states = len(_RADIATION_STATES)
+        if isinstance(value, (int, bool, float)) and \
+                0 <= value <= nr_states:
+            self.trackcpp_acc.radiation_on = int(value)
+        elif isinstance(value, str) and value in _RADIATION_STATES:
+            self.trackcpp_acc.radiation_on = \
+                _RADIATION_STATES.index(value)
+        else:
+            errtxt = (
+                'Value not valid, radiation_on must be '
+                f'0 < int < {nr_states} or one of'
+                f'the strings: {_RADIATION_STATES}'
+                )
+            raise ValueError(errtxt)
 
     @property
     def vchamber_on(self):
@@ -155,6 +187,16 @@ class Accelerator(object):
     def vchamber_on(self, value):
         """Set vacuum chamber on state."""
         self.trackcpp_acc.vchamber_on = value
+
+    @property
+    def lattice_version(self):
+        """Return lattice version."""
+        return self.trackcpp_acc.lattice_version
+
+    @lattice_version.setter
+    def lattice_version(self, value):
+        """Set lattice version."""
+        self.trackcpp_acc.lattice_version = value
 
     def pop(self, index):
         """."""
@@ -248,7 +290,10 @@ class Accelerator(object):
             ele = _elements.Element()
             ele.trackcpp_e = self.trackcpp_acc.lattice[int(index)]
             return ele
-        elif isinstance(index, (list, tuple, _np.ndarray)):
+        if isinstance(index, slice):
+            index = list(range(*index.indices(len(self))))
+
+        if isinstance(index, (list, tuple, _np.ndarray)):
             try:
                 index = _np.array(index, dtype=int)
             except TypeError:
@@ -256,12 +301,11 @@ class Accelerator(object):
             lattice = _trackcpp.CppElementVector()
             for i in index:
                 lattice.append(self.trackcpp_acc.lattice[int(i)])
-        elif isinstance(index, slice):
-            lattice = self.trackcpp_acc.lattice[index]
         else:
             raise TypeError('invalid index')
         acc = Accelerator(
             lattice=lattice,
+            lattice_version=self.trackcpp_acc.lattice_version,
             energy=self.trackcpp_acc.energy,
             harmonic_number=self.trackcpp_acc.harmonic_number,
             cavity_on=self.trackcpp_acc.cavity_on,
@@ -304,6 +348,7 @@ class Accelerator(object):
         rst += '\ncavity_on      : ' + str(self.trackcpp_acc.cavity_on)
         rst += '\nradiation_on   : ' + str(self.trackcpp_acc.radiation_on)
         rst += '\nvchamber_on    : ' + str(self.trackcpp_acc.vchamber_on)
+        rst += '\nlattice version: ' + self.trackcpp_acc.lattice_version
         rst += '\nlattice size   : ' + str(len(self.trackcpp_acc.lattice))
         rst += '\nlattice length : ' + str(self.length) + ' m'
         return rst
@@ -347,6 +392,7 @@ class Accelerator(object):
             elif other == 0:
                 return Accelerator(
                     energy=self.energy,
+                    lattice_version=self.lattice_version,
                     harmonic_number=self.harmonic_number,
                     cavity_on=self.cavity_on,
                     radiation_on=self.radiation_on,
@@ -389,12 +435,14 @@ class Accelerator(object):
                 trackcpp_acc.radiation_on = acc.radiation_on
                 trackcpp_acc.vchamber_on = acc.vchamber_on
                 trackcpp_acc.harmonic_number = acc.harmonic_number
+                trackcpp_acc.lattice_version = acc.lattice_version
         else:
             trackcpp_acc = _trackcpp.Accelerator()
             trackcpp_acc.cavity_on = False
-            trackcpp_acc.radiation_on = False
+            trackcpp_acc.radiation_on = 0  # 0 = radiation off
             trackcpp_acc.vchamber_on = False
             trackcpp_acc.harmonic_number = 0
+            trackcpp_acc.lattice_version = ''
         return trackcpp_acc
 
     def _init_lattice(self, kwargs):

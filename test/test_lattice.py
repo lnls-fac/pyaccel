@@ -6,6 +6,7 @@ import pyaccel
 import trackcpp
 import models
 
+
 class TestLattice(unittest.TestCase):
 
     def setUp(self):
@@ -21,8 +22,8 @@ class TestLattice(unittest.TestCase):
 
     def test_find_spos(self):
         s = [0, 0, 0, 0, 0.5000, 1.0000, 3.4129, 3.4129,
-            3.4129, 3.5129, 3.6229, 3.7729, 3.8929, 3.8929,
-            4.0329, 4.2329, 4.4729, 4.6129, 4.7629, 4.9129]
+             3.4129, 3.5129, 3.6229, 3.7729, 3.8929, 3.8929,
+             4.0329, 4.2329, 4.4729, 4.6129, 4.7629, 4.9129]
 
         indices = [i for i in range(20)]
         pos = pyaccel.lattice.find_spos(self.the_ring, indices)
@@ -35,18 +36,19 @@ class TestLattice(unittest.TestCase):
 
     def test_flatten(self):
         flat_elist = [self.element]*12
-        elist = [self.element,self.element,[self.element,[self.element,
-                [[self.element,self.element],self.element],self.element],
-                self.element,[self.element,[self.element,]],self.element]]
+        elist = [self.element, self.element, [self.element, [self.element,
+                 [[self.element, self.element], self.element], self.element],
+                self.element, [self.element, [self.element, ]], self.element]]
         elist = pyaccel.lattice.flatten(elist)
         self.assertEqual(elist, flat_elist)
 
     def test_build(self):
-        elist = [self.element,self.element,[self.element,[self.element,
-                [[self.element,self.element],self.element],self.element],
-                self.element,[self.element,[self.element,]],self.element]]
+        elist = [self.element, self.element, [self.element, [self.element,
+                 [[self.element, self.element], self.element], self.element],
+                self.element, [self.element, [self.element, ]], self.element]]
         lattice = pyaccel.lattice.build(elist)
-        self.assertTrue(isinstance(lattice, trackcpp.trackcpp.CppElementVector))
+        self.assertTrue(
+            isinstance(lattice, trackcpp.trackcpp.CppElementVector))
 
     def test_shift(self):
         lattice = [e for e in self.the_ring]
@@ -57,54 +59,63 @@ class TestLattice(unittest.TestCase):
         self.assertEqual(lattice[0].fam_name, fam_name)
 
     def test_find_indices(self):
-        indices_bc = pyaccel.lattice.find_indices(self.the_ring, 'polynom_b', [0, -0.0001586, -28.62886])
+        indices_bc = pyaccel.lattice.find_indices(
+            self.the_ring, 'polynom_b', [0, -0.0001586, -28.62886])
         for i in indices_bc:
-            self.assertEqual(self.the_ring[i].fam_name,'bc')
+            self.assertEqual(self.the_ring[i].fam_name, 'bc')
 
         mia = [1, 327, 655, 983, 1311, 1639, 1967, 2295, 2623, 2951]
-        indices_mia = pyaccel.lattice.find_indices(self.the_ring, 'fam_name', 'mia')
+        indices_mia = pyaccel.lattice.find_indices(
+            self.the_ring, 'fam_name', 'mia')
         for i in range(len(mia)):
             self.assertEqual(indices_mia[i], mia[i])
 
     def test_get_attribute(self):
         length = pyaccel.lattice.get_attribute(self.the_ring, 'length')
-        self.assertAlmostEqual(sum(length),518.396)
+        self.assertAlmostEqual(sum(length), 518.396)
 
-        fam_name = pyaccel.lattice.get_attribute(self.the_ring, 'fam_name', range(20))
+        fam_name = pyaccel.lattice.get_attribute(
+            self.the_ring, 'fam_name', range(20))
         for i in range(20):
             self.assertEqual(fam_name[i], self.the_ring[i].fam_name)
 
-        polynom_b = pyaccel.lattice.get_attribute(self.the_ring, 'polynom_b', range(20), m=1)
+        polynom_b = pyaccel.lattice.get_attribute(
+            self.the_ring, 'polynom_b', range(20), m=1)
         for i in range(20):
-            self.assertEqual(polynom_b[i],self.the_ring[i].polynom_b[1])
+            self.assertEqual(polynom_b[i], self.the_ring[i].polynom_b[1])
 
-        r_in = pyaccel.lattice.get_attribute(self.the_ring,'r_in',range(20), m=1, n=1)
+        r_in = pyaccel.lattice.get_attribute(
+            self.the_ring, 'r_in', range(20), m=1, n=1)
         for i in range(20):
-            self.assertEqual(r_in[i],self.the_ring[i].r_in[1,1])
+            self.assertEqual(r_in[i], self.the_ring[i].r_in[1, 1])
 
     def test_set_attribute(self):
         pyaccel.lattice.set_attribute(self.the_ring, 'length', 1, 1)
         self.assertEqual(self.the_ring[1].length, 1)
 
-        pyaccel.lattice.set_attribute(self.the_ring, 'fam_name', [1, 2], ['test1', 'test2'])
+        pyaccel.lattice.set_attribute(
+            self.the_ring, 'fam_name', [1, 2], ['test1', 'test2'])
         self.assertEqual(self.the_ring[1].fam_name, 'test1')
         self.assertEqual(self.the_ring[2].fam_name, 'test2')
 
-        pyaccel.lattice.set_attribute(self.the_ring, 'polynom_b', [1,2], [[1,1,1], [2,2,2]])
+        pyaccel.lattice.set_attribute(
+            self.the_ring, 'polynom_b', [1, 2], [[1, 1, 1], [2, 2, 2]])
         self.assertEqual(self.the_ring[1].polynom_b[0], 1)
         self.assertEqual(self.the_ring[2].polynom_b[0], 2)
 
-        pyaccel.lattice.set_attribute(self.the_ring, 'polynom_b', [1,2], [[1,1,1]])
+        pyaccel.lattice.set_attribute(
+            self.the_ring, 'polynom_b', [1, 2], [[1, 1, 1]])
         self.assertEqual(self.the_ring[1].polynom_b[0], 1)
         self.assertEqual(self.the_ring[2].polynom_b[0], 1)
 
-        pyaccel.lattice.set_attribute(self.the_ring, 'r_in', 1, [numpy.zeros((6,6))])
-        self.assertEqual(self.the_ring[1].r_in[0,0], 0)
+        pyaccel.lattice.set_attribute(
+            self.the_ring, 'r_in', 1, [numpy.zeros((6, 6))])
+        self.assertEqual(self.the_ring[1].r_in[0, 0], 0)
 
     def test_find_dict(self):
-        names_dict=pyaccel.lattice.find_dict(self.the_ring, 'fam_name')
+        names_dict = pyaccel.lattice.find_dict(self.the_ring, 'fam_name')
         for key in names_dict.keys():
-            ind=names_dict[key]
+            ind = names_dict[key]
             for i in ind:
                 self.assertEqual(self.the_ring[i].fam_name, key)
 
@@ -121,7 +132,7 @@ class TestFlatFile(unittest.TestCase):
         self.assertAlmostEqual(self.a.energy, 3.0e9, 9)
         self.assertEqual(self.a.harmonic_number, 864)
         self.assertTrue(self.a.cavity_on)
-        self.assertFalse(self.a.radiation_on)
+        self.assertEqual(self.a.radiation_on, 0)  # 0 = radiation off
         self.assertFalse(self.a.vchamber_on)
         # Lattice elements
         self.assertEqual(self.a[0].fam_name, 'start')
@@ -144,7 +155,7 @@ class TestFlatFile(unittest.TestCase):
         self.assertAlmostEqual(self.a.energy, 1.5e9, 9)
         self.assertEqual(self.a.harmonic_number, 864)
         self.assertTrue(self.a.cavity_on)
-        self.assertFalse(self.a.radiation_on)
+        self.assertEqual(self.a.radiation_on, 0)
         self.assertFalse(self.a.vchamber_on)
         # Lattice elements
         self.assertEqual(self.a[0].fam_name, 'start')

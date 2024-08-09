@@ -11,19 +11,24 @@ from .. import accelerator as _accelerator
 from ..utils import interactive as _interactive
 
 from .miscellaneous import get_rf_voltage as _get_rf_voltage, \
-    get_revolution_frequency as _get_revolution_frequency
+    get_revolution_frequency as _get_revolution_frequency, \
+    calc_rf_acceptance as _calc_rf_acceptance, calc_U0 as _calc_U0, \
+    calc_syncphase as _calc_syncphase
+from .eq_params import EqParamsNormalModes as _EqParamsNormalModes
 
 
 class EqParamsFromBeamEnvelope:
     """Calculate equilibrium beam parameters from beam envelope matrix.
 
     It employs Ohmi formalism to do so:
-        Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
-        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+        Ohmi, Hirata, Oide 'From the beam-envelope matrix to synchrotron
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
+        https://doi.org/10.1103/PhysRevE.49.751
     Other useful reference is:
         Chao, A. W. (1979). Evaluation of beam distribution parameters in
         an electron storage ring. Journal of Applied Physics, 50(1), 595.
-        https://doi.org/10.1016/0029-554X(81)90006-9
+        https://doi.org/10.1063/1.326070
+
 
     The normal modes properties are defined so that in the limit of zero
     coupling:
@@ -32,6 +37,8 @@ class EqParamsFromBeamEnvelope:
         Mode 3 --> Longitudinal plane
 
     """
+
+    PARAMETERS = _EqParamsNormalModes.PARAMETERS.union({})
 
     def __init__(self, accelerator, energy_offset=0.0):
         """."""
@@ -46,45 +53,12 @@ class EqParamsFromBeamEnvelope:
         self._alphas = _np.zeros(3)
         self._damping_numbers = _np.zeros(3)
         self._tunes = _np.zeros(3)
+        self._fixed_point = None
         self.accelerator = accelerator
 
     def __str__(self):
         """."""
-        rst = ''
-        fmti = '{:32s}: '
-        fmtr = '{:33s}: '
-        fmtn = '{:.4g}'
-
-        fmte = fmtr + fmtn
-        rst += fmte.format('\nEnergy [GeV]', self.accelerator.energy*1e-9)
-        rst += fmte.format('\nEnergy Deviation [%]', self.energy_offset*100)
-
-        ints = 'J1,J2,J3'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints))
-        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        ints = 'tau1,tau2,tau3'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints) + ' [ms]')
-        rst += ', '.join([fmtn.format(1000*getattr(self, x)) for x in ints])
-
-        ints = 'alpha1,alpha2,alpha3'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
-        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        ints = 'tune1,tune2,tune3'.split(',')
-        rst += '\n' + fmti.format(', '.join(ints) + ' [Hz]')
-        rst += ', '.join([fmtn.format(getattr(self, x)) for x in ints])
-
-        rst += fmte.format('\nmomentum compaction x 1e4', self.alpha*1e4)
-        rst += fmte.format('\nenergy loss [keV]', self.U0/1000)
-        rst += fmte.format('\novervoltage', self.overvoltage)
-        rst += fmte.format('\nsync phase [°]', self.syncphase*180/_math.pi)
-        rst += fmte.format('\nmode 1 emittance [nm.rad]', self.emit1*1e9)
-        rst += fmte.format('\nmode 2 emittance [pm.rad]', self.emit2*1e12)
-        rst += fmte.format('\nnatural espread [%]', self.espread0*100)
-        rst += fmte.format('\nbunch length [mm]', self.bunlen*1000)
-        rst += fmte.format('\nRF energy accep. [%]', self.rf_acceptance*100)
-        return rst
+        return _EqParamsNormalModes.eqparam_to_string(self)
 
     @property
     def accelerator(self):
@@ -96,6 +70,11 @@ class EqParamsFromBeamEnvelope:
         if isinstance(acc, _accelerator.Accelerator):
             self._acc = acc
             self._calc_envelope()
+
+    @property
+    def energy(self):
+        """."""
+        return self._acc.energy
 
     @property
     def energy_offset(self):
@@ -116,6 +95,11 @@ class EqParamsFromBeamEnvelope:
     def m66(self):
         """."""
         return self._cumul_mat[-1].copy()
+
+    @property
+    def fixed_point(self):
+        """."""
+        return self._fixed_point.copy() if self._fixed_point is not None else None
 
     @property
     def envelopes(self):
@@ -299,7 +283,7 @@ class EqParamsFromBeamEnvelope:
         Calculated via equation 25 of
             Chao, A. W. (1979). Evaluation of beam distribution parameters in
             an electron storage ring. Journal of Applied Physics, 50(1), 595.
-            https://doi.org/10.1016/0029-554X(81)90006-9
+            https://doi.org/10.1063/1.326070
 
         The equation reads:
             tilt = 1/2 * arctan(2*<xy>/(<x^2>-<y^2>))
@@ -322,9 +306,8 @@ class EqParamsFromBeamEnvelope:
     @property
     def U0(self):
         """."""
-        E0 = self._acc.energy / 1e9  # in GeV
-        rad_cgamma = _mp.constants.rad_cgamma
-        return rad_cgamma/(2*_math.pi) * E0**4 * self._integral2 * 1e9  # in eV
+        res = _calc_U0(self._acc.energy, self.energy_offset, self._integral2)
+        return res
 
     @property
     def overvoltage(self):
@@ -335,7 +318,8 @@ class EqParamsFromBeamEnvelope:
     @property
     def syncphase(self):
         """."""
-        return _math.pi - _math.asin(1/self.overvoltage)
+        res = _calc_syncphase(self.overvoltage)
+        return res
 
     @property
     def etac(self):
@@ -363,31 +347,15 @@ class EqParamsFromBeamEnvelope:
     @property
     def rf_acceptance(self):
         """."""
-        E0 = self._acc.energy
-        sph = self.syncphase
-        V = _get_rf_voltage(self._acc)
-        ov = self.overvoltage
-        h = self._acc.harmonic_number
-        etac = self.etac
-
-        eaccep2 = V * _math.sin(sph) / (_math.pi*h*abs(etac)*E0)
-        eaccep2 *= 2 * (_math.sqrt(ov**2 - 1.0) - _math.acos(1.0/ov))
-        return _math.sqrt(eaccep2)
+        rf_voltage = _get_rf_voltage(self._acc)
+        res = _calc_rf_acceptance(
+            self._acc.energy, self.energy_offset, self._acc.harmonic_number,
+            rf_voltage, self.overvoltage, self.etac)
+        return res
 
     def as_dict(self):
         """."""
-        pars = {
-            'J1', 'J2', 'J3',
-            'alpha1', 'alpha2', 'alpha3',
-            'tau1', 'tau2', 'tau3',
-            'tune1', 'tune2', 'tune3',
-            'espread0',
-            'emit1', 'emit2',
-            'bunlen',
-            'U0', 'overvoltage', 'syncphase',
-            'alpha', 'etac', 'rf_acceptance',
-            }
-        dic = {par: getattr(self, par) for par in pars}
+        dic = {par: getattr(self, par) for par in self.PARAMETERS}
         dic['energy'] = self.accelerator.energy
         return dic
 
@@ -451,7 +419,7 @@ class EqParamsFromBeamEnvelope:
 
         # we can also extract the value of the second integral:
         Ca = _mp.constants.Ca
-        E0 = self._acc.energy / 1e9  # in GeV
+        E0 = self._acc.energy / 1e9  # [GeV]
         E0 *= (1 + self._energy_offset)
         leng = self._acc.length
         self._integral2 = fac / (Ca * E0**3 / leng)
@@ -464,13 +432,14 @@ def calc_beamenvelope(
     """Calculate equilibrium beam envelope matrix or transport initial one.
 
     It employs Ohmi formalism to do so:
-        Ohmi, Kirata, Oide 'From the beam-envelope matrix to synchrotron
-        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994)
+        Ohmi, Hirata, Oide 'From the beam-envelope matrix to synchrotron
+        radiation integrals', Phys.Rev.E  Vol.49 p.751 (1994).
+        https://doi.org/10.1103/PhysRevE.49.751
 
     Keyword arguments:
     accelerator : Accelerator object. Only non-optional argument.
 
-    fixed_point : 6D position at the start of first element. I might be the
+    fixed_point : 6D position at the start of first element. It might be the
       fixed point of the one turn map or an arbitrary initial condition.
 
     indices : may be a (list,tuple, numpy.ndarray) of element indices where
@@ -484,7 +453,7 @@ def calc_beamenvelope(
       fixed_point is not None).
 
     cumul_trans_matrices : cumulated transfer matrices for all elements of the
-      rin. Must include matrix at the end of the last element. If not passed
+      ring. Must include matrix at the end of the last element. If not passed
       or has the wrong shape it will be calculated internally.
       CAUTION: In case init_env is not passed and equilibrium solution is to
       be found, it must be calculated with cavity and radiation on.
@@ -492,10 +461,19 @@ def calc_beamenvelope(
     init_env: initial envelope matrix to be transported. In case it is not
       provided, the equilibrium solution will be returned.
 
-    Returns:
-    envelope -- rank-3 numpy array with shape (len(indices), 6, 6). Of the
-      beam envelope matrices at the desired indices.
+    full: whether to return the envelope matrices as well as the the
+      cumulative transfer matrices, the diffusion matrix and the fixed point.
+      Defaults to False, in which case only the envelope is returned.
 
+    Returns:
+    envelope, if `full==False` -- rank-3 numpy array with shape
+      (len(indices), 6, 6). Of the beam envelope matrices at the desired
+      indices.
+
+    envelope, cum_mat, bdiffs & fixed_point, if `full==True` -- the beam
+      envelope matrices, the cumulated transfer matrices, and the diffusion
+      matrices at the desired indices (rank-3 numpy arrays with shape
+      (len(indices), 6, 6)); and the 6D position at the start of first element.
     """
     indices = _tracking._process_indices(accelerator, indices)
 
@@ -504,7 +482,7 @@ def calc_beamenvelope(
         no_fpoint_flag = True
         rad_stt = accelerator.radiation_on
         cav_stt = accelerator.cavity_on
-        accelerator.radiation_on = True
+        accelerator.radiation_on = 'Damping'
         accelerator.cavity_on = True
 
         fixed_point = _tracking.find_orbit(
@@ -525,6 +503,7 @@ def calc_beamenvelope(
     bdiffs = _np.zeros((len(accelerator)+1, 6, 6), dtype=float)
     _trackcpp.track_diffusionmatrix_wrapper(
         accelerator.trackcpp_acc, fixed_point, mat_ele, bdiffs)
+    fixed_point = _tracking._CppDoublePos2Numpy(fixed_point)
 
     if init_env is None:
         # ------------------------------------------------------------

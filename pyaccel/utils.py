@@ -1,10 +1,17 @@
 """."""
 
 import warnings
-import numpy as _numpy
+
+import trackcpp as _trackcpp
+
+from mathphys.functions import get_namedtuple as _get_namedtuple
 
 
 INTERACTIVE_LIST = []
+
+DISTRIBUTIONS_NAMES = tuple(_trackcpp.distributions_dict)
+
+RADIATION_STATES = tuple(_trackcpp.rad_dict)
 
 
 def interactive(obj):
@@ -35,54 +42,37 @@ def deprecated(function):
     return new_function
 
 
-class Polynom(_numpy.ndarray):
-    """."""
-
-    def __new__(cls, polynom):
-        """."""
-        shape = (len(polynom),)
-        array = _numpy.ndarray.__new__(cls, shape=shape)
-        array[:] = polynom[:]
-        array._polynom = polynom
-        return array
-
-    def __setitem__(self, index, value):
-        """."""
-        if hasattr(self, '_polynom'):
-            self._polynom[index] = value
-        super().__setitem__(index, value)
-
-    def __eq__(self, other):
-        """."""
-        if not isinstance(other, Polynom):
-            return NotImplemented
-        if len(self) != len(other):
-            return False
-        if (self != other).any():
-            return False
-        return True
+@interactive
+def set_random_seed(rnd_seed : int):
+    """Set random number seed used in trackcpp."""
+    _trackcpp.set_random_seed(rnd_seed)
 
 
-# class Matrix(_numpy.ndarray):
+@interactive
+def get_random_number():
+    """Return a random number from trackcpp normal distribution."""
+    return _trackcpp.gen_random_number()
 
-#     def __new__(cls, polynom):
-#         shape = (len(polynom), len(polynom[0]))
-#         array = _numpy.ndarray.__new__(cls, shape=shape)
-#         for i, pol in enumerate(polynom):
-#             array[i] = pol[:]
-#         array._polynom = polynom
-#         return array
 
-#     def __setitem__(self, index, value):
-#         if hasattr(self, '_polynom'):
-#             self._polynom[index] = value
-#         super().__setitem__(index, value)
+@interactive
+def set_distribution(distribution):
+    """Sets the distribution of the random numbers used to simulate quantum
+    excitation effects.
 
-#     def __eq__(self, other):
-#         if not isinstance(other, Polynom):
-#             return NotImplemented
-#         if len(self) != len(other):
-#             return False
-#         if (self != other).any():
-#             return False
-#         return True
+    Args:
+        distribution (str or int):
+        - 0 or 'normal': Normal distribution,
+        - 1 or 'uniform': Uniform distribution.
+
+    Raises:
+        ValueError
+    """
+    dist = distribution
+    if isinstance(dist, int) and (dist < len(DISTRIBUTIONS_NAMES)):
+        _trackcpp.set_random_distribution(dist)
+    elif isinstance(dist, str) and (dist in DISTRIBUTIONS_NAMES):
+        _trackcpp.set_random_distribution(DISTRIBUTIONS_NAMES.index(dist))
+    else:
+        errstr = 'The distribution must be one of the options: ' + \
+            f"{DISTRIBUTIONS_NAMES}"
+        raise ValueError(errstr)

@@ -2,6 +2,8 @@
 
 import numpy as _np
 
+import mathphys as _mp
+
 from .. import tracking as _tracking
 from ..utils import interactive as _interactive
 
@@ -12,7 +14,7 @@ class OpticsException(Exception):
 
 @_interactive
 def get_rf_frequency(accelerator):
-    """Return the frequency of the first RF cavity in the lattice."""
+    """Return the frequency of the first RF cavity in the lattice [Hz]."""
     for e in accelerator:
         if e.frequency != 0.0:
             return e.frequency
@@ -21,7 +23,7 @@ def get_rf_frequency(accelerator):
 
 @_interactive
 def get_rf_voltage(accelerator):
-    """Return the voltage of the first RF cavity in the lattice."""
+    """Return the voltage of the first RF cavity in the lattice [V]."""
     voltages = []
     for e in accelerator:
         if e.voltage != 0.0:
@@ -37,13 +39,33 @@ def get_rf_voltage(accelerator):
 
 @_interactive
 def get_revolution_frequency(accelerator):
-    """."""
+    """Return the actual revolution frequency of the 6D fixed point [Hz]."""
     return get_rf_frequency(accelerator) / accelerator.harmonic_number
 
 
 @_interactive
-def get_revolution_period(accelerator):
+def calc_syncphase(overvoltage):
     """."""
+    return _np.pi - _np.arcsin(1/overvoltage)
+
+
+@_interactive
+def calc_rf_acceptance(energy, energy_offset, harmonic_number, rf_voltage, overvoltage, etac):
+    """."""
+    E0 = energy * (1 + energy_offset)
+    V = rf_voltage
+    ov = overvoltage
+    sph = calc_syncphase(ov)
+    h = harmonic_number
+
+    eaccep2 = V * _np.sin(sph) / (_np.pi*h*abs(etac)*E0)
+    eaccep2 *= 2 * (_np.sqrt(ov**2 - 1.0) - _np.arccos(1.0/ov))
+    return _np.sqrt(eaccep2)
+
+
+@_interactive
+def get_revolution_period(accelerator):
+    """Return the actual revolution frequency of the 6D fixed point [s]."""
     return 1 / get_revolution_frequency(accelerator)
 
 
@@ -99,7 +121,7 @@ def get_chromaticities(accelerator, energy_offset=1e-6):
     """."""
     cav_on = accelerator.cavity_on
     rad_on = accelerator.radiation_on
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 'off'
     accelerator.cavity_on = False
 
     nux, nuy, *_ = get_frac_tunes(accelerator, dim='4D', energy_offset=0.0)
@@ -145,3 +167,12 @@ def get_curlyh(beta, alpha, x, xl):
     """."""
     gamma = (1 + alpha*alpha) / beta
     return beta*xl*xl + 2*alpha*x*xl + gamma*x*x
+
+
+@_interactive
+def calc_U0(energy, energy_offset, I2):
+    """Return U0 [eV]."""
+    E0 = energy / 1e9  # [GeV]
+    E0 *= (1 + energy_offset)
+    rad_cgamma = _mp.constants.rad_cgamma
+    return rad_cgamma/(2*_np.pi) * E0**4 * I2 * 1e9  # [eV]

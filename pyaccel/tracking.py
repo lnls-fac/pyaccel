@@ -165,13 +165,13 @@ def generate_bunch(
 @_interactive
 def set_4d_tracking(accelerator):
     accelerator.cavity_on = False
-    accelerator.radiation_on = False
+    accelerator.radiation_on = 'off'
 
 
 @_interactive
-def set_6d_tracking(accelerator):
+def set_6d_tracking(accelerator, rad_full=False):
     accelerator.cavity_on = True
-    accelerator.radiation_on = True
+    accelerator.radiation_on = 'full' if rad_full else 'damping'
 
 
 @_interactive
@@ -189,11 +189,12 @@ def element_pass(element, particles, energy, **kwargs):
                        ex.1: particles = [rx,px,ry,py,de,dl]
                        ex.3: particles = numpy.zeros((6, Np))
     energy          -- energy of the beam [eV]
-    harmonic_number -- harmonic number of the lattice (optional, defaul=1)
-    cavity_on       -- cavity on state (True/False) (optional, defaul=False)
-    radiation_on    -- radiation on state (True/False) (optional, defaul=False)
+    harmonic_number -- harmonic number of the lattice (optional, default=1)
+    cavity_on       -- cavity on state (True/False) (optional, default=False)
+    radiation_on    -- radiation on state (0 or "off", 1 or "damping", 2 or
+        "full") (optional, default="off")
     vchamber_on     -- vacuum chamber on state (True/False) (optional,
-        defaul=False)
+        default=False)
 
     Returns:
     part_out -- a numpy array with tracked 6D position(s) of the particle(s).
@@ -324,7 +325,7 @@ def line_pass(
             res = []
             for slc in slcs:
                 res.append(pool.apply_async(_line_pass, (
-                    accelerator, p_in[:, slc], indices, element_offset)))
+                    accelerator, p_in[:, slc], indices, element_offset, True)))
 
             p_out, lost_element, lost_plane = [], [], []
             lost_flag = False
@@ -344,7 +345,7 @@ def line_pass(
     return p_out, lost_flag, lost_element, lost_plane
 
 
-def _line_pass(accelerator, p_in, indices, element_offset):
+def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
     # store only final position?
     args = _trackcpp.LinePassArgs()
     for idx in indices:
@@ -353,6 +354,10 @@ def _line_pass(accelerator, p_in, indices, element_offset):
 
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
+
+    # re-seed pseudo-random generator
+    if set_seed:
+        _set_random_seed()
 
     # tracking
     lost_flag = bool(_trackcpp.track_linepass_wrapper(
@@ -476,7 +481,7 @@ def ring_pass(
             for slc in slcs:
                 res.append(pool.apply_async(_ring_pass, (
                     accelerator, p_in[:, slc], nr_turns, turn_by_turn,
-                    element_offset)))
+                    element_offset, True)))
 
             p_out, lost_turn, lost_element, lost_plane = [], [], [], []
             lost_flag = False
@@ -489,6 +494,7 @@ def ring_pass(
                 lost_plane.extend(lplane)
         p_out = _np.concatenate(p_out, axis=1)
 
+    p_out = _np.squeeze(p_out)
     # simplifies output structure in case of single particle
     if len(lost_element) == 1:
         lost_turn = lost_turn[0]
@@ -498,7 +504,7 @@ def ring_pass(
     return p_out, lost_flag, lost_turn, lost_element, lost_plane
 
 
-def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset):
+def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset, set_seed=False):
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
     args.nr_turns = int(nr_turns)
@@ -511,12 +517,15 @@ def _ring_pass(accelerator, p_in, nr_turns, turn_by_turn, element_offset):
     else:
         p_out = _np.zeros((6, n_part), dtype=float)
 
+    # re-seed pseudo-random generator
+    if set_seed:
+        _set_random_seed()
+
     # tracking
     lost_flag = bool(_trackcpp.track_ringpass_wrapper(
         accelerator.trackcpp_acc, p_in, p_out, args))
 
     p_out = p_out.reshape(6, n_part, -1)
-    p_out = _np.squeeze(p_out)
 
     # fills vectors with info about particle loss
     lost_turn = list(args.lost_turn)
@@ -584,6 +593,9 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
     orbit positions are returned at the start of the first element. In
     addition a guess fixed point at the entrance of the ring may be provided.
 
+    The radiation_on property will be temporarily set to "damping" to perform
+    this calculation, regardless the initial radiation state.
+
     Keyword arguments:
     accelerator : Accelerator object
     indices : may be a (list,tuple, numpy.ndarray) of element indices
@@ -616,6 +628,7 @@ def find_orbit6(accelerator, indices=None, fixed_point_guess=None):
 
     ret = _trackcpp.track_findorbit6(
         accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
+
     if ret > 0:
         raise TrackingException(_trackcpp.string_error_messages[ret])
 
@@ -798,6 +811,11 @@ def find_m44(accelerator, indices='m44', energy_offset=0.0, fixed_point=None):
 
 
 # ------ Auxiliary methods -------
+
+
+def _set_random_seed():
+    _trackcpp.set_random_seed_with_random_device()
+
 
 def _get_slices_multiprocessing(parallel, nparticles):
     nrproc = _multiproc.cpu_count() - 3

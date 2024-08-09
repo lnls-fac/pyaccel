@@ -655,7 +655,12 @@ def get_error_rotation_roll(lattice, indices):
     # loops over elements and gets error from R_IN
     values = []
     for segs in indices:
-        angle = _math.asin(lattice[segs[0]].r_in[0, 2])
+        ele = lattice[segs[0]]
+        if ele.angle != 0 and ele.length != 0:
+            rho = ele.length / ele.angle
+            angle = _math.asin(ele.polynom_a[0] * rho)
+        else:
+            angle = _math.asin(ele.r_in[0, 2])
         values.append(len(segs) * [angle])
     return _process_output(values, isflat)
 
@@ -688,13 +693,10 @@ def set_error_rotation_roll(lattice, indices, values):
             ele = lattice[idx]
             if ele.angle != 0 and ele.length != 0:
                 rho = ele.length / ele.angle
-                orig_s = ele.polynom_a[0] * rho
-                # look at bndpolysymplectic4pass:
-                orig_c = ele.polynom_b[0] * rho + 1.0
                 # sin(teta)/rho:
-                ele.polynom_a[0] = (orig_s*cos + orig_c*sin)/rho
+                ele.polynom_a[0] = sin/rho
                 # (cos(teta)-1)/rho:
-                ele.polynom_b[0] = (orig_c*cos - orig_s*sin - 1.0)/rho
+                ele.polynom_b[0] = (cos - 1.0)/rho
             else:
                 ele.r_in = rot
                 ele.r_out = rot.T
@@ -1087,6 +1089,7 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
         raise IndexError('Length of polynoms differs from length of indices.')
 
     for segs, n, ann, bnn in zip(indices, main_monom, An_norm, Bn_norm):
+        n = int(n)
         for idx in segs:
             ele = lattice[idx]
             if abs(n) == 1 and ele.angle != 0:
@@ -1094,7 +1097,7 @@ def add_error_multipoles(lattice, indices, r0, main_monom, Bn_norm=None,
                 if ele.length > 0:
                     KP /= ele.length
             else:
-                KP = ele.polynom_b[n-1] if n > 0 else ele.polynom_a[-n-1]
+                KP = ele.polynom_b[n-1] if n >= 0 else ele.polynom_a[-n-1]
             add_polynom(ele, 'polynom_b', bnn, n, KP)
             add_polynom(ele, 'polynom_a', ann, n, KP)
 
@@ -1150,13 +1153,13 @@ def _is_equal(val1, val2):
         _ = val1[0]
         # 'val1' is an iterable
         return _is_equal_val1_iterable(val1, val2)
-    except TypeError:
+    except (TypeError, IndexError):
         # 'val1' is not iterable
         try:
             _ = val2[0]
             # 'val1' is not iterable but 'val2' is.
             return False
-        except TypeError:
+        except (TypeError, IndexError):
             # neither 'val1' nor 'val2' are iterables
             return val1 == val2
 
@@ -1166,7 +1169,7 @@ def _is_equal_val1_iterable(val1, val2):
         _ = val2[0]
         # 'val2' is an iterable
         if len(val1) != len(val2):
-            # 'val1' and 'val2' are iterbales but with different lengths
+            # 'val1' and 'val2' are iterables but with different lengths
             return False
         else:
             # 'val1' and 'val2' are iterables with the same length
