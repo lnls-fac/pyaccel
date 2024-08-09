@@ -7,7 +7,7 @@ import trackcpp as _trackcpp
 
 from . import elements as _elements
 from .utils import interactive as _interactive
-from .utils import RADIATION_STATES_NAMES as _RADIATION_STATES_NAMES
+from .utils import RADIATION_STATES as _RADIATION_STATES
 
 
 class AcceleratorException(Exception):
@@ -147,7 +147,7 @@ class Accelerator(object):
     @property
     def radiation_on_str(self):
         """Return radiation_on state in string format."""
-        return _RADIATION_STATES_NAMES[self.trackcpp_acc.radiation_on]
+        return _RADIATION_STATES[self.trackcpp_acc.radiation_on]
 
     @radiation_on.setter
     def radiation_on(self, value):
@@ -163,18 +163,18 @@ class Accelerator(object):
         Raises:
             ValueError
         """
-        nr_states = len(_RADIATION_STATES_NAMES)
+        nr_states = len(_RADIATION_STATES)
         if isinstance(value, (int, bool, float)) and \
                 0 <= value <= nr_states:
             self.trackcpp_acc.radiation_on = int(value)
-        elif isinstance(value, str) and value in _RADIATION_STATES_NAMES:
+        elif isinstance(value, str) and value in _RADIATION_STATES:
             self.trackcpp_acc.radiation_on = \
-                _RADIATION_STATES_NAMES.index(value)
+                _RADIATION_STATES.index(value)
         else:
             errtxt = (
                 'Value not valid, radiation_on must be '
                 f'0 < int < {nr_states} or one of'
-                f'the strings: {_RADIATION_STATES_NAMES}'
+                f'the strings: {_RADIATION_STATES}'
                 )
             raise ValueError(errtxt)
 
@@ -290,7 +290,10 @@ class Accelerator(object):
             ele = _elements.Element()
             ele.trackcpp_e = self.trackcpp_acc.lattice[int(index)]
             return ele
-        elif isinstance(index, (list, tuple, _np.ndarray)):
+        if isinstance(index, slice):
+            index = list(range(*index.indices(len(self))))
+
+        if isinstance(index, (list, tuple, _np.ndarray)):
             try:
                 index = _np.array(index, dtype=int)
             except TypeError:
@@ -298,9 +301,6 @@ class Accelerator(object):
             lattice = _trackcpp.CppElementVector()
             for i in index:
                 lattice.append(self.trackcpp_acc.lattice[int(i)])
-        elif isinstance(index, slice):
-            index = slice(*index.indices(len(self)))
-            lattice = self.trackcpp_acc.lattice[index]
         else:
             raise TypeError('invalid index')
         acc = Accelerator(
