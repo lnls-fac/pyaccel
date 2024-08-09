@@ -1,22 +1,25 @@
 """Accelerator class."""
 
-import numpy as _np
-
 import mathphys as _mp
+import numpy as _np
 import trackcpp as _trackcpp
+from mathphys.functions import get_namedtuple as _get_namedtuple
 
 from . import elements as _elements
 from .utils import interactive as _interactive
-from .utils import RADIATION_STATES_NAMES as _RADIATION_STATES_NAMES
 
 
-class AcceleratorException(Exception):
+class AcceleratorError(Exception):
     """."""
 
 
 @_interactive
 class Accelerator(object):
     """."""
+
+    _states_str = tuple(state.title() for state in _trackcpp.rad_dict)
+    RadiationStates = _get_namedtuple('RadiationStates', _states_str)
+    del _states_str
 
     __isfrozen = False  # this is used to prevent creation of new attributes
 
@@ -123,7 +126,7 @@ class Accelerator(object):
     def harmonic_number(self, value):
         """Set accelerator harmonic number."""
         if not isinstance(value, int) or value < 1:
-            raise AcceleratorException(
+            raise AcceleratorError(
                 'harmonic number has to be a positive integer')
         self.trackcpp_acc.harmonic_number = value
 
@@ -136,7 +139,7 @@ class Accelerator(object):
     def cavity_on(self, value):
         """Set cavity on state."""
         if self.trackcpp_acc.harmonic_number < 1:
-            raise AcceleratorException('invalid harmonic number')
+            raise AcceleratorError('invalid harmonic number')
         self.trackcpp_acc.cavity_on = value
 
     @property
@@ -147,36 +150,33 @@ class Accelerator(object):
     @property
     def radiation_on_str(self):
         """Return radiation_on state in string format."""
-        return _RADIATION_STATES_NAMES[self.trackcpp_acc.radiation_on]
+        return self.RadiationStates._fields[self.trackcpp_acc.radiation_on]
 
     @radiation_on.setter
     def radiation_on(self, value):
         """Set radiation on state.
 
         Args:
-            value (int, bool or string): Radiation state to be set,
-            the options are:
-            - 0, False, "off"    = No radiative effects.
-            - 1, True, "damping" = Turns on radiation damping, without
-                quantum excitation.
-            - 2, "full" = Turns on radiation damping with quantum excitation
+            value (int, bool or string): Radiation state to be set, the
+                options are:
+                    - 0, False, "Off"    = No radiative effects.
+                    - 1, True, "Damping" = Turns on radiation damping, without
+                        quantum excitation.
+                    - 2, "Full" = Turns on radiation damping with quantum
+                        excitation
+
         Raises:
-            ValueError
+            ValueError: for wrong values in `value` input.
         """
-        nr_states = len(_RADIATION_STATES_NAMES)
-        if isinstance(value, (int, bool, float)) and \
-                0 <= value <= nr_states:
+        radstts = self.RadiationStates
+        if isinstance(value, (int, bool, float)) and int(value) in radstts:
             self.trackcpp_acc.radiation_on = int(value)
-        elif isinstance(value, str) and value in _RADIATION_STATES_NAMES:
-            self.trackcpp_acc.radiation_on = \
-                _RADIATION_STATES_NAMES.index(value)
+        elif isinstance(value, str) and value.title() in radstts._fields:
+            self.trackcpp_acc.radiation_on = radstts._fields.index(
+                value.title()
+            )
         else:
-            errtxt = (
-                'Value not valid, radiation_on must be '
-                f'0 < int < {nr_states} or one of'
-                f'the strings: {_RADIATION_STATES_NAMES}'
-                )
-            raise ValueError(errtxt)
+            raise ValueError('Value not valid.')
 
     @property
     def vchamber_on(self):
@@ -267,7 +267,7 @@ class Accelerator(object):
     def __setattr__(self, key, value):
         """."""
         if self.__isfrozen and not hasattr(self, key):
-            raise AcceleratorException("%r is a frozen class" % self)
+            raise AcceleratorError("%r is a frozen class" % self)
         object.__setattr__(self, key, value)
 
     def __delitem__(self, index):
@@ -296,8 +296,8 @@ class Accelerator(object):
         if isinstance(index, (list, tuple, _np.ndarray)):
             try:
                 index = _np.array(index, dtype=int)
-            except TypeError:
-                raise TypeError('invalid index')
+            except TypeError as err:
+                raise TypeError('invalid index') from err
             lattice = _trackcpp.CppElementVector()
             for i in index:
                 lattice.append(self.trackcpp_acc.lattice[int(i)])
