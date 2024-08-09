@@ -34,6 +34,7 @@ class EqParamsFromRadIntegrals:
         self._alpha = 0.0
         self._integralsx = _np.zeros(6)
         self._integralsy = _np.zeros(6)
+        self._rho3_integral = None
         self.accelerator = accelerator
 
     def __str__(self):
@@ -326,6 +327,20 @@ class EqParamsFromRadIntegrals:
         emity = self.emity
         espread0 = self.espread0
         return _np.sqrt(emity*self._twi.gammay + (espread0*self._twi.etapy)**2)
+
+    @property
+    def spin_polarization_time(self):
+        """."""
+        num = 5*_np.sqrt(3)/8
+        Cs = _mp.constants.light_speed
+        compton = _mp.constants.reduced_planck_constant
+        compton /= _mp.constants.electron_mass
+        compton /= _mp.constants.light_speed
+        Cs *= compton
+        Cs *= _mp.constants.electron_radius
+        Cs *= self._acc.gamma_factor**5
+        l0_ = self._acc.length
+        return 1/(num * Cs * self._integralsx[2]/l0_)
 
     def as_dict(self):
         """."""
