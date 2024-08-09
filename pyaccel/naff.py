@@ -14,7 +14,7 @@ import trackcpp as _trackcpp
 from .utils import interactive as _interactive
 
 
-class NaffException(Exception):
+class NaffError(Exception):
     """."""
 
 
@@ -44,7 +44,7 @@ def naff_general(signal, is_real=True, nr_ff=2, window=1):
         signal = signal[None, :]
 
     if signal.ndim > 2:
-        NaffException('Wrong number of dimensions for input array.')
+        NaffError('Wrong number of dimensions for input array.')
 
     if (signal.shape[1]-1) % 6:
         q, r = divmod(signal.shape[1], 6)
