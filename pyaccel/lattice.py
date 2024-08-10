@@ -419,11 +419,21 @@ def write_flat_file_to_string(accelerator):
 
 @_interactive
 def refine_lattice(
-        accelerator, max_length=None, indices=None, fam_names=None,
-        pass_methods=None):
+    accelerator,
+    max_length=None,
+    num_segs=None,
+    fractions=None,
+    indices=None,
+    fam_names=None,
+    pass_methods=None,
+):
     """."""
-    if max_length is None:
+    if max_length is None and num_segs is None and fractions is None:
         max_length = 0.05
+        num_segs = 1
+    else:
+        max_length = max_length or accelerator.length + 1
+        num_segs = num_segs or 1
 
     acc = accelerator
 
@@ -446,18 +456,25 @@ def refine_lattice(
         harmonic_number=acc.harmonic_number,
         cavity_on=acc.cavity_on,
         radiation_on=acc.radiation_on,
-        vchamber_on=acc.vchamber_on)
+        vchamber_on=acc.vchamber_on
+    )
 
     indices = set(indices)
     for i, ele in enumerate(acc):
-        if i not in indices or ele.length <= max_length:
+        if fractions is None:
+            div, mod = divmod(ele.length, max_length)
+            nsegs = int(div) + (1 if mod else 0)
+            nsegs = max(nsegs, num_segs)
+            fracs = _np.ones(nsegs, dtype=float)
+        else:
+            fracs = fractions
+        
+        if fracs.size <= 1 or i not in indices:
             elem = _Element(ele)
             new_acc.append(elem)
             continue
 
-        nr_segs = int(ele.length // max_length)
-        nr_segs += 1 if ele.length % max_length else 0
-        for el in split_element(ele, nr_segs=nr_segs):
+        for el in split_element(ele, fractions=fracs):
             new_acc.append(el)
     return new_acc
 
