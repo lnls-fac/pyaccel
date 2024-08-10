@@ -11,3 +11,4 @@ from .eq_params import EqParamsXYModes, EqParamsNormalModes
 from .rad_integrals import EqParamsFromRadIntegrals
 from .beam_envelope import EqParamsFromBeamEnvelope, calc_beamenvelope
 from .twiss import Twiss, TwissArray, calc_twiss
+from .driving_terms import FirstOrderDrivingTerms
