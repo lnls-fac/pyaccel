@@ -159,7 +159,7 @@ def split_element(element, fractions=None, nr_segs=None):
         fractions = _np.ones(nr_segs)/nr_segs
 
     try:
-        fractions = _np.asarray(fractions, dtype=float)
+        fractions = _np.array(fractions, dtype=float)
         if fractions.size <= 1:
             raise ValueError('')
     except ValueError:
