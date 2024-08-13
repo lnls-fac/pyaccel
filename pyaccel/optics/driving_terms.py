@@ -9,12 +9,8 @@ from .. import lattice as _lattice
 class FirstOrderDrivingTerms:
     """Calculate first order resonance driving terms."""
 
-    AchromaticTerms = (
-        "h10020", "h10110", "h10200", "h21000", "h30000", 
-    )
-    ChromaticTerms = (
-        "h11001", "h00111", "h20001", "h00201", "h10002",
-    )
+    GeometricTerms = "h10020", "h10110", "h10200", "h21000", "h30000"
+    ChromaticTerms = "h11001", "h00111", "h20001", "h00201", "h10002"
 
     def __init__(self, accelerator, num_segments=2, energy_offset=0.0):
         """."""
@@ -110,7 +106,7 @@ class FirstOrderDrivingTerms:
     def _update_driving_terms(self):
         quads = _np.array(_lattice.get_attribute(self._accelerator, 'KL'))
         sexts = _np.array(_lattice.get_attribute(self._accelerator, 'SL'))
-        idcs = ~_np.isclose(quads, 0) & ~_np.isclose(sexts, 0)
+        idcs = ~_np.isclose(quads, 0) | ~_np.isclose(sexts, 0)
         idcs = idcs.nonzero()[0]
         quads = quads[idcs] / self._num_segments
         sexts = sexts[idcs] / self._num_segments
@@ -122,17 +118,17 @@ class FirstOrderDrivingTerms:
         #   :  first segment  : second segment  :  third segment  :
         #    ********|********:********|********:********|********
         #   ^        ^                 ^                 ^        ^
-        # start twiss needed      twiss needed     twiss needed  end 
+        # start twiss needed      twiss needed     twiss needed  end
         fractions = _np.r_[1, _np.ones(self._num_segments-1)*2, 1]
         fractions /= fractions.sum()
         acc = _lattice.refine_lattice(
             self._accelerator, indices=idcs, fractions=fractions
         )
-        
+
         # get the indices
         _quads = _np.array(_lattice.get_attribute(acc, 'KL'))
         _sexts = _np.array(_lattice.get_attribute(acc, 'SL'))
-        _idcs = ~_np.isclose(_quads, 0) & ~_np.isclose(_sexts, 0)
+        _idcs = ~_np.isclose(_quads, 0) | ~_np.isclose(_sexts, 0)
         _idcs = _idcs.nonzero()[0]
         _idcs = _idcs.reshape(idcs.size, -1)[:, 1:].ravel()
 
@@ -158,7 +154,7 @@ class FirstOrderDrivingTerms:
             h00201=h00111 * hy2 / 2,
             h10002=1/2 * (quads - setx) * etx * _np.sqrt(btx) * hx,
         )
-        
+
         sbx = -1/8 * sexts * _np.sqrt(btx) * hx
         sbxbx = sbx * btx
         sbxby = -1 * sbx * bty
@@ -174,5 +170,5 @@ class FirstOrderDrivingTerms:
             drt = _np.zeros(len(self._accelerator)+1, dtype=complex)
             drt[idcs] = val.reshape(idcs.size, -1).sum(axis=1)
             dr_terms[k] = _np.cumsum(drt)
-        
+
         self._driving_terms = dr_terms
