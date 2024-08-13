@@ -1,9 +1,11 @@
 """Calculate Resonance Driving Terms."""
 
+import matplotlib.pyplot as _mplt
 import numpy as _np
 
-from .twiss import calc_twiss as _calc_twiss
 from .. import lattice as _lattice
+from ..graphics import draw_lattice as _draw_lattice
+from .twiss import calc_twiss as _calc_twiss
 
 
 class FirstOrderDrivingTerms:
@@ -102,6 +104,87 @@ class FirstOrderDrivingTerms:
     def h10020(self):
         """."""
         return self._driving_terms["h10020"]
+
+    def plot_rdt_along_ring(self, geometric=True, symmetry=1):
+        """Plot RDTs along ring.
+
+        Args:
+            geometric (bool, optional): Whether to plot geometric or chromatic
+                RDTs. Defaults to True.
+            symmetry (int, optional): Symmetry of the ring. used to define
+                range of the plot. Defaults to 1.
+
+        Returns:
+            fig: figure object.
+            axs: axes of the figure.
+        """
+        fig, (ay, ax) = _mplt.subplots(
+            2,
+            1,
+            height_ratios=[1, 10],
+            figsize=(8, 4),
+            sharex=True,
+            gridspec_kw=dict(
+                hspace=0.01, right=0.99, left=0.1, top=0.95,
+            )
+        )
+        mod = self._accelerator
+        pos = _lattice.find_spos(mod, indices='closed')
+
+        terms = self.GeometricTerms if geometric else self.ChromaticTerms
+        for term in terms:
+            ax.plot(pos, _np.abs(getattr(self, term)), label=term)
+
+        _draw_lattice(mod, gca=ay)
+
+        title = 'Geometric' if geometric else 'Chromatic'
+        unit = '[m$^{-1/2}$]' if geometric else '[1 or m$^{1/2}$]'
+        ay.set_title(title + ' Driving Terms')
+        ax.set_ylabel(r'Abs $\left(h_{abcd0}\right)$ ' + unit)
+        ax.set_xlabel('Position [m]')
+        ax.grid(True, alpha=0.4, ls='--', lw=1)
+        ay.set_ylim(-1, 1)
+        ay.set_xlim(0, mod.length/symmetry)
+        ay.set_axis_off()
+        ax.legend(loc='best', ncol=3)
+
+        return fig, (ay, ax)
+
+    def plot_one_turn_rdts(self, geometric=True):
+        """Plot RDTs after one turn.
+
+        Args:
+            geometric (bool, optional): Whether to plot geometric or chromatic
+                RDTs. Defaults to True.
+
+        Returns:
+            fig: figure object.
+            ax: axis of the figure.
+        """
+        fig, ax = _mplt.subplots(1, 1, figsize=(4, 3))
+
+        colors = _mplt.rcParams["axes.prop_cycle"].by_key()["color"]
+        terms = self.GeometricTerms if geometric else self.ChromaticTerms
+        for cor, drt_l in zip(colors, terms):
+            drt = getattr(self, drt_l)[-1]
+            ax.plot(drt.real, drt.imag, 'o', color=cor, label=drt_l)
+            ax.annotate(
+                "",
+                xy=(drt.real, drt.imag),
+                xytext=(0, 0),
+                arrowprops=dict(
+                    arrowstyle="-|>", color=cor, mutation_scale=10
+                )
+            )
+        title = 'Geometric' if geometric else 'Chromatic'
+        unit = '[m$^{-1/2}$]' if geometric else '[1 or m$^{1/2}$]'
+        ax.set_title(title + ' One Turn RDTs')
+        ax.grid(True, alpha=0.3, ls='--', lw=1)
+        ax.legend(loc='best', fontsize='small')
+        ax.set_ylabel('Imaginary ' + unit)
+        ax.set_xlabel('Real ' + unit)
+        fig.tight_layout()
+        return fig, ax
 
     def _update_driving_terms(self):
         quads = _np.array(_lattice.get_attribute(self._accelerator, 'KL'))
