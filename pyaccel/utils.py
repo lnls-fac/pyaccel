@@ -4,14 +4,9 @@ import warnings
 
 import trackcpp as _trackcpp
 
-from mathphys.functions import get_namedtuple as _get_namedtuple
-
-
 INTERACTIVE_LIST = []
 
 DISTRIBUTIONS_NAMES = tuple(_trackcpp.distributions_dict)
-
-RADIATION_STATES = tuple(_trackcpp.rad_dict)
 
 
 def interactive(obj):
@@ -56,13 +51,12 @@ def get_random_number():
 
 @interactive
 def set_distribution(distribution):
-    """Sets the distribution of the random numbers used to simulate quantum
-    excitation effects.
+    """Set distribution of random numbers used to simulate quantum excitation.
 
     Args:
-        distribution (str or int):
-        - 0 or 'normal': Normal distribution,
-        - 1 or 'uniform': Uniform distribution.
+        distribution (str|int): distribution to be used.
+            - 0 or 'normal': Normal distribution,
+            - 1 or 'uniform': Uniform distribution.
 
     Raises:
         ValueError

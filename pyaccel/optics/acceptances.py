@@ -2,13 +2,11 @@
 
 import numpy as _np
 
-from .. import tracking as _tracking
-from .. import lattice as _lattice
+from .. import lattice as _lattice, tracking as _tracking
 from ..utils import interactive as _interactive
-
+from .miscellaneous import get_curlyh as _get_curlyh, \
+    OpticsError as _OpticsError
 from .twiss import calc_twiss as _calc_twiss
-from .miscellaneous import OpticsException as _OpticsException, \
-    get_curlyh as _get_curlyh
 
 
 @_interactive
@@ -24,7 +22,7 @@ def calc_transverse_acceptance(
     n_twi = len(twiss)
     n_acc = len(accelerator)
     if n_twi not in {n_acc, n_acc+1}:
-        raise _OpticsException(
+        raise _OpticsError(
             'Mismatch between size of accelerator and size of twiss object')
 
     betax = twiss.betax
@@ -189,7 +187,7 @@ def _calc_phys_apert_for_touschek(
             twi, *_ = _calc_twiss(
                 accelerator, energy_offset=delta, indices='closed')
             if _np.any(_np.isnan(twi[0].betax)):
-                raise _OpticsException('error')
+                raise _OpticsError('error')
             tune[0, idx] = twi[-1].mux / (2*_np.pi)
             tune[1, idx] = twi[-1].muy / (2*_np.pi)
             beta[idx] = twi[0].betax
@@ -202,7 +200,7 @@ def _calc_phys_apert_for_touschek(
 
             apper_loc = _np.minimum((hmax - rx)**2, (hmin + rx)**2)
             ap_phys[idx] = _np.min(apper_loc / betax)
-    except (_OpticsException, _tracking.TrackingException):
+    except (_OpticsError, _tracking.TrackingError):
         pass
     return curh, ap_phys, tune, beta
 
@@ -218,7 +216,7 @@ def _calc_dyn_apert_for_touschek(
         for idx, en in enumerate(energies):
             rin[:4, idx, :] = _tracking.find_orbit4(
                 accelerator, energy_offset=en).ravel()[:, None]
-    except _tracking.TrackingException:
+    except _tracking.TrackingError:
         pass
     rin = rin.reshape(6, -1)
 

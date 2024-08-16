@@ -1,14 +1,12 @@
 """Twiss Module."""
 
-import numpy as _np
-
 import mathphys as _mp
+import numpy as _np
 import trackcpp as _trackcpp
 
 from .. import tracking as _tracking
 from ..utils import interactive as _interactive
-
-from .miscellaneous import OpticsException as _OpticsException
+from .miscellaneous import OpticsError as _OpticsError
 
 
 class Twiss(_np.record):
@@ -383,10 +381,10 @@ class TwissArray(_np.ndarray):
         if isinstance(twiss_list, (list, tuple)):
             for val in twiss_list:
                 if not isinstance(val, (Twiss, TwissArray)):
-                    raise _OpticsException(
+                    raise _OpticsError(
                         'can only compose lists of Twiss objects.')
         else:
-            raise _OpticsException('can only compose lists of Twiss objects.')
+            raise _OpticsError('can only compose lists of Twiss objects.')
 
         arrs = list()
         for val in twiss_list:
@@ -413,8 +411,8 @@ def calc_twiss(
             (used only for periodic solutions). Defaults to None.
 
     Raises:
-        pyaccel.tracking.TrackingException: When find_orbit fails to converge.
-        pyaccel.optics.OpticsException: When trackcpp.calc_twiss fails, or
+        pyaccel.tracking.TrackingError: When find_orbit fails to converge.
+        pyaccel.optics.OpticsError: When trackcpp.calc_twiss fails, or
             when accelerator is not configured properly.
 
     Returns:
@@ -433,12 +431,12 @@ def calc_twiss(
         if fixed_point is None:
             _fixed_point = _init_twiss.co
         else:
-            raise _OpticsException(
+            raise _OpticsError(
                 'arguments init_twiss and fixed_point are mutually exclusive')
     else:
         # as a periodic system: try to find periodic solution
         if accelerator.harmonic_number == 0:
-            raise _OpticsException(
+            raise _OpticsError(
                 'Either harmonic number was not set or calc_twiss was'
                 'invoked for transport line without initial twiss')
 
@@ -453,7 +451,7 @@ def calc_twiss(
                     accelerator.trackcpp_acc, _closed_orbit,
                     _fixed_point_guess)
             elif not accelerator.cavity_on and accelerator.radiation_on:
-                raise _OpticsException(
+                raise _OpticsError(
                     'The radiation is on but the cavity is off')
             else:
                 r = _trackcpp.track_findorbit6(
@@ -461,7 +459,7 @@ def calc_twiss(
                     _fixed_point_guess)
 
             if r > 0:
-                raise _tracking.TrackingException(
+                raise _tracking.TrackingError(
                     _trackcpp.string_error_messages[r])
             _fixed_point = _closed_orbit[0]
 
@@ -475,9 +473,9 @@ def calc_twiss(
     r = _trackcpp.calc_twiss_wrapper(
         accelerator.trackcpp_acc, _fixed_point, _m66, twiss, _init_twiss)
     if r > 0:
-        raise _OpticsException(_trackcpp.string_error_messages[r])
+        raise _OpticsError(_trackcpp.string_error_messages[r])
 
     twiss = TwissArray(twiss, copy=False)
-    m66 = _tracking._CppMatrix2Numpy(_m66)
+    m66 = _np.array(_m66)
 
     return twiss[indices], m66
