@@ -255,3 +255,99 @@ class FirstOrderDrivingTerms:
             dr_terms[k] = _np.cumsum(drt)
 
         self._driving_terms = dr_terms
+
+    @staticmethod
+    def calc_rdt_types_for_potential(
+        potential='sext_norm',
+        include_complex_conjugates=True,
+        consider_closed_orbit=True,
+        consider_vertical_dispersion=True
+    ):
+        """Calculate RDTs for a given potential.
+
+        Args:
+            potential (str, optional): type of potential to consider. Defaults
+                to 'sext_norm'. Possible options are: 'sext_norm', 'quad_norm'
+                and 'quad_skew'.
+            include_complex_conjugates (bool, optional): Whether or not to
+                return the RDTS that are complex conjugates of others.
+                Defaults to True.
+            consider_closed_orbit (bool, optional): Whether or not to consider
+                closed orbit errors on RDTs calculations. Closed orbit errors
+                may lead to ressonances via multipole feeddown.
+                Defaults to True.
+            consider_vertical_dispersion (bool, optional): Whether to consider
+                the vertical dispersion on calculation of RDTs.
+                Defaults to True.
+
+        Returns:
+            rdts: list of tuples indicating the powers of h+, h-, delta and so
+                on.
+            rdt_coefs: list of floats with the multiplicative factor of a
+                given RDT.
+        """
+        import sympy as smp
+
+        # Define the variables
+        sl, xc, yc = smp.symbols('SL x_c y_c', real=True)
+        x, y, delta = smp.symbols('x y delta', real=True)
+        etax, etay, betax, betay = smp.symbols(
+            'eta_x eta_y beta_x beta_y', real=True
+        )
+        mux, muy = smp.symbols('mu_x mu_y', real=True)
+        hxp, hxn, hyp, hyn = smp.symbols('h_x^+ h_x^- h_y^+ h_y^-', real=False)
+
+        # Define the potential and apply affine map to coordinates:
+        pots = {
+            'quad_skew': -sl / 2 * (x * x - y * y) * (1 - delta),
+            'quad_norm': -sl * x * y * (1 - delta),
+            'sext_norm': -sl / 3 * x * (x * x - 3 * y * y),
+        }
+        pot = pots[potential]
+
+        _xc = consider_closed_orbit * xc
+        _yc = consider_closed_orbit * yc
+        _ety = consider_vertical_dispersion * etay
+        pot = pot.subs(x, smp.sqrt(betax) * x + _xc + etax * delta)
+        pot = pot.subs(y, smp.sqrt(betay) * y + _yc + _ety * delta)
+        pot = pot.subs(x, (hxp + hxn)/2)
+        pot = pot.subs(y, (hyp + hyn)/2)
+        pot = pot.subs(hxp, hxp * smp.exp(1j*mux))
+        pot = pot.subs(hxn, hxn * smp.exp(-1j*mux))
+        pot = pot.subs(hyp, hyp * smp.exp(1j*muy))
+        pot = pot.subs(hyn, hyn * smp.exp(-1j*muy))
+
+        # Gather the driving terms:
+        var_lst = [hxp, hxn, hyp, hyn, delta, etax, etay, ]
+        rdts = []
+        rdt_coefs = []
+        for trm in pot.expand().as_ordered_terms():
+            rdt = []
+            rdt_coef, coef_lst = trm.as_coeff_mul()
+            rdt_coefs.append(rdt_coef)
+            for v in var_lst:
+                for coef in coef_lst:
+                    coef, powe = coef.as_base_exp()
+                    if coef == v:
+                        rdt.append(powe)
+                        break
+                else:
+                    rdt.append(0)
+            rdts.append(rdt)
+
+        # Select only complex conjugates:
+        if include_complex_conjugates:
+            return rdts, rdt_coefs
+
+        # Find which driving terms are complex conjugates of others
+        is_cc = [False, ] * len(rdts)
+        for i1, rdt in enumerate(rdts):
+            for i2, rdt2 in enumerate(rdts[i1+1:], i1+1):
+                xp, xm, yp, ym, dt, ex, ey = rdt2
+                rdt2 = [xm, xp, ym, yp, dt, ex, ey]
+                if (xm != xp or ym != yp) and rdt2 == rdt:
+                    is_cc[i2] = True
+
+        rdts = [rdt for idx, rdt in zip(is_cc, rdts) if not idx]
+        rdt_coefs = [rdt for idx, rdt in zip(is_cc, rdts) if not idx]
+        return rdts, rdt_coefs
