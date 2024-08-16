@@ -9,7 +9,11 @@ from .twiss import calc_twiss as _calc_twiss
 
 
 class FirstOrderDrivingTerms:
-    """Calculate first order resonance driving terms."""
+    """Calculate first order resonance driving terms.
+
+    The implementation is based on Bengtsson report:
+        https://ados.web.psi.ch/slsnotes/sls0997.pdf
+    """
 
     GeometricTerms = "h10020", "h10110", "h10200", "h21000", "h30000"
     ChromaticTerms = "h11001", "h00111", "h20001", "h00201", "h10002"
