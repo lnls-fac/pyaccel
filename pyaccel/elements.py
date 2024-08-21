@@ -328,8 +328,9 @@ class Kicktable:
 class Element:
     """."""
 
-    _t_valid_types = (list, _numpy.ndarray)
-    _r_valid_types = (_numpy.ndarray, )
+    PassMethods = tuple(_trackcpp.pm_dict)
+    _t_valid_types = (list, _np.ndarray)
+    _r_valid_types = (_np.ndarray, )
 
     def __init__(self, element=None, fam_name='', length=0.0):
         """."""
@@ -357,18 +358,18 @@ class Element:
     @property
     def pass_method(self):
         """."""
-        return PASS_METHODS[self.trackcpp_e.pass_method]
+        return self.PassMethods[self.trackcpp_e.pass_method]
 
     @pass_method.setter
     def pass_method(self, value):
         """."""
         if isinstance(value, str):
-            if value not in PASS_METHODS:
+            if value not in self.PassMethods:
                 raise ValueError("pass method '" + value + "' not found")
             else:
-                self.trackcpp_e.pass_method = PASS_METHODS.index(value)
+                self.trackcpp_e.pass_method = self.PassMethods.index(value)
         elif isinstance(value, int):
-            if not 0 <= value < len(PASS_METHODS):
+            if not 0 <= value < len(self.PassMethods):
                 raise IndexError("pass method index out of range")
             self.trackcpp_e.pass_method = value
         else:
@@ -528,7 +529,9 @@ class Element:
     def kicktable(self):
         """."""
         if self.trackcpp_e.kicktable_idx != -1:
-            kicktable = _trackcpp.cvar.kicktable_list[self.trackcpp_e.kicktable_idx]
+            kicktable = _trackcpp.cvar.kicktable_list[
+                self.trackcpp_e.kicktable_idx
+            ]
             return Kicktable(kicktable=kicktable)
         else:
             return None
@@ -556,13 +559,17 @@ class Element:
     @property
     def vchamber(self):
         """Shape of vacuum chamber.
-        See trackcpp.VChamberShape for values."""
+
+        See trackcpp.VChamberShape for values.
+        """
         return self.trackcpp_e.vchamber
 
     @vchamber.setter
     def vchamber(self, value):
         """Set shape of vacuum chamber.
-        See trackcpp.VChamberShape for values."""
+
+        See trackcpp.VChamberShape for values.
+        """
         if value >= 0:
             self.trackcpp_e.vchamber = value
         else:
@@ -778,7 +785,7 @@ class Element:
     @property
     def matrix66(self):
         """."""
-        return _numpy.array(self.trackcpp_e.matrix66)
+        return _np.array(self.trackcpp_e.matrix66)
 
     @matrix66.setter
     def matrix66(self, value):
@@ -845,7 +852,7 @@ class Element:
             return NotImplemented
         for attr in self.trackcpp_e.__swig_getmethods__:
             self_attr = getattr(self, attr)
-            if isinstance(self_attr, _numpy.ndarray):
+            if isinstance(self_attr, _np.ndarray):
                 if (self_attr != getattr(other, attr)).any():
                     return False
             else:
@@ -921,18 +928,17 @@ class Element:
             rst += fmtstr.format('vmin', self.vmin, 'm')
         if self.vmax != _DBL_MAX:
             rst += fmtstr.format('vmax', self.vmax, 'm')
-        if self.trackcpp_e.kicktable_idx != -1:
-            kicktable = _trackcpp.cvar.kicktable_list[self.trackcpp_e.kicktable_idx]
-            rst += fmtstr.format('kicktable', kicktable.filename, '')
-        if not (self.t_in == _numpy.zeros(_NUM_COORDS)).all():
+        if self.kicktable:
+            rst += fmtstr.format('kicktable', self.kicktable.filename, '')
+        if not (self.t_in == _np.zeros(_NUM_COORDS)).all():
             rst += fmtstr.format('t_in', self.t_in, 'm')
-        if not (self.t_out == _numpy.zeros(_NUM_COORDS)).all():
+        if not (self.t_out == _np.zeros(_NUM_COORDS)).all():
             rst += fmtstr.format('t_out', self.t_out, 'm')
-        if not (self.r_in == _numpy.eye(_NUM_COORDS)).all():
+        if not (self.r_in == _np.eye(_NUM_COORDS)).all():
             rst += fmtstr.format('r_in', '6x6 matrix', '')
-        if not (self.r_out == _numpy.eye(_NUM_COORDS)).all():
+        if not (self.r_out == _np.eye(_NUM_COORDS)).all():
             rst += fmtstr.format('r_out', '6x6 matrix', '')
-        if not (self.matrix66 == _numpy.eye(_NUM_COORDS)).all():
+        if not (self.matrix66 == _np.eye(_NUM_COORDS)).all():
             rst += fmtstr.format('matrix66', '6x6 matrix', '')
 
         return rst
@@ -984,14 +990,15 @@ def _get_cpp_vector(cppvector):
     return _np.ctypeslib.as_array(c_array)
 
 
-class _CustomArray(_numpy.ndarray):
+class _CustomArray(_np.ndarray):
     """."""
     _COORD_ARRAY = None
+
     def __new__(cls, c_element, field, shape):
         """."""
         address = int(getattr(c_element, field))
         c_array = cls._COORD_ARRAY.from_address(address)
-        obj = _numpy.ctypeslib.as_array(c_array).view(cls).reshape(shape)
+        obj = _np.ctypeslib.as_array(c_array).view(cls).reshape(shape)
         obj._e = c_element
         obj.field = field
         return obj
@@ -1003,8 +1010,8 @@ class _CustomArray(_numpy.ndarray):
 
     def is_identity(self):
         """."""
-        func = _numpy.eye if self.field[0] == 'r' else _numpy.zeros
-        return _numpy.array_equal(self, func(_NUM_COORDS, dtype=float))
+        func = _np.eye if self.field[0] == 'r' else _np.zeros
+        return _np.array_equal(self, func(_NUM_COORDS, dtype=float))
 
     def reflag(self):
         """."""
@@ -1012,14 +1019,20 @@ class _CustomArray(_numpy.ndarray):
 
 
 class TransVector(_CustomArray):
+    """."""
     _COORD_ARRAY = _ctypes.c_double*_NUM_COORDS
+
     def __new__(cls, c_element, direction):
+        """."""
         return super().__new__(cls, c_element, "t_"+direction, _NUM_COORDS)
 
 
 class RotMatrix(_CustomArray):
+    """."""
     _COORD_ARRAY = _ctypes.c_double*_DIMS[0]*_DIMS[1]
+
     def __new__(cls, c_element, direction):
+        """."""
         return super().__new__(cls, c_element, "r_"+direction, _DIMS)
 
 

@@ -5,14 +5,14 @@ import unittest
 import numpy
 
 import trackcpp
-import pyaccel
+from pyaccel import elements
 
 
 class TestElement(unittest.TestCase):
     """."""
 
     def setUp(self):
-        self.element = pyaccel.elements.Element()
+        self.element = elements.Element()
 
     def test_attributes(self):
         attributes = [
@@ -108,20 +108,20 @@ class TestElement(unittest.TestCase):
         self.assertAlmostEqual(self.element.r_out[1, 5], -3.0)
 
     def test_set_pass_method_from_index(self):
-        for i in range(len(pyaccel.elements.PASS_METHODS)):
-            pass_method = pyaccel.elements.PASS_METHODS[i]
+        for i in range(len(elements.Element.PassMethods)):
+            pass_method = elements.Element.PassMethods[i]
             self.element.pass_method = i
             self.assertEqual(self.element.pass_method, pass_method)
 
     def test_set_pass_method_from_string(self):
-        for pass_method in pyaccel.elements.PASS_METHODS:
+        for pass_method in elements.Element.PassMethods:
             self.element.pass_method = pass_method
             self.assertEqual(self.element.pass_method, pass_method)
 
     def test_set_invalid_pass_method_from_index(self):
         error = False
         try:
-            self.element.pass_method = len(pyaccel.elements.PASS_METHODS)
+            self.element.pass_method = len(elements.Element.PassMethods)
         except:
             error = True
         self.assertTrue(error, "invalid pass method set")
@@ -138,12 +138,12 @@ class TestElement(unittest.TestCase):
 class TestTrackCppElement(unittest.TestCase):
 
     def setUp(self):
-        self.element = pyaccel.elements.Element()
+        self.element = elements.Element()
         self.trackcpp_element = self.element.trackcpp_e
 
     def test_pass_method(self):
         index = 2
-        self.element.pass_method = pyaccel.elements.PASS_METHODS[index]
+        self.element.pass_method = elements.Element.PassMethods[index]
         self.assertEqual(self.trackcpp_element.pass_method, index)
 
     def test_fam_name(self):
@@ -173,18 +173,18 @@ class TestCreationFunctions(unittest.TestCase):
 
     def test_marker(self):
         name = 'Marker'
-        m = pyaccel.elements.marker(name)
+        m = elements.marker(name)
         self.assertEqual(m.fam_name, name)
 
     def test_bpm(self):
         name = 'BPM'
-        b = pyaccel.elements.bpm(name)
+        b = elements.bpm(name)
         self.assertEqual(b.fam_name, name)
 
     def test_drift(self):
         name = 'Drift'
         length = 1.2345
-        d = pyaccel.elements.drift(name, length)
+        d = elements.drift(name, length)
         self.assertEqual(d.fam_name, name)
         self.assertAlmostEqual(d.length, length)
 
@@ -192,7 +192,7 @@ class TestCreationFunctions(unittest.TestCase):
         name = 'CH'
         length = 1.2345
         kick = 0.4321
-        c = pyaccel.elements.hcorrector(name, length, kick)
+        c = elements.hcorrector(name, length, kick)
         self.assertEqual(c.fam_name, name)
         self.assertAlmostEqual(c.length, length)
         self.assertAlmostEqual(c.hkick, kick)
@@ -201,7 +201,7 @@ class TestCreationFunctions(unittest.TestCase):
         name = 'CV'
         length = 1.2345
         kick = 0.4321
-        c = pyaccel.elements.vcorrector(name, length, kick)
+        c = elements.vcorrector(name, length, kick)
         self.assertEqual(c.fam_name, name)
         self.assertAlmostEqual(c.length, length)
         self.assertAlmostEqual(c.vkick, kick)
@@ -211,7 +211,7 @@ class TestCreationFunctions(unittest.TestCase):
         length = 1.2345
         hkick = 0.4321
         vkick = -0.1234
-        c = pyaccel.elements.corrector(name, length, hkick, vkick)
+        c = elements.corrector(name, length, hkick, vkick)
         self.assertEqual(c.fam_name, name)
         self.assertAlmostEqual(c.length, length)
         self.assertAlmostEqual(c.hkick, hkick)
@@ -227,16 +227,16 @@ class TestCreationFunctions(unittest.TestCase):
         fint_out = 0.2
         K = 1.1
         S = 2.2
-        b = pyaccel.elements.rbend(
-                fam_name=name,
-                length=length,
-                angle=angle,
-                angle_in=angle_in,
-                angle_out=angle_out,
-                fint_in=fint_in,
-                fint_out=fint_out,
-                K=K,
-                S=S
+        b = elements.rbend(
+            fam_name=name,
+            length=length,
+            angle=angle,
+            angle_in=angle_in,
+            angle_out=angle_out,
+            fint_in=fint_in,
+            fint_out=fint_out,
+            K=K,
+            S=S
         )
         self.assertEqual(b.fam_name, name)
         self.assertAlmostEqual(b.length, length)
@@ -253,7 +253,7 @@ class TestCreationFunctions(unittest.TestCase):
         length = 1.2345
         K = 1.1
         nr_steps = 20
-        q = pyaccel.elements.quadrupole(name, length, K, nr_steps)
+        q = elements.quadrupole(name, length, K, nr_steps)
         self.assertEqual(q.fam_name, name)
         self.assertAlmostEqual(q.length, length)
         self.assertAlmostEqual(q.polynom_b[1], K)
@@ -264,7 +264,7 @@ class TestCreationFunctions(unittest.TestCase):
         length = 1.2345
         S = 1.1
         nr_steps = 15
-        s = pyaccel.elements.sextupole(name, length, S, nr_steps)
+        s = elements.sextupole(name, length, S, nr_steps)
         self.assertEqual(s.fam_name, name)
         self.assertAlmostEqual(s.length, length)
         self.assertAlmostEqual(s.polynom_b[2], S)
@@ -275,7 +275,7 @@ class TestCreationFunctions(unittest.TestCase):
         length = 1.2
         voltage = 2.5e6
         frequency = 500e6
-        c = pyaccel.elements.rfcavity(name, length, voltage, frequency)
+        c = elements.rfcavity(name, length, voltage, frequency)
         self.assertEqual(c.fam_name, name)
         self.assertAlmostEqual(c.length, length)
         self.assertAlmostEqual(c.voltage, voltage)

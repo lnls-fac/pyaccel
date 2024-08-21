@@ -3,9 +3,8 @@
 import math as _math
 from collections.abc import Iterable as _Iterable
 
-import numpy as _np
-
 import mathphys as _mp
+import numpy as _np
 import trackcpp as _trackcpp
 
 from .accelerator import Accelerator as _Accelerator
