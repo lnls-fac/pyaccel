@@ -192,6 +192,23 @@ def kickmap(
     return Element(element=e)
 
 
+@_interactive
+def kickpoly(fam_name, nr_steps=20, length=1.0, rescale_kicks=1.0):
+    """Create a kickpolynom element.
+
+    Args:
+        fam_name (str): family name
+        nr_steps (int, optional): number of steps. Defaults to 20.
+        length (float, optional): lenght of element [m]. Defaults to 1.0.
+        rescale_kicks (float, optional): rescale all kicks. Defaults to 1.0.
+
+    Returns:
+        ele (pyaccel.elements.Element): pyaccel Element.
+    """
+    e = _trackcpp.kickpoly_wrapper(fam_name, nr_steps, length, rescale_kicks)
+    return Element(element=e)
+
+
 def _process_polynoms(polya, polyb):
     # Make sure polya and polyb have same size and are initialized
     if polya is None:
@@ -525,8 +542,10 @@ class Element:
 
     @property
     def rescale_kicks(self):
-        """Scale factor applied to values given by kicktable.
-        Default value: 1.0"""
+        """Scale factor applied to values given by kicktable or kickpoly.
+
+        Default value: 1.0
+        """
         return self.trackcpp_e.rescale_kicks
 
     @rescale_kicks.setter
@@ -719,7 +738,7 @@ class Element:
     @property
     def polynom_a(self):
         """."""
-        return Element._get_cpp_vector(self.trackcpp_e.polynom_a)
+        return _get_cpp_vector(self.trackcpp_e.polynom_a)
 
     @polynom_a.setter
     def polynom_a(self, value):
@@ -729,12 +748,32 @@ class Element:
     @property
     def polynom_b(self):
         """."""
-        return Element._get_cpp_vector(self.trackcpp_e.polynom_b)
+        return _get_cpp_vector(self.trackcpp_e.polynom_b)
 
     @polynom_b.setter
     def polynom_b(self, value):
         """."""
         self.trackcpp_e.polynom_b[:] = value
+
+    @property
+    def polynom_kickx(self):
+        """."""
+        return _get_cpp_vector(self.trackcpp_e.polynom_kickx)
+
+    @polynom_kickx.setter
+    def polynom_kickx(self, value):
+        """."""
+        self.trackcpp_e.polynom_kickx[:] = value
+
+    @property
+    def polynom_kicky(self):
+        """."""
+        return _get_cpp_vector(self.trackcpp_e.polynom_kicky)
+
+    @polynom_kicky.setter
+    def polynom_kicky(self, value):
+        """."""
+        self.trackcpp_e.polynom_kicky[:] = value
 
     @property
     def matrix66(self):
@@ -850,6 +889,18 @@ class Element:
         if not all([v == 0 for v in self.polynom_b]):
             rst += fmtstr.format(
                 'polynom_b', self.polynom_b, '1/m¹, 1/m², 1/m³, ...')
+        if not all([v == 0 for v in self.polynom_kickx]):
+            rst += fmtstr.format(
+                'polynom_kickx',
+                self.polynom_kickx,
+                'T²m² * [1, 1/m, 1/m, 1/m², 1/m², 1/m², 1/m³, ...]'
+            )
+        if not all([v == 0 for v in self.polynom_kicky]):
+            rst += fmtstr.format(
+                'polynom_kicky',
+                self.polynom_kicky,
+                'T²m² * [1, 1/m, 1/m, 1/m², 1/m², 1/m², 1/m³, ...]'
+            )
         if self.hkick != 0:
             rst += fmtstr.format('hkick', self.hkick, 'rad')
         if self.vkick != 0:
@@ -925,12 +976,12 @@ class Element:
         if not value.shape == shape:
             raise ValueError("shape must be " + str(shape))
 
-    @staticmethod
-    def _get_cpp_vector(cppvector):
-        address = int(cppvector.data_())
-        c_empty_array = _ctypes.c_double * cppvector.size()
-        c_array = c_empty_array.from_address(address)
-        return _numpy.ctypeslib.as_array(c_array)
+
+def _get_cpp_vector(cppvector):
+    address = int(cppvector.data_())
+    c_empty_array = _ctypes.c_double * cppvector.size()
+    c_array = c_empty_array.from_address(address)
+    return _np.ctypeslib.as_array(c_array)
 
 
 class _CustomArray(_numpy.ndarray):

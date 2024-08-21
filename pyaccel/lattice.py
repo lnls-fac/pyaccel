@@ -153,19 +153,21 @@ def split_element(element, fractions=None, nr_segs=None):
                 "Arguments fractions and nr_segs must not be mutually None.")
         try:
             nr_segs = int(nr_segs)
-        except TypeError:
+        except TypeError as err:
             raise LatticeError(
-                "Argument nr_segs must be an integer larger than one.")
+                "Argument nr_segs must be an integer larger than one."
+            ) from err
         fractions = _np.ones(nr_segs)/nr_segs
 
     try:
         fractions = _np.asarray(fractions, dtype=float)
         if fractions.size <= 1:
             raise ValueError('')
-    except ValueError:
+    except ValueError as err:
         raise LatticeError(
             'Argument fractions must be an iterable with floats with more '
-            'than one element.')
+            'than one element.'
+        ) from err
     fractions /= fractions.sum()
 
     elems = []
@@ -194,6 +196,14 @@ def split_element(element, fractions=None, nr_segs=None):
         e_out.angle_in = 0.0
         e_out.fint_in = 0.0
         elems.append(e_out)
+    elif ele.pass_method == "kickpoly_pass":
+        for frac in fractions:
+            elem = _Element(ele)
+            elem.length = ele.length * frac
+            elem.angle = ele.angle * frac
+            elem.polynom_kickx = ele.polynom_kickx * frac
+            elem.polynom_kicky = ele.polynom_kicky * frac
+            elems.append(elem)
     elif ele.trackcpp_e.kicktable_idx != -1:
         kicktable = _trackcpp.cvar.kicktable_list[
             ele.trackcpp_e.kicktable_idx]

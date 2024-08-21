@@ -37,6 +37,8 @@ class TestElement(unittest.TestCase):
                 'vmax',
                 'polynom_a',
                 'polynom_b',
+                'polynom_kickx',
+                'polynom_kicky',
                 't_in',
                 't_out',
                 'r_in',
