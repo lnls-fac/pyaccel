@@ -3,7 +3,7 @@
 
 import ctypes as _ctypes
 import warnings as _warnings
-import numpy as _numpy
+import numpy as _np
 
 import trackcpp as _trackcpp
 
@@ -14,7 +14,6 @@ _DBL_MAX = _trackcpp.get_double_max()
 _NUM_COORDS = 6
 _DIMS = (_NUM_COORDS, _NUM_COORDS)
 
-PASS_METHODS  = tuple(_trackcpp.pm_dict)
 VChamberShape = _trackcpp.VChamberShape
 
 
