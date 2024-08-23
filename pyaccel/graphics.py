@@ -1,15 +1,14 @@
 """."""
 
-import matplotlib.pyplot as _plt
-import matplotlib.lines as _lines
 import matplotlib.collections as _collections
+import matplotlib.lines as _lines
 import matplotlib.patches as _patches
+import matplotlib.pyplot as _plt
 
-from .utils import interactive as _interactive
-from .lattice import find_spos as _find_spos, find_indices as _find_indices, \
+from .lattice import find_indices as _find_indices, find_spos as _find_spos, \
     get_attribute as _get_attribute
-from .optics import calc_twiss as _calc_twiss
-
+from .optics.twiss import calc_twiss as _calc_twiss
+from .utils import interactive as _interactive
 
 _COLOURS = {
     'dipole': '#3b83bd',
