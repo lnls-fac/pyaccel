@@ -1,11 +1,14 @@
-"""Optics package."""
-from .acceptances import calc_transverse_acceptance, \
-    calc_touschek_energy_acceptance
-from .beam_envelope import EqParamsFromBeamEnvelope, calc_beamenvelope
-from .edwards_teng import EdwardsTeng, EdwardsTengArray, calc_edwards_teng, \
+"""Optics subpackage."""
+
+from .acceptances import calc_touschek_energy_acceptance, \
+    calc_transverse_acceptance
+from .beam_envelope import calc_beamenvelope, EqParamsFromBeamEnvelope
+from .driving_terms import FirstOrderDrivingTerms
+from .edwards_teng import calc_edwards_teng, EdwardsTeng, EdwardsTengArray, \
     estimate_coupling_parameters
-from .miscellaneous import get_chromaticities, get_mcf, get_frac_tunes, \
-    get_curlyh, get_revolution_frequency, get_rf_frequency, get_rf_voltage, \
-    get_revolution_period, OpticsException
+from .eq_params import EqParamsNormalModes, EqParamsXYModes
+from .miscellaneous import get_chromaticities, get_curlyh, get_frac_tunes, \
+    get_mcf, get_revolution_frequency, get_revolution_period, \
+    get_rf_frequency, get_rf_voltage, OpticsError
 from .rad_integrals import EqParamsFromRadIntegrals
-from .twiss import Twiss, TwissArray, calc_twiss
+from .twiss import calc_twiss, Twiss, TwissArray

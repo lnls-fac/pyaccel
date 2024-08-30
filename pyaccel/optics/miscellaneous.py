@@ -1,12 +1,13 @@
 """Optics module."""
 
+import mathphys as _mp
 import numpy as _np
 
 from .. import tracking as _tracking
 from ..utils import interactive as _interactive
 
 
-class OpticsException(Exception):
+class OpticsError(Exception):
     """."""
 
 
@@ -16,7 +17,7 @@ def get_rf_frequency(accelerator):
     for e in accelerator:
         if e.frequency != 0.0:
             return e.frequency
-    raise OpticsException('no cavity element in the lattice')
+    raise OpticsError('no cavity element in the lattice')
 
 
 @_interactive
@@ -32,13 +33,40 @@ def get_rf_voltage(accelerator):
         else:
             return voltages
     else:
-        raise OpticsException('no cavity element in the lattice')
+        raise OpticsError('no cavity element in the lattice')
 
 
 @_interactive
 def get_revolution_frequency(accelerator):
     """Return the actual revolution frequency of the 6D fixed point [Hz]."""
     return get_rf_frequency(accelerator) / accelerator.harmonic_number
+
+
+@_interactive
+def calc_syncphase(overvoltage):
+    """."""
+    return _np.pi - _np.arcsin(1/overvoltage)
+
+
+@_interactive
+def calc_rf_acceptance(
+    energy,
+    energy_offset,
+    harmonic_number,
+    rf_voltage,
+    overvoltage,
+    etac
+):
+    """."""
+    E0 = energy * (1 + energy_offset)
+    V = rf_voltage
+    ov = overvoltage
+    sph = calc_syncphase(ov)
+    h = harmonic_number
+
+    eaccep2 = V * _np.sin(sph) / (_np.pi*h*abs(etac)*E0)
+    eaccep2 *= 2 * (_np.sqrt(ov**2 - 1.0) - _np.arccos(1.0/ov))
+    return _np.sqrt(eaccep2)
 
 
 @_interactive
@@ -55,11 +83,11 @@ def get_frac_tunes(
     if m1turn is None:
         if dim == '4D':
             m1turn = _tracking.find_m44(
-                accelerator, indices='m44', energy_offset=energy_offset,
+                accelerator, indices=None, energy_offset=energy_offset,
                 fixed_point=fixed_point)
         elif dim == '6D':
             m1turn = _tracking.find_m66(
-                accelerator, indices='m66', fixed_point=fixed_point)
+                accelerator, indices=None, fixed_point=fixed_point)
         else:
             raise Exception('Set valid dimension: 4D or 6D')
 
@@ -145,3 +173,12 @@ def get_curlyh(beta, alpha, x, xl):
     """."""
     gamma = (1 + alpha*alpha) / beta
     return beta*xl*xl + 2*alpha*x*xl + gamma*x*x
+
+
+@_interactive
+def calc_U0(energy, energy_offset, I2):
+    """Return U0 [eV]."""
+    E0 = energy / 1e9  # [GeV]
+    E0 *= (1 + energy_offset)
+    rad_cgamma = _mp.constants.rad_cgamma
+    return rad_cgamma/(2*_np.pi) * E0**4 * I2 * 1e9  # [eV]
