@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 from distutils.version import StrictVersion
 
 
-trackcpp_version = '4.10.6'
+trackcpp_version = '4.10.5'
 
 try:
     import trackcpp
