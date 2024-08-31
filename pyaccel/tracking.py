@@ -502,11 +502,6 @@ def _line_pass(accelerator, p_in, indices, element_offset, nturn=0, set_seed=Fal
         args.time_aware_element_positions
     )
 
-    args.line_length = accelerator.trackcpp_acc.get_time_aware_elements_info(
-        args.time_aware_element_indices,
-        args.time_aware_element_positions
-    )
-
     p_in = p_in.copy()
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
