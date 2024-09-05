@@ -740,7 +740,7 @@ def find_orbit4(
         fixed_point_guess = _trackcpp.CppDoublePos()
     else:
         fixed_point_guess = _4Numpy2CppDoublePos(fixed_point_guess)
-    fixed_point_guess.de = energy_offset
+    fixed_point_guess.de = energy_offset or 0.0
 
     _closed_orbit = _trackcpp.CppDoublePosVector()
     ret = _trackcpp.track_findorbit4(
@@ -867,7 +867,6 @@ def find_orbit(
 
     """
     if not accelerator.cavity_on and not accelerator.radiation_on:
-        energy_offset = energy_offset or 0.0
         orb = find_orbit4(
             accelerator,
             indices=indices,
@@ -876,7 +875,7 @@ def find_orbit(
         )
         corb = _np.zeros((6, orb.shape[1]))
         corb[:4, :] = orb
-        corb[4, :] = energy_offset
+        corb[4, :] = energy_offset or 0.0
         return corb
     elif not accelerator.cavity_on and accelerator.radiation_on:
         raise TrackingError('The radiation is on but the cavity is off')
