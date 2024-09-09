@@ -821,6 +821,8 @@ def find_orbit6(
     ret = _trackcpp.track_findorbit6(
         accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
 
+    accelerator.radiation_on = rad_stt
+
     if ret > 0:
         raise TrackingError(_trackcpp.string_error_messages[ret])
 
