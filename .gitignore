@@ -72,5 +72,3 @@ examples/.*
 test/flatfile2.txt
 
 *.swp
-
-t.ipynb

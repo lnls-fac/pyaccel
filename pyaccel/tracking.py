@@ -294,7 +294,7 @@ def set_6d_tracking(accelerator: _Accelerator, rad_full=False):
 def element_pass(
     element,
     particles,
-    energy, nturn=0,
+    energy,
     harmonic_number=1,
     cavity_on=False,
     radiation_on='Off',
@@ -324,7 +324,7 @@ def element_pass(
         TrackingError: When there is some problem in tracking;
 
     Returns:
-    part_out (numpy.ndarray): a numpy array with tracked 6D position(s) of
+        part_out (numpy.ndarray): a numpy array with tracked 6D position(s) of
             the particle(s). If elementpass is invoked for a single particle
             then 'part_out' is a simple vector with one index that refers to
             the particle coordinates. If 'particles' represents many
@@ -333,9 +333,6 @@ def element_pass(
 
     Raises TrackingException
     """
-    # checks if all necessary arguments have been passed
-    if not isinstance(nturn, (int, _np.integer)):
-        raise ValueError("nturn arg must be a integer")
 
     # creates accelerator for tracking
     accelerator = _Accelerator(
@@ -352,7 +349,7 @@ def element_pass(
     # tracks through the list of pos
     ret = _trackcpp.track_elementpass_wrapper(
         accelerator.trackcpp_acc, element.trackcpp_e, p_in
-    , float(nturn))
+    )
     if ret > 0:
         raise TrackingError("Problem found during tracking.")
 
@@ -366,7 +363,7 @@ def line_pass(
     indices=None,
     element_offset: float = 0,
     parallel=False
-, nturn=0):
+):
     """Track particle(s) along an accelerator.
 
     Accepts one or multiple particles initial positions. In the latter case,
@@ -462,14 +459,14 @@ def line_pass(
 
     if not parallel:
         p_out, lost_flag, lost_element, lost_plane, lost_pos = _line_pass(
-            accelerator, p_in, indices, element_offset, nturn)
+            accelerator, p_in, indices, element_offset)
     else:
         slcs = _get_slices_multiprocessing(parallel, p_in.shape[1])
         with _multiproc.Pool(processes=len(slcs)) as pool:
             res = []
             for slc in slcs:
                 res.append(pool.apply_async(_line_pass, (
-                    accelerator, p_in[:, slc], indices, element_offset, nturn, True)))
+                    accelerator, p_in[:, slc], indices, element_offset, True)))
 
             lost_pos, p_out = [], []
             lost_flag, lost_element, lost_plane = [], [], []
@@ -490,7 +487,7 @@ def line_pass(
     return p_out, loss_info
 
 
-def _line_pass(accelerator, p_in, indices, element_offset, nturn=0, set_seed=False):
+def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
     # store only final position?
     args = _trackcpp.LinePassArgs()
     for idx in indices:
