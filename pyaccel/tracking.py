@@ -290,6 +290,7 @@ def set_6d_tracking(accelerator: _Accelerator, rad_full=False):
     accelerator.cavity_on = True
     accelerator.radiation_on = 'Full' if rad_full else 'Damping'
 
+
 @_interactive
 def element_pass(
     element,
@@ -330,10 +331,7 @@ def element_pass(
             the particle coordinates. If 'particles' represents many
             particles, the first index of 'part_out' selects the coordinate
             and the second index selects the particle.
-
-    Raises TrackingException
     """
-
     # creates accelerator for tracking
     accelerator = _Accelerator(
         energy=energy,
