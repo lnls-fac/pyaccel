@@ -642,11 +642,8 @@ def calc_edwards_teng(
 
     Args:
         accelerator (pyaccel.accelerator.Accelerator): lattice model
-        energy_offset (float, optional): Energy Offset . Defaults to 0.0.
         init_edteng (pyaccel.optics.EdwardsTeng, optional): EdwardsTeng
             parameters at the start of first element. Defaults to None.
-        energy_offset (float, optional): float denoting the energy deviation
-            (used only for periodic solutions). Defaults to None.
         indices : may be a ((list, tuple, numpy.ndarray), optional):
             list of element indices where closed orbit data is to be
             returned or a string:
@@ -656,6 +653,8 @@ def calc_edwards_teng(
                     element.
             If indices is None data will be returned only at the entrance
             of the first element. Defaults to 'open'.
+        energy_offset (float, optional): float denoting the energy deviation
+            (used only for periodic solutions). Defaults to 0.0.
 
     Returns:
         pyaccel.optics.EdwardsTengArray : array of decompositions of the
