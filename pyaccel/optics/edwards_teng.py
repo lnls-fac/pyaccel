@@ -622,7 +622,7 @@ class EdwardsTengArray(_np.ndarray):
 @_interactive
 def calc_edwards_teng(
         accelerator=None, init_edteng=None, indices='open',
-        energy_offset=None):
+        energy_offset=0.0):
     """Perform linear analysis of coupled lattices.
 
     Notation is the same as in reference [3]

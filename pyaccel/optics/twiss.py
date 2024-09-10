@@ -397,7 +397,7 @@ class TwissArray(_np.ndarray):
 @_interactive
 def calc_twiss(
         accelerator=None, init_twiss=None, fixed_point=None,
-        indices='open', energy_offset=None):
+        indices='open', energy_offset=0.0):
     """Return Twiss parameters of uncoupled dynamics.
 
     Args:
