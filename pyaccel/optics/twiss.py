@@ -408,7 +408,7 @@ def calc_twiss(
             first element. Defaults to None.
         indices (str, optional): 'open' or 'closed'. Defaults to 'open'.
         energy_offset (float, optional): float denoting the energy deviation
-            (used only for periodic solutions). Defaults to None.
+            (used only for periodic solutions). Defaults to 0.0.
 
     Raises:
         pyaccel.tracking.TrackingError: When find_orbit fails to converge.
