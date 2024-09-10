@@ -443,8 +443,7 @@ def calc_twiss(
         if fixed_point is None:
             _closed_orbit = _trackcpp.CppDoublePosVector()
             _fixed_point_guess = _trackcpp.CppDoublePos()
-            if energy_offset is not None:
-                _fixed_point_guess.de = energy_offset
+            _fixed_point_guess.de = energy_offset
 
             if not accelerator.cavity_on and not accelerator.radiation_on:
                 r = _trackcpp.track_findorbit4(
@@ -465,8 +464,7 @@ def calc_twiss(
 
         else:
             _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
-            if energy_offset is not None:
-                _fixed_point.de = energy_offset
+            _fixed_point.de = energy_offset
 
         _init_twiss = _trackcpp.Twiss()
 
