@@ -671,7 +671,7 @@ def calc_edwards_teng(
 
     cod = None
     if init_edteng is not None:
-        if energy_offset is not None:
+        if energy_offset:
             # Turn cavity and radiation states back to their original values.
             accelerator.cavity_on = cav_stt
             accelerator.radiation_on = rad_stt
