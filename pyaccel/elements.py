@@ -24,7 +24,7 @@ def marker(fam_name):
     Keyword arguments:
     fam_name -- family name
     """
-    ele = _trackcpp.marker_wrapper(fam_name)
+    ele = _trackcpp.Element.marker(fam_name)
     return Element(element=ele)
 
 
@@ -35,7 +35,7 @@ def bpm(fam_name):
     Keyword arguments:
     fam_name -- family name
     """
-    ele = _trackcpp.bpm_wrapper(fam_name)
+    ele = _trackcpp.Element.bpm(fam_name)
     return Element(element=ele)
 
 
@@ -47,7 +47,7 @@ def drift(fam_name, length):
     fam_name -- family name
     length -- [m]
     """
-    ele = _trackcpp.drift_wrapper(fam_name, length)
+    ele = _trackcpp.Element.drift(fam_name, length)
     return Element(element=ele)
 
 
@@ -59,7 +59,7 @@ def matrix(fam_name, length):
     fam_name -- family name
     length -- [m]
     """
-    ele = _trackcpp.matrix_wrapper(fam_name, length)
+    ele = _trackcpp.Element.matrix(fam_name, length)
     return Element(element=ele)
 
 
@@ -72,7 +72,7 @@ def hcorrector(fam_name, length=0.0, hkick=0.0):
     length -- [m]
     hkick -- horizontal kick [rad]
     """
-    ele = _trackcpp.hcorrector_wrapper(fam_name, length, hkick)
+    ele = _trackcpp.Element.hcorrector(fam_name, length, hkick)
     return Element(element=ele)
 
 
@@ -85,7 +85,7 @@ def vcorrector(fam_name, length=0.0, vkick=0.0):
     length -- [m]
     vkick -- vertical kick [rad]
     """
-    ele = _trackcpp.vcorrector_wrapper(fam_name, length, vkick)
+    ele = _trackcpp.Element.vcorrector(fam_name, length, vkick)
     return Element(element=ele)
 
 
@@ -99,7 +99,7 @@ def corrector(fam_name, length=0.0, hkick=0.0, vkick=0.0):
     hkick -- horizontal kick [rad]
     vkick -- vertical kick [rad]
     """
-    ele = _trackcpp.corrector_wrapper(fam_name, length, hkick, vkick)
+    ele = _trackcpp.Element.corrector(fam_name, length, hkick, vkick)
     return Element(element=ele)
 
 
@@ -123,7 +123,7 @@ def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
         K = polynom_b[1]
     if S is None:
         S = polynom_b[2]
-    ele = _trackcpp.rbend_wrapper(
+    ele = _trackcpp.Element.rbend(
         fam_name, length, angle, angle_in, angle_out, gap, fint_in, fint_out,
         polynom_a, polynom_b, K, S)
     return Element(element=ele)
@@ -139,7 +139,7 @@ def quadrupole(fam_name, length, K, nr_steps=10):
     K -- [m^-2]
     nr_steps -- number of steps (default 10)
     """
-    ele = _trackcpp.quadrupole_wrapper(fam_name, length, K, nr_steps)
+    ele = _trackcpp.Element.quadrupole(fam_name, length, K, nr_steps)
     return Element(element=ele)
 
 
@@ -153,7 +153,7 @@ def sextupole(fam_name, length, S, nr_steps=5):
     S -- (1/2!)(d^2By/dx^2)/(Brho)[m^-3]
     nr_steps -- number of steps (default 5)
     """
-    e = _trackcpp.sextupole_wrapper(fam_name, length, S, nr_steps)
+    e = _trackcpp.Element.sextupole(fam_name, length, S, nr_steps)
     return Element(element=e)
 
 
@@ -168,7 +168,7 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     frequency -- [Hz]
     phase_lag -- [rad]
     """
-    ele = _trackcpp.rfcavity_wrapper(
+    ele = _trackcpp.Element.rfcavity(
         fam_name, length, frequency, voltage, phase_lag)
     return Element(element=ele)
 
@@ -186,7 +186,7 @@ def kickmap(
     rescale_length -- rescale kicktable length (default 1)
     rescale_kicks -- rescale all kicktable length (default 1)
     """
-    e = _trackcpp.kickmap_wrapper(
+    e = _trackcpp.Element.kickmap(
         fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks)
     return Element(element=e)
 
@@ -204,7 +204,7 @@ def kickpoly(fam_name, nr_steps=20, length=1.0, rescale_kicks=1.0):
     Returns:
         ele (pyaccel.elements.Element): pyaccel Element.
     """
-    e = _trackcpp.kickpoly_wrapper(fam_name, nr_steps, length, rescale_kicks)
+    e = _trackcpp.Element.kickpoly(fam_name, nr_steps, length, rescale_kicks)
     return Element(element=e)
 
 
@@ -228,30 +228,77 @@ def _process_polynoms(polya, polyb):
 class Kicktable:
     """."""
 
-    kicktable_list = _trackcpp.cvar.kicktable_list  # trackcpp vector with all Kicktables in use.
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        filename_or_kicktable=None,
+        x_pos=None,
+        y_pos=None,
+        x_kick=None,
+        y_kick=None,
+        length=None
+    ):
         """."""
+        var = filename_or_kicktable
         # get kicktable filename
-        if 'kicktable' in kwargs:
-            filename = kwargs['kicktable'].filename
-        elif 'filename' in kwargs:
-            filename = kwargs['filename']
-        else:
-            raise NotImplementedError('Invalid Kicktable argument')
+        if isinstance(var, str):
+            # Add kicktable or retrieve index of existing one with same name:
+            self._kicktable = _trackcpp.Kicktable(var)
+            self._kicktable_idx = Kicktable.add_kicktable(self._kicktable)
+            return
+        elif isinstance(var, _trackcpp.Kicktable):
+            self._kicktable = var
+            self._kicktable_idx = Kicktable.add_kicktable(self._kicktable)
+            return
+        elif isinstance(var, Kicktable):
+            self._kicktable = var.trackcpp_kickmap
+            self._kicktable_idx = Kicktable.add_kicktable(self._kicktable)
+            return
+        elif var is not None:
+            raise TypeError('Wrong type for `filename_or_kicktable` input.')
 
-        # add new kicktable to list or retrieve index of existing one with same fname.
-        idx = _trackcpp.add_kicktable(filename)
+        self._kicktable = _trackcpp.Kicktable()
+        if x_pos is not None:
+            self._kicktable.x_pos = x_pos.ravel().tolist()
+        if y_pos is not None:
+            self._kicktable.y_pos = y_pos.ravel().tolist()
+        if x_kick is not None:
+            self._kicktable.x_kick = x_kick.ravel().tolist()
+        if y_kick is not None:
+            self._kicktable.y_kick = y_kick.ravel().tolist()
+        if length is not None:
+            self._kicktable.length = length
+        self._kicktable_idx = Kicktable.add_kicktable(self._kicktable)
 
-        # update object attributes
-        if idx != -1:
-            self._status = _trackcpp.Status.success
-            self._kicktable_idx = idx
-            self._kicktable = _trackcpp.cvar.kicktable_list[idx]
-        else:
-            self._status = _trackcpp.Status.file_not_found
-            self._kicktable_idx = -1
-            self._kicktable = None
+    @staticmethod
+    def is_valid_kicktable_index(idx):
+        """."""
+        return _trackcpp.Kicktable.is_valid_kicktable_index(idx)
+
+    @staticmethod
+    def get_kicktable(idx):
+        """."""
+        return Kicktable(_trackcpp.Kicktable.get_kicktable(idx))
+
+    @staticmethod
+    def add_kicktable(kicktable):
+        """."""
+        if isinstance(kicktable, _trackcpp.Kicktable):
+            return _trackcpp.Kicktable.add_kicktable(kicktable)
+        elif isinstance(kicktable, Kicktable):
+            idx = _trackcpp.Kicktable.add_kicktable(kicktable.trackcpp_kickmap)
+            kicktable._kicktable_idx = idx
+            return idx
+        raise ValueError('Value for kicktable is not a valid.')
+
+    @property
+    def is_valid_kicktable(self):
+        """."""
+        return self._kicktable.is_valid_kicktable()
+
+    @property
+    def kicktable_idx(self):
+        """."""
+        return self._kicktable_idx
 
     @property
     def trackcpp_kickmap(self):
@@ -259,69 +306,106 @@ class Kicktable:
         return self._kicktable
 
     @property
-    def kicktable_idx(self):
-        """Return kicktable index in trackcpp kicktable_list vector."""
-        return self._kicktable_idx
-
-    @property
     def filename(self):
-        """Filename corresponding to kicktable"""
+        """Filename corresponding to kicktable."""
         return self._kicktable.filename
+
+    @filename.setter
+    def filename(self, filename):
+        """."""
+        self._kicktable.filename = filename
 
     @property
     def length(self):
         """."""
         return self._kicktable.length
 
-    @property
-    def x_min(self):
+    @length.setter
+    def length(self, length):
         """."""
-        return self._kicktable.x_min
+        self._kicktable.length = length
 
     @property
-    def x_max(self):
+    def x_pos(self):
         """."""
-        return self._kicktable.x_max
+        return _get_cpp_vector(self._kicktable.x_pos)
+
+    @x_pos.setter
+    def x_pos(self, value):
+        """."""
+        self._kicktable.x_pos[:] = value
 
     @property
-    def y_min(self):
+    def y_pos(self):
         """."""
-        return self._kicktable.y_min
+        return _get_cpp_vector(self._kicktable.y_pos)
+
+    @y_pos.setter
+    def y_pos(self, value):
+        """."""
+        self._kicktable.y_pos[:] = value
 
     @property
-    def y_max(self):
+    def x_kick(self):
         """."""
-        return self._kicktable.y_max
+        return _get_cpp_vector(self._kicktable.x_kick)
+
+    @x_kick.setter
+    def x_kick(self, value):
+        """."""
+        self._kicktable.x_kick[:] = value
 
     @property
-    def x_nrpts(self):
+    def y_kick(self):
         """."""
-        return self._kicktable.x_nrpts
+        return _get_cpp_vector(self._kicktable.y_kick)
 
-    @property
-    def y_nrpts(self):
+    @y_kick.setter
+    def y_kick(self, value):
         """."""
-        return self._kicktable.y_nrpts
+        self._kicktable.y_kick[:] = value
 
-    @property
-    def status(self):
-        """Return last object status."""
-        return self._status
+    def load_from_file(self, filename):
+        """."""
+        self._kicktable.load_from_file(filename, True)
+        self._kicktable_idx = self.add_kicktable(self._kicktable)
+
+    def save_to_file(self, filename, author_name=""):
+        """."""
+        self._kicktable.save_to_file(filename, author_name)
+
+    def load_from_text(self, text):
+        """."""
+        self._kicktable.load_from_file(text, False)
+        self._kicktable_idx = self.add_kicktable(self._kicktable)
+
+    def save_to_text(self, author_name=""):
+        """."""
+        return self._kicktable.save_to_string(author_name)
+
+    def get_ix(self, rx):
+        """."""
+        return self._kicktable.get_ix(rx)
+
+    def get_iy(self, ry):
+        """."""
+        return self._kicktable.get_iy(ry)
 
     def get_kicks(self, rx, ry):
         """Return (hkick, vkick) at (rx,ry)."""
-        idx = self.kicktable_idx
-        self._status, hkick, vkick = _trackcpp.kicktable_getkicks_wrapper(idx, rx, ry)
+        stt, hkick, vkick = self._kicktable.getkicks(rx, ry)
+        if stt:
+            return None, None
         return hkick, vkick
 
     def __eq__(self, other):
         """."""
-        if not isinstance(other, Kicktable):
-            return NotImplemented
-        for attr in self._kicktable.__swig_getmethods__:
-            if getattr(self, attr) != getattr(other, attr):
-                return False
-        return True
+        if isinstance(other, Kicktable):
+            return self._kicktable == other.trackcpp_kickmap
+        elif isinstance(other, _trackcpp.Kicktable):
+            return self._kicktable == other
+        else:
+            return TypeError("Other must be Kicktable object.")
 
 
 class Element:
@@ -525,22 +609,31 @@ class Element:
         self.trackcpp_e.phase_lag = value
 
     @property
+    def kicktable_idx(self):
+        """."""
+        return self.trackcpp_e.kicktable_idx
+
+    @kicktable_idx.setter
+    def kicktable_idx(self, value):
+        if Kicktable.is_valid_kicktable_index(int(value)):
+            self.trackcpp_e.kicktable_idx = int(value)
+            return
+        raise ValueError('Value for kicktable_idx is not valid.')
+
+    @property
     def kicktable(self):
         """."""
-        if self.trackcpp_e.kicktable_idx != -1:
-            kicktable = _trackcpp.cvar.kicktable_list[
-                self.trackcpp_e.kicktable_idx
-            ]
-            return Kicktable(kicktable=kicktable)
-        else:
-            return None
+        if Kicktable.is_valid_kicktable_index(self.trackcpp_e.kicktable_idx):
+            return Kicktable.get_kicktable(self.trackcpp_e.kicktable_idx)
+        return None
 
     @kicktable.setter
     def kicktable(self, value):
         """."""
-        if not isinstance(value, Kicktable):
-            raise TypeError('value must be of Kicktable type')
-        self.trackcpp_e.kicktable = value._kicktable
+        idx = Kicktable.add_kicktable(value)
+        if not Kicktable.is_valid_kicktable_index(idx):
+            raise ValueError('Kicktable is not valid. Configure object first.')
+        self.trackcpp_e.kicktable_idx = idx
 
     @property
     def rescale_kicks(self):
