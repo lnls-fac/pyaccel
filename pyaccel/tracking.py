@@ -492,6 +492,11 @@ def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
         args.indices.push_back(int(idx))
     args.element_offset = int(element_offset)
 
+    args.line_length = accelerator.trackcpp_acc.get_time_aware_elements_info(
+        args.time_aware_element_indices,
+        args.time_aware_element_positions
+    )
+
     p_in = p_in.copy()
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
@@ -928,6 +933,13 @@ def find_m66(
     else:
         trackcpp_idx.push_back(len(accelerator))
 
+    timeaware_element_indices = _trackcpp.CppUnsigIntVector()
+    timeaware_element_positions = _trackcpp.CppDoubleVector()
+    linelength = accelerator.trackcpp_acc.get_time_aware_elements_info(
+        timeaware_element_indices,
+        timeaware_element_positions
+    )
+
     if fixed_point is None:
         # Closed orbit is calculated by trackcpp
         fixed_point_guess = _trackcpp.CppDoublePos()
@@ -945,8 +957,15 @@ def find_m66(
     m66 = _np.zeros((6, 6), dtype=float)
     _v0 = _trackcpp.CppDoublePos()
     ret = _trackcpp.track_findm66_wrapper(
-        accelerator.trackcpp_acc, _closed_orbit[0], cumul_trans_matrices,
-        m66, _v0, trackcpp_idx)
+        accelerator.trackcpp_acc,
+        _closed_orbit[0],
+        cumul_trans_matrices,
+        m66,
+        _v0,
+        trackcpp_idx,
+        linelength,
+        timeaware_element_indices,
+        timeaware_element_positions)
     if ret > 0:
         raise TrackingError(_trackcpp.string_error_messages[ret])
 
@@ -1016,12 +1035,26 @@ def find_m44(
         _closed_orbit = _trackcpp.CppDoublePosVector()
         _closed_orbit.push_back(_fixed_point)
 
+    timeaware_element_indices = _trackcpp.CppUnsigIntVector()
+    timeaware_element_positions = _trackcpp.CppDoubleVector()
+    linelength = accelerator.trackcpp_acc.get_time_aware_elements_info(
+        timeaware_element_indices,
+        timeaware_element_positions
+    )
+
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 4, 4), dtype=float)
     m44 = _np.zeros((4, 4), dtype=float)
     _v0 = _trackcpp.CppDoublePos()
     ret = _trackcpp.track_findm66_wrapper(
-        accelerator.trackcpp_acc, _closed_orbit[0], cumul_trans_matrices,
-        m44, _v0, trackcpp_idx)
+        accelerator.trackcpp_acc,
+        _closed_orbit[0],
+        cumul_trans_matrices,
+        m44,
+        _v0,
+        trackcpp_idx,
+        linelength,
+        timeaware_element_indices,
+        timeaware_element_positions)
     if ret > 0:
         raise TrackingError(_trackcpp.string_error_messages[ret])
 
