@@ -234,8 +234,9 @@ def _calc_dyn_apert_for_touschek(
     rin[4, :] = orb6d[4] + ener.ravel()
     rin[5, :] = orb6d[5]
 
-    _, _, lostturn, *_ = _tracking.ring_pass(
+    p_out, loss_info = _tracking.ring_pass(
         accelerator, rin, nturns, turn_by_turn=False, parallel=parallel)
+    lostturn = loss_info.lost_turn
     lostturn = _np.reshape(lostturn, curh0.shape)
     lost = lostturn != nturns
 
