@@ -622,7 +622,7 @@ class EdwardsTengArray(_np.ndarray):
 @_interactive
 def calc_edwards_teng(
         accelerator=None, init_edteng=None, indices='open',
-        energy_offset=None):
+        energy_offset=0.0):
     """Perform linear analysis of coupled lattices.
 
     Notation is the same as in reference [3]
@@ -642,11 +642,8 @@ def calc_edwards_teng(
 
     Args:
         accelerator (pyaccel.accelerator.Accelerator): lattice model
-        energy_offset (float, optional): Energy Offset . Defaults to 0.0.
         init_edteng (pyaccel.optics.EdwardsTeng, optional): EdwardsTeng
             parameters at the start of first element. Defaults to None.
-        energy_offset (float, optional): float denoting the energy deviation
-            (used only for periodic solutions). Defaults to None.
         indices : may be a ((list, tuple, numpy.ndarray), optional):
             list of element indices where closed orbit data is to be
             returned or a string:
@@ -656,6 +653,8 @@ def calc_edwards_teng(
                     element.
             If indices is None data will be returned only at the entrance
             of the first element. Defaults to 'open'.
+        energy_offset (float, optional): float denoting the energy deviation
+            (used only for periodic solutions). Defaults to 0.0.
 
     Returns:
         pyaccel.optics.EdwardsTengArray : array of decompositions of the
@@ -663,6 +662,31 @@ def calc_edwards_teng(
         numpy.ndarray (4x4): transfer matrix of the line/ring
 
     """
+    # TODO:
+    # Inconsistencies found when comparing optics obtained by providing
+    # `calc_edwards_teng` with an energy-offset vs those obtained by providing
+    # the function with an initial edteng object.
+    # The snipped below should replicate the discrepancies:
+
+    # >> import numpy as np
+    # >> import pyaccel as pa
+    # >> from pymodels import si
+    # >> model = si.create_accelerator()
+    # >> model = si.fitted_models.vertical_dispersion_and_coupling(model)
+    # >> init_edteng = pa.optics.calc_edwards_teng(
+    # >>    model, energy_offset=1e-2
+    # >> )[0][0]
+    # >> edteng, _ = pa.optics.calc_edwards_teng(
+    # >>    model, energy_offset=1e-2
+    # >> )
+    # >> edteng_, _ = pa.optics.calc_edwards_teng(
+    # >>    model, init_edteng=init_edteng
+    # >> )
+    # >> np.allclose(edteng.beta1, edteng_.beta1)
+    # >> False
+    # >> np.allclose(edteng.eta1, edteng_.eta1)
+    # >> False
+
     # Since Edwards and Teng decomposition is restricted to Symplectic 4D
     # motion, we need to turn off cavity and radiation here:
     cav_stt = accelerator.cavity_on
@@ -672,7 +696,7 @@ def calc_edwards_teng(
 
     cod = None
     if init_edteng is not None:
-        if energy_offset is not None:
+        if energy_offset:
             # Turn cavity and radiation states back to their original values.
             accelerator.cavity_on = cav_stt
             accelerator.radiation_on = rad_stt

@@ -397,7 +397,7 @@ class TwissArray(_np.ndarray):
 @_interactive
 def calc_twiss(
         accelerator=None, init_twiss=None, fixed_point=None,
-        indices='open', energy_offset=None):
+        indices='open', energy_offset=0.0):
     """Return Twiss parameters of uncoupled dynamics.
 
     Args:
@@ -408,7 +408,7 @@ def calc_twiss(
             first element. Defaults to None.
         indices (str, optional): 'open' or 'closed'. Defaults to 'open'.
         energy_offset (float, optional): float denoting the energy deviation
-            (used only for periodic solutions). Defaults to None.
+            (used only for periodic solutions). Defaults to 0.0.
 
     Raises:
         pyaccel.tracking.TrackingError: When find_orbit fails to converge.
@@ -443,8 +443,7 @@ def calc_twiss(
         if fixed_point is None:
             _closed_orbit = _trackcpp.CppDoublePosVector()
             _fixed_point_guess = _trackcpp.CppDoublePos()
-            if energy_offset is not None:
-                _fixed_point_guess.de = energy_offset
+            _fixed_point_guess.de = energy_offset
 
             if not accelerator.cavity_on and not accelerator.radiation_on:
                 r = _trackcpp.track_findorbit4(
@@ -465,8 +464,7 @@ def calc_twiss(
 
         else:
             _fixed_point = _tracking._Numpy2CppDoublePos(fixed_point)
-            if energy_offset is not None:
-                _fixed_point.de = energy_offset
+            _fixed_point.de = energy_offset
 
         _init_twiss = _trackcpp.Twiss()
 
