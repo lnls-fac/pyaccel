@@ -359,7 +359,7 @@ def line_pass(
     accelerator: _Accelerator,
     particles,
     indices=None,
-    element_offset: float = 0,
+    element_offset: int = 0,
     parallel=False
 ):
     """Track particle(s) along an accelerator.
@@ -492,11 +492,6 @@ def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
         args.indices.push_back(int(idx))
     args.element_offset = int(element_offset)
 
-    args.line_length = accelerator.trackcpp_acc.get_time_aware_elements_info(
-        args.time_aware_element_indices,
-        args.time_aware_element_positions
-    )
-
     p_in = p_in.copy()
     n_part = p_in.shape[1]
     p_out = _np.zeros((6, n_part * len(indices)), dtype=float)
@@ -527,7 +522,7 @@ def ring_pass(
     particles,
     nr_turns: int = 1,
     turn_by_turn: bool = False,
-    element_offset: float = 0,
+    element_offset: int = 0,
     parallel=False
 ):
     """Track particle(s) along a ring.
@@ -933,12 +928,12 @@ def find_m66(
     else:
         trackcpp_idx.push_back(len(accelerator))
 
-    timeaware_element_indices = _trackcpp.CppUnsigIntVector()
-    timeaware_element_positions = _trackcpp.CppDoubleVector()
-    linelength = accelerator.trackcpp_acc.get_time_aware_elements_info(
-        timeaware_element_indices,
-        timeaware_element_positions
-    )
+    # timeaware_element_indices = _trackcpp.CppUnsigIntVector()
+    # timeaware_element_positions = _trackcpp.CppDoubleVector()
+    # linelength = accelerator.trackcpp_acc.get_time_aware_elements_info(
+    #     timeaware_element_indices,
+    #     timeaware_element_positions
+    # )
 
     if fixed_point is None:
         # Closed orbit is calculated by trackcpp
@@ -962,10 +957,10 @@ def find_m66(
         cumul_trans_matrices,
         m66,
         _v0,
-        trackcpp_idx,
-        linelength,
-        timeaware_element_indices,
-        timeaware_element_positions)
+        trackcpp_idx)
+        # linelength,
+        # timeaware_element_indices,
+        # timeaware_element_positions)
     if ret > 0:
         raise TrackingError(_trackcpp.string_error_messages[ret])
 
@@ -1035,12 +1030,12 @@ def find_m44(
         _closed_orbit = _trackcpp.CppDoublePosVector()
         _closed_orbit.push_back(_fixed_point)
 
-    timeaware_element_indices = _trackcpp.CppUnsigIntVector()
-    timeaware_element_positions = _trackcpp.CppDoubleVector()
-    linelength = accelerator.trackcpp_acc.get_time_aware_elements_info(
-        timeaware_element_indices,
-        timeaware_element_positions
-    )
+    # timeaware_element_indices = _trackcpp.CppUnsigIntVector()
+    # timeaware_element_positions = _trackcpp.CppDoubleVector()
+    # linelength = accelerator.trackcpp_acc.get_time_aware_elements_info(
+    #     timeaware_element_indices,
+    #     timeaware_element_positions
+    # )
 
     cumul_trans_matrices = _np.zeros((trackcpp_idx.size(), 4, 4), dtype=float)
     m44 = _np.zeros((4, 4), dtype=float)
@@ -1051,10 +1046,10 @@ def find_m44(
         cumul_trans_matrices,
         m44,
         _v0,
-        trackcpp_idx,
-        linelength,
-        timeaware_element_indices,
-        timeaware_element_positions)
+        trackcpp_idx)
+        # linelength,
+        # timeaware_element_indices,
+        # timeaware_element_positions)
     if ret > 0:
         raise TrackingError(_trackcpp.string_error_messages[ret])
 
