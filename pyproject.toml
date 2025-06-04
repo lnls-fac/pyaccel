@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyaccel"
+authors = [{ name = "lnls-fac" } ]
+description = "High level Accelerator Physics package"
+readme = "README.md" 
+dynamic = ["version"]
+requires-python = ">=3.6"
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+]
+license = "MIT"
+license-files= [ "LICENSE", ]
+dependencies = [
+    "trackcpp>=4.10.5",
+    "numpy>=1.8",
+    "mathphys>=0.7",
+    "matplotlib>=1.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/lnls-fac/pyaccel"
+Download = "https://github.com/lnls-fac/pyaccel"
+
+# --- Configurações específicas do Setuptools --- 
+[tool.setuptools]
+include-package-data = true 
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+[tool.setuptools.package-data]
+pyaccel = ["VERSION", "data/d_touschek.npz"]
+
