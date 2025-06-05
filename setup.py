@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 
 
 def get_abs_path(relative):
-        return str(pathlib.Path(__file__).parent / relative)
+    return str(pathlib.Path(__file__).parent / relative)
 
 
 with open(get_abs_path("README.md"), "r") as _f:
