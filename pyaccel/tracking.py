@@ -697,7 +697,7 @@ def _ring_pass(
 @_interactive
 def find_orbit4(
     accelerator: _Accelerator,
-    energy_offset=None,
+    energy_offset=0.0,
     indices=None,
     fixed_point_guess=None
 ):
@@ -823,7 +823,7 @@ def find_orbit6(
 @_interactive
 def find_orbit(
     accelerator: _Accelerator,
-    energy_offset=None,
+    energy_offset=0.0,
     indices=None,
     fixed_point_guess=None
 ):
@@ -867,7 +867,6 @@ def find_orbit(
 
     """
     if not accelerator.cavity_on and not accelerator.radiation_on:
-        energy_offset = energy_offset or 0.0
         orb = find_orbit4(
             accelerator,
             indices=indices,

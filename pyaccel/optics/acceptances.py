@@ -437,11 +437,10 @@ def _calc_dyn_apert_for_touschek(
     rin[4, :] = orb6d[4] + ener.ravel()
     rin[5, :] = orb6d[5]
 
-    *_, lost_plane = _tracking.ring_pass(
-        accelerator, rin, nturns, turn_by_turn=False, parallel=parallel)
-    lost_plane = _np.reshape(lost_plane, curh0.shape)
-    lost = lost_plane != None  # noqa: E711
-
+    _, loss_info = _tracking.ring_pass(
+        accelerator, rin, nturns, turn_by_turn=False, parallel=parallel
+    )
+    lost = _np.reshape(loss_info.lost_flag, curh0.shape)
     ind_dyn = _np.argmax(lost, axis=1)
     ap_dyn = curh[ind_dyn]
     return ap_dyn
