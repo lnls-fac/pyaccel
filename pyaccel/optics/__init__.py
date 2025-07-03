@@ -1,7 +1,7 @@
 """Optics subpackage."""
 
-from .acceptances import calc_touschek_energy_acceptance, \
-    calc_transverse_acceptance
+from .acceptances import calc_beam_stay_clear, \
+    calc_touschek_energy_acceptance, calc_transverse_acceptance
 from .beam_envelope import calc_beamenvelope, EqParamsFromBeamEnvelope
 from .driving_terms import FirstOrderDrivingTerms
 from .edwards_teng import calc_edwards_teng, EdwardsTeng, EdwardsTengArray, \
