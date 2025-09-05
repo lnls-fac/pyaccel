@@ -673,9 +673,10 @@ def calc_edwards_teng(
     if init_edteng is not None:
         if energy_offset:
             raise _OpticsError(
-                'energy_offset and init_teng are mutually '
-                'exclusive options. Add the desired energy deviation to the '
-                'appropriate position of init_edteng object.')
+                'energy_offset and init_teng are mutually exclusive options. '
+                'Add the desired energy deviation to the appropriate '
+                'position  of init_edteng object.'
+            )
         # as a transport line: uses init_edteng
         fixed_point = init_edteng.co
     else:
@@ -683,47 +684,59 @@ def calc_edwards_teng(
         if accelerator.harmonic_number == 0:
             raise _OpticsError(
                 'Either harmonic number was not set or calc_edwards_teng was '
-                'invoked for transport line without initial  EdwardsTeng')
+                'invoked for transport line without initial  EdwardsTeng'
+            )
         cod = _tracking.find_orbit(
-            accelerator, energy_offset=energy_offset, indices='closed')
+            accelerator, energy_offset=energy_offset, indices='closed'
+        )
         fixed_point = cod[:, 0]
 
     m44, cum_mat = _tracking.find_m44(
-        accelerator, indices='closed', fixed_point=fixed_point)
+        accelerator, indices='closed', fixed_point=fixed_point
+    )
 
     indices = _tracking._process_indices(accelerator, indices)
     edteng = EdwardsTengArray(cum_mat.shape[0])
     edteng.spos = _lattice.find_spos(accelerator, indices='closed')
 
     # Calculate initial matrices:
+    #  Based on ref [3].
     if init_edteng is None:
+        # Eqs 7 and 8
         M = m44[:2, :2]
         N = m44[2:4, 2:4]
         m = m44[2:4, :2]
         n = m44[:2, 2:4]
 
+        # Eq 86
         t = _np.trace(M - N)
 
+        # Eq 87
         m_plus_nbar = m + _symplectic_transpose(n)
         det_m_plus_nbar = _np.linalg.det(m_plus_nbar)
-
         u = _np.sign(t) * _np.sqrt(t*t + 4*det_m_plus_nbar)
-        dsqr = (1 + t/u)/2
-        W_over_d = -m_plus_nbar/(dsqr*u)
 
+        # Eq 86
+        dsqr = (1 + t/u)/2
+
+        # Eq 85
+        W_over_d = -m_plus_nbar/(dsqr*u)
         d0 = _np.sqrt(dsqr)
         W0 = -m_plus_nbar/(d0*u)
-        L10 = M - n @ W_over_d
-        L20 = N + W_over_d @ n
+
+        # Eq 85 with notation of Eq XX
+        A0 = M - n @ W_over_d
+        B0 = N + W_over_d @ n
+
         # Get initial betas and alphas. (Based on calc_twiss of trackcpp.)
-        sin_mu1 = _np.sign(L10[0, 1]) * _np.sqrt(
-            -L10[0, 1]*L10[1, 0] - (L10[0, 0] - L10[1, 1])**2/4.0)
-        sin_mu2 = _np.sign(L20[0, 1]) * _np.sqrt(
-            -L20[0, 1]*L20[1, 0] - (L20[0, 0] - L20[1, 1])**2/4.0)
-        alpha10 = (L10[0, 0] - L10[1, 1])/2/sin_mu1
-        alpha20 = (L20[0, 0] - L20[1, 1])/2/sin_mu2
-        beta10 = L10[0, 1]/sin_mu1
-        beta20 = L20[0, 1]/sin_mu2
+        sin_mu1 = _np.sign(A0[0, 1]) * _np.sqrt(
+            -A0[0, 1]*A0[1, 0] - (A0[0, 0] - A0[1, 1])**2/4.0)
+        sin_mu2 = _np.sign(B0[0, 1]) * _np.sqrt(
+            -B0[0, 1]*B0[1, 0] - (B0[0, 0] - B0[1, 1])**2/4.0)
+        alpha10 = (A0[0, 0] - A0[1, 1])/2/sin_mu1
+        alpha20 = (B0[0, 0] - B0[1, 1])/2/sin_mu2
+        beta10 = A0[0, 1]/sin_mu1
+        beta20 = B0[0, 1]/sin_mu2
     else:
         W0 = init_edteng.W
         d0 = init_edteng.d
@@ -734,7 +747,7 @@ def calc_edwards_teng(
 
     # #### Determine Twiss Parameters of uncoupled motion #########
     # First get the initial transfer matrices decompositions.
-    # (This method is based on equation 367 of ref[3])
+    # Eq 362
     M11 = cum_mat[:, :2, :2]
     M12 = cum_mat[:, :2, 2:4]
     M21 = cum_mat[:, 2:4, :2]
@@ -748,6 +761,10 @@ def calc_edwards_teng(
     L2 = (d0 * M22 + M21 @ _symplectic_transpose(W0)) / d[:, None, None]
     # Eq 368
     edteng.W = -(d0 * M21 - M22 @ W0) @ _symplectic_transpose(L1)
+
+    # Eq 369: we don't need to calculate this.
+    # A = L1 @ A0 @ _symplectic_transpose(L1)
+    # B = L2 @ B0 @ _symplectic_transpose(L2)
 
     # Get optical functions along the ring (Based on calc_twiss of trackcpp):
     edteng.beta1 = (
@@ -782,15 +799,18 @@ def calc_edwards_teng(
             accelerator, energy_offset=fixed_point[4]+dp, indices='closed')
     else:
         cod, *_ = _tracking.line_pass(
-            accelerator, fixed_point, indices='closed')
+            accelerator, fixed_point, indices='closed'
+        )
         etas_norm = _np.array([
             init_edteng.eta1, init_edteng.etap1,
-            init_edteng.eta2, init_edteng.etap2])
+            init_edteng.eta2, init_edteng.etap2
+        ])
         etas = init_edteng.from_normal_modes(etas_norm)
         fixed_point[:4] += dp * etas
         fixed_point[4] += dp
         coddp, *_ = _tracking.line_pass(
-            accelerator, fixed_point, indices='closed')
+            accelerator, fixed_point, indices='closed'
+        )
 
     eta = (coddp - cod) / dp
     eta = edteng.to_normal_modes(eta)
@@ -890,6 +910,7 @@ def _trans(a):
 
 
 def _symplectic_transpose(a):
+    """Definition in Eq 15 of ref [3]."""
     if len(a.shape) >= 3:
         return -_S @ _trans(a) @ _S
     else:
