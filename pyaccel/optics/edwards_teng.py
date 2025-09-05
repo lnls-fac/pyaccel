@@ -662,19 +662,16 @@ def calc_edwards_teng(
         numpy.ndarray (4x4): transfer matrix of the line/ring
 
     """
-    # Since Edwards and Teng decomposition is restricted to Symplectic 4D
-    # motion, we need to turn off cavity and radiation here:
-    cav_stt = accelerator.cavity_on
-    rad_stt = accelerator.radiation_on
-    accelerator.cavity_on = False
-    accelerator.radiation_on = 'off'
+    acc = accelerator
+    if acc.cavity_on or acc.radiation_on:
+        raise RuntimeError(
+            'Edwards and Teng decomposition is restricted to symplectic 4D '
+            'motion. Please turn off `cavity_on` and `radiation_on` flags.'
+        )
 
     cod = None
     if init_edteng is not None:
         if energy_offset:
-            # Turn cavity and radiation states back to their original values.
-            accelerator.cavity_on = cav_stt
-            accelerator.radiation_on = rad_stt
             raise _OpticsError(
                 'energy_offset and init_teng are mutually '
                 'exclusive options. Add the desired energy deviation to the '
@@ -684,9 +681,6 @@ def calc_edwards_teng(
     else:
         # as a periodic system: try to find periodic solution
         if accelerator.harmonic_number == 0:
-            # Turn cavity and radiation states back to their original values.
-            accelerator.cavity_on = cav_stt
-            accelerator.radiation_on = rad_stt
             raise _OpticsError(
                 'Either harmonic number was not set or calc_edwards_teng was '
                 'invoked for transport line without initial  EdwardsTeng')
@@ -805,10 +799,6 @@ def calc_edwards_teng(
     edteng.etap1 = eta[1]
     edteng.eta2 = eta[2]
     edteng.etap2 = eta[3]
-
-    # Turn cavity and radiation states back to their original values.
-    accelerator.cavity_on = cav_stt
-    accelerator.radiation_on = rad_stt
 
     return edteng[indices], m44
 
