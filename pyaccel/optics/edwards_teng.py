@@ -58,13 +58,32 @@ class EdwardsTeng(_np.record):
     """
 
     DTYPE = '<f8'
-    ORDER = _get_namedtuple('Order', field_names=[
-        'spos',
-        'beta1', 'alpha1', 'mu1',
-        'beta2', 'alpha2', 'mu2',
-        'W_11', 'W_12', 'W_21', 'W_22',
-        'eta1', 'etap1', 'eta2', 'etap2',
-        'rx', 'px', 'ry', 'py', 'de', 'dl'])
+    ORDER = _get_namedtuple(
+        'Order',
+        field_names=[
+            'spos',
+            'beta1',
+            'alpha1',
+            'mu1',
+            'beta2',
+            'alpha2',
+            'mu2',
+            'W_11',
+            'W_12',
+            'W_21',
+            'W_22',
+            'eta1',
+            'etap1',
+            'eta2',
+            'etap2',
+            'rx',
+            'px',
+            'ry',
+            'py',
+            'de',
+            'dl',
+        ],
+    )
 
     def __setattr__(self, attr, val):
         """."""
@@ -76,16 +95,16 @@ class EdwardsTeng(_np.record):
     def __str__(self):
         """."""
         rst = ''
-        rst += 'spos          : '+'{0:+10.3e}'.format(self.spos)
+        rst += 'spos          : ' + '{0:+10.3e}'.format(self.spos)
         fmt = '{0:+10.3e}, {1:+10.3e}'
-        rst += '\nrx, ry        : '+fmt.format(self.rx, self.ry)
-        rst += '\npx, py        : '+fmt.format(self.px, self.py)
-        rst += '\nde, dl        : '+fmt.format(self.de, self.dl)
-        rst += '\nmu1, mu2      : '+fmt.format(self.mu1, self.mu2)
-        rst += '\nbeta1, beta2  : '+fmt.format(self.beta1, self.beta2)
-        rst += '\nalpha1, alpha2: '+fmt.format(self.alpha1, self.alpha2)
-        rst += '\neta1, eta2    : '+fmt.format(self.eta1, self.eta2)
-        rst += '\netap1, etap2  : '+fmt.format(self.etap1, self.etap2)
+        rst += '\nrx, ry        : ' + fmt.format(self.rx, self.ry)
+        rst += '\npx, py        : ' + fmt.format(self.px, self.py)
+        rst += '\nde, dl        : ' + fmt.format(self.de, self.dl)
+        rst += '\nmu1, mu2      : ' + fmt.format(self.mu1, self.mu2)
+        rst += '\nbeta1, beta2  : ' + fmt.format(self.beta1, self.beta2)
+        rst += '\nalpha1, alpha2: ' + fmt.format(self.alpha1, self.alpha2)
+        rst += '\neta1, eta2    : ' + fmt.format(self.eta1, self.eta2)
+        rst += '\netap1, etap2  : ' + fmt.format(self.etap1, self.etap2)
         return rst
 
     @property
@@ -97,8 +116,9 @@ class EdwardsTeng(_np.record):
                 calculated.
 
         """
-        return _np.array([
-            self.rx, self.px, self.ry, self.py, self.de, self.dl])
+        return _np.array(
+            [self.rx, self.px, self.ry, self.py, self.de, self.dl]
+        )
 
     @property
     def W(self):
@@ -136,9 +156,9 @@ class EdwardsTeng(_np.record):
 
         """
         deyes = self.d * _np.eye(2)
-        return _np.block([
-            [deyes, _symplectic_transpose(self.W)],
-            [-self.W, deyes]])
+        return _np.block(
+            [[deyes, _symplectic_transpose(self.W)], [-self.W, deyes]]
+        )
 
     @property
     def Rinv(self):
@@ -149,9 +169,9 @@ class EdwardsTeng(_np.record):
 
         """
         deyes = self.d * _np.eye(2)
-        return _np.block([
-            [deyes, -_symplectic_transpose(self.W)],
-            [self.W, deyes]])
+        return _np.block(
+            [[deyes, -_symplectic_transpose(self.W)], [self.W, deyes]]
+        )
 
     def from_normal_modes(self, pos):
         """Transform from normal modes to XY plane.
@@ -194,8 +214,13 @@ class EdwardsTeng(_np.record):
         etap = [self.etap1, self.etap2]
         mus = [self.mu1, self.mu2]
         return {
-            'co': cod, 'beta': beta, 'alpha': alpha,
-            'eta': eta, 'etap': etap, 'mu': mus}
+            'co': cod,
+            'beta': beta,
+            'alpha': alpha,
+            'eta': eta,
+            'etap': etap,
+            'mu': mus,
+        }
 
     @staticmethod
     def make_new(*args, **kwrgs):
@@ -204,7 +229,7 @@ class EdwardsTeng(_np.record):
             if isinstance(args[0], dict):
                 kwrgs = args[0]
         twi = EdwardsTengArray(1)
-        cod = kwrgs.get('co', (0.0,)*6)
+        cod = kwrgs.get('co', (0.0,) * 6)
         twi['rx'], twi['px'], twi['ry'], twi['py'], twi['de'], twi['dl'] = cod
         twi['mu1'], twi['mu2'] = kwrgs.get('mu', (0.0, 0.0))
         twi['beta1'], twi['beta2'] = kwrgs.get('beta', (0.0, 0.0))
@@ -219,7 +244,7 @@ class EdwardsTeng(_np.record):
             leng = len(value)
         except TypeError:
             leng = 6
-            value = [value, ]*leng
+            value = [value] * leng
         if leng != 6:
             raise ValueError('closed orbit must have 6 elements.')
         self[EdwardsTeng.ORDER.rx] = value[0]
@@ -280,17 +305,20 @@ class EdwardsTengArray(_np.ndarray):
 
         if edteng is None:
             arr = _np.zeros(
-                (length, len(EdwardsTeng.ORDER)), dtype=EdwardsTeng.DTYPE)
+                (length, len(EdwardsTeng.ORDER)), dtype=EdwardsTeng.DTYPE
+            )
         elif isinstance(edteng, _np.ndarray):
             arr = edteng.copy() if copy else edteng
         elif isinstance(edteng, _np.record):
             arr = _np.ndarray(
-                (edteng.size, len(EdwardsTeng.ORDER)), buffer=edteng.data)
+                (edteng.size, len(EdwardsTeng.ORDER)), buffer=edteng.data
+            )
             arr = arr.copy() if copy else arr
 
         fmts = [(fmt, EdwardsTeng.DTYPE) for fmt in EdwardsTeng.ORDER._fields]
         return super().__new__(
-            cls, shape=(arr.shape[0], ), dtype=(EdwardsTeng, fmts), buffer=arr)
+            cls, shape=(arr.shape[0],), dtype=(EdwardsTeng, fmts), buffer=arr
+        )
 
     @property
     def spos(self):
@@ -322,7 +350,7 @@ class EdwardsTengArray(_np.ndarray):
     @property
     def gamma1(self):
         """."""
-        return (1 + self['alpha1']*self['alpha1'])/self['beta1']
+        return (1 + self['alpha1'] * self['alpha1']) / self['beta1']
 
     @property
     def mu1(self):
@@ -354,7 +382,7 @@ class EdwardsTengArray(_np.ndarray):
     @property
     def gamma2(self):
         """."""
-        return (1 + self['alpha2']*self['alpha2'])/self['beta2']
+        return (1 + self['alpha2'] * self['alpha2']) / self['beta2']
 
     @property
     def mu2(self):
@@ -431,7 +459,7 @@ class EdwardsTengArray(_np.ndarray):
             numpy.ndarray (N, ): d from ref [3].
 
         """
-        return _np.sqrt(1-_np.linalg.det(self.W))
+        return _np.sqrt(1 - _np.linalg.det(self.W))
 
     @property
     def R(self):
@@ -442,9 +470,9 @@ class EdwardsTengArray(_np.ndarray):
 
         """
         deyes = self.d[:, None, None] * _np.eye(2)
-        return _np.block([
-            [deyes, _symplectic_transpose(self.W)],
-            [-self.W, deyes]])
+        return _np.block(
+            [[deyes, _symplectic_transpose(self.W)], [-self.W, deyes]]
+        )
 
     @property
     def Rinv(self):
@@ -455,9 +483,9 @@ class EdwardsTengArray(_np.ndarray):
 
         """
         deyes = self.d[:, None, None] * _np.eye(2)
-        return _np.block([
-            [deyes, -_symplectic_transpose(self.W)],
-            [self.W, deyes]])
+        return _np.block(
+            [[deyes, -_symplectic_transpose(self.W)], [self.W, deyes]]
+        )
 
     def from_normal_modes(self, pos):
         """Transform from normal modes to XY plane.
@@ -590,8 +618,9 @@ class EdwardsTengArray(_np.ndarray):
                 calculated.
 
         """
-        return _np.array([
-            self.rx, self.px, self.ry, self.py, self.de, self.dl])
+        return _np.array(
+            [self.rx, self.px, self.ry, self.py, self.de, self.dl]
+        )
 
     @co.setter
     def co(self, value):
@@ -607,22 +636,26 @@ class EdwardsTengArray(_np.ndarray):
             for val in edteng_list:
                 if not isinstance(val, (EdwardsTeng, EdwardsTengArray)):
                     raise _OpticsError(
-                        'can only compose lists of Twiss objects.')
+                        'can only compose lists of Twiss objects.'
+                    )
         else:
             raise _OpticsError('can only compose lists of Twiss objects.')
 
         arrs = list()
         for val in edteng_list:
-            arrs.append(_np.ndarray(
-                (val.size, len(EdwardsTeng.ORDER)), buffer=val.data))
+            arrs.append(
+                _np.ndarray(
+                    (val.size, len(EdwardsTeng.ORDER)), buffer=val.data
+                )
+            )
         arrs = _np.vstack(arrs)
         return EdwardsTengArray(arrs)
 
 
 @_interactive
 def calc_edwards_teng(
-        accelerator=None, init_edteng=None, indices='open',
-        energy_offset=0.0):
+    accelerator=None, init_edteng=None, indices='open', energy_offset=0.0
+):
     """Perform linear analysis of coupled lattices.
 
     Notation is the same as in reference [3]
@@ -714,15 +747,15 @@ def calc_edwards_teng(
         # Eq 87
         m_plus_nbar = m + _symplectic_transpose(n)
         det_m_plus_nbar = _np.linalg.det(m_plus_nbar)
-        u = _np.sign(t) * _np.sqrt(t*t + 4*det_m_plus_nbar)
+        u = _np.sign(t) * _np.sqrt(t * t + 4 * det_m_plus_nbar)
 
         # Eq 86
-        dsqr = (1 + t/u)/2
+        dsqr = (1 + t / u) / 2
 
         # Eq 85
-        W_over_d = -m_plus_nbar/(dsqr*u)
+        W_over_d = -m_plus_nbar / (dsqr * u)
         d0 = _np.sqrt(dsqr)
-        W0 = -m_plus_nbar/(d0*u)
+        W0 = -m_plus_nbar / (d0 * u)
 
         # Eq 85 with notation of Eq XX
         A0 = M - n @ W_over_d
@@ -730,13 +763,15 @@ def calc_edwards_teng(
 
         # Get initial betas and alphas. (Based on calc_twiss of trackcpp.)
         sin_mu1 = _np.sign(A0[0, 1]) * _np.sqrt(
-            -A0[0, 1]*A0[1, 0] - (A0[0, 0] - A0[1, 1])**2/4.0)
+            -A0[0, 1] * A0[1, 0] - (A0[0, 0] - A0[1, 1]) ** 2 / 4.0
+        )
         sin_mu2 = _np.sign(B0[0, 1]) * _np.sqrt(
-            -B0[0, 1]*B0[1, 0] - (B0[0, 0] - B0[1, 1])**2/4.0)
-        alpha10 = (A0[0, 0] - A0[1, 1])/2/sin_mu1
-        alpha20 = (B0[0, 0] - B0[1, 1])/2/sin_mu2
-        beta10 = A0[0, 1]/sin_mu1
-        beta20 = B0[0, 1]/sin_mu2
+            -B0[0, 1] * B0[1, 0] - (B0[0, 0] - B0[1, 1]) ** 2 / 4.0
+        )
+        alpha10 = (A0[0, 0] - A0[1, 1]) / 2 / sin_mu1
+        alpha20 = (B0[0, 0] - B0[1, 1]) / 2 / sin_mu2
+        beta10 = A0[0, 1] / sin_mu1
+        beta20 = B0[0, 1] / sin_mu2
     else:
         W0 = init_edteng.W
         d0 = init_edteng.d
@@ -768,21 +803,33 @@ def calc_edwards_teng(
 
     # Get optical functions along the ring (Based on calc_twiss of trackcpp):
     edteng.beta1 = (
-        (L1[:, 0, 0]*beta10 - L1[:, 0, 1]*alpha10)**2 + L1[:, 0, 1]**2)/beta10
+        (L1[:, 0, 0] * beta10 - L1[:, 0, 1] * alpha10) ** 2 + L1[:, 0, 1] ** 2
+    ) / beta10
     edteng.beta2 = (
-        (L2[:, 0, 0]*beta20 - L2[:, 0, 1]*alpha20)**2 + L2[:, 0, 1]**2)/beta20
-    edteng.alpha1 = -(
-        (L1[:, 0, 0]*beta10 - L1[:, 0, 1]*alpha10) *
-        (L1[:, 1, 0]*beta10 - L1[:, 1, 1]*alpha10) +
-        L1[:, 0, 1]*L1[:, 1, 1])/beta10
-    edteng.alpha2 = -(
-        (L2[:, 0, 0]*beta20 - L2[:, 0, 1]*alpha20) *
-        (L2[:, 1, 0]*beta20 - L2[:, 1, 1]*alpha20) +
-        L2[:, 0, 1]*L2[:, 1, 1])/beta20
-    mu1 = _np.arctan(L1[:, 0, 1]/(
-        L1[:, 0, 0]*beta10 - L1[:, 0, 1]*alpha10))
-    mu2 = _np.arctan(L2[:, 0, 1]/(
-        L2[:, 0, 0]*beta20 - L2[:, 0, 1]*alpha20))
+        (L2[:, 0, 0] * beta20 - L2[:, 0, 1] * alpha20) ** 2 + L2[:, 0, 1] ** 2
+    ) / beta20
+    edteng.alpha1 = (
+        -(
+            (L1[:, 0, 0] * beta10 - L1[:, 0, 1] * alpha10)
+            * (L1[:, 1, 0] * beta10 - L1[:, 1, 1] * alpha10)
+            + L1[:, 0, 1] * L1[:, 1, 1]
+        )
+        / beta10
+    )
+    edteng.alpha2 = (
+        -(
+            (L2[:, 0, 0] * beta20 - L2[:, 0, 1] * alpha20)
+            * (L2[:, 1, 0] * beta20 - L2[:, 1, 1] * alpha20)
+            + L2[:, 0, 1] * L2[:, 1, 1]
+        )
+        / beta20
+    )
+    mu1 = _np.arctan(
+        L1[:, 0, 1] / (L1[:, 0, 0] * beta10 - L1[:, 0, 1] * alpha10)
+    )
+    mu2 = _np.arctan(
+        L2[:, 0, 1] / (L2[:, 0, 0] * beta20 - L2[:, 0, 1] * alpha20)
+    )
     # unwrap phases
     summ = _np.zeros(mu1.size)
     _np.cumsum(_np.diff(mu1) < 0, out=summ[1:])
@@ -796,15 +843,20 @@ def calc_edwards_teng(
     dp = 1e-6
     if cod is not None:
         coddp = _tracking.find_orbit(
-            accelerator, energy_offset=fixed_point[4]+dp, indices='closed')
+            accelerator, energy_offset=fixed_point[4] + dp, indices='closed'
+        )
     else:
         cod, *_ = _tracking.line_pass(
             accelerator, fixed_point, indices='closed'
         )
-        etas_norm = _np.array([
-            init_edteng.eta1, init_edteng.etap1,
-            init_edteng.eta2, init_edteng.etap2
-        ])
+        etas_norm = _np.array(
+            [
+                init_edteng.eta1,
+                init_edteng.etap1,
+                init_edteng.eta2,
+                init_edteng.etap2,
+            ]
+        )
         etas = init_edteng.from_normal_modes(etas_norm)
         fixed_point[:4] += dp * etas
         fixed_point[4] += dp
@@ -873,13 +925,13 @@ def estimate_coupling_parameters(edteng_end):
     # ###### Estimative of emittance ratio #######
 
     # Equations 216 and 217 of ref [3]
-    D2 = edt.beta2*edt.W_22**2 + 2*edt.alpha2*edt.W_22*edt.W_12
-    D1 = edt.beta1*edt.W_11**2 - 2*edt.alpha1*edt.W_11*edt.W_12
-    D2 += edt.gamma2*edt.W_12**2
-    D1 += edt.gamma1*edt.W_12**2
+    D2 = edt.beta2 * edt.W_22**2 + 2 * edt.alpha2 * edt.W_22 * edt.W_12
+    D1 = edt.beta1 * edt.W_11**2 - 2 * edt.alpha1 * edt.W_11 * edt.W_12
+    D2 += edt.gamma2 * edt.W_12**2
+    D1 += edt.gamma1 * edt.W_12**2
 
     # Equation 237 of ref [3]
-    ratio = 1/edt.d**2 * _np.sqrt(D1*D2/edt.beta1/edt.beta2)
+    ratio = 1 / edt.d**2 * _np.sqrt(D1 * D2 / edt.beta1 / edt.beta2)
 
     # # This second formula is based on equation 258 of ref [3] which is
     # # approximately valid for weak coupling:
@@ -890,13 +942,14 @@ def estimate_coupling_parameters(edteng_end):
     # from equations 85, 86 and 89 of ref [3]:
     edt = edt[-1]
     dsqr = edt.d * edt.d
-    U = 2*(_np.cos(edt.mu1) - _np.cos(edt.mu2))
-    det_m_plus_nbar = U*U*dsqr*(1-dsqr)
+    U = 2 * (_np.cos(edt.mu1) - _np.cos(edt.mu2))
+    det_m_plus_nbar = U * U * dsqr * (1 - dsqr)
 
-    mu0 = ((edt.mu1 % (2*_np.pi)) + (edt.mu2 % (2*_np.pi)))/2
-    min_tunesep = 2*_np.arcsin(
-        _np.sqrt(_np.abs(det_m_plus_nbar))/_np.sin(mu0)/2)
-    min_tunesep /= 2*_np.pi
+    mu0 = ((edt.mu1 % (2 * _np.pi)) + (edt.mu2 % (2 * _np.pi))) / 2
+    min_tunesep = 2 * _np.arcsin(
+        _np.sqrt(_np.abs(det_m_plus_nbar)) / _np.sin(mu0) / 2
+    )
+    min_tunesep /= 2 * _np.pi
 
     return min_tunesep, ratio
 
