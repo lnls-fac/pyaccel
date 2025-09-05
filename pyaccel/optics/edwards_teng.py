@@ -714,23 +714,23 @@ def calc_edwards_teng(
         fixed_point = init_edteng.co
     else:
         # as a periodic system: try to find periodic solution
-        if accelerator.harmonic_number == 0:
+        if acc.harmonic_number == 0:
             raise _OpticsError(
                 'Either harmonic number was not set or calc_edwards_teng was '
                 'invoked for transport line without initial  EdwardsTeng'
             )
         cod = _tracking.find_orbit(
-            accelerator, energy_offset=energy_offset, indices='closed'
+            acc, energy_offset=energy_offset, indices='closed'
         )
         fixed_point = cod[:, 0]
 
     m44, cum_mat = _tracking.find_m44(
-        accelerator, indices='closed', fixed_point=fixed_point
+        acc, indices='closed', fixed_point=fixed_point
     )
 
-    indices = _tracking._process_indices(accelerator, indices)
+    indices = _tracking._process_indices(acc, indices)
     edteng = EdwardsTengArray(cum_mat.shape[0])
-    edteng.spos = _lattice.find_spos(accelerator, indices='closed')
+    edteng.spos = _lattice.find_spos(acc, indices='closed')
 
     # Calculate initial matrices:
     #  Based on ref [3].
@@ -843,12 +843,10 @@ def calc_edwards_teng(
     dp = 1e-6
     if cod is not None:
         coddp = _tracking.find_orbit(
-            accelerator, energy_offset=fixed_point[4] + dp, indices='closed'
+            acc, energy_offset=fixed_point[4] + dp, indices='closed'
         )
     else:
-        cod, *_ = _tracking.line_pass(
-            accelerator, fixed_point, indices='closed'
-        )
+        cod, *_ = _tracking.line_pass(acc, fixed_point, indices='closed')
         etas_norm = _np.array(
             [
                 init_edteng.eta1,
@@ -860,9 +858,7 @@ def calc_edwards_teng(
         etas = init_edteng.from_normal_modes(etas_norm)
         fixed_point[:4] += dp * etas
         fixed_point[4] += dp
-        coddp, *_ = _tracking.line_pass(
-            accelerator, fixed_point, indices='closed'
-        )
+        coddp, *_ = _tracking.line_pass(acc, fixed_point, indices='closed')
 
     eta = (coddp - cod) / dp
     eta = edteng.to_normal_modes(eta)
