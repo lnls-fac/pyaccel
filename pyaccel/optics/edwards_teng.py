@@ -717,7 +717,7 @@ def calc_edwards_teng(
                 'invoked for transport line without initial  EdwardsTeng')
         cod = _tracking.find_orbit(
             accelerator, energy_offset=energy_offset, indices='closed')
-        fixed_point = cod[0]
+        fixed_point = cod[:, 0]
 
     m44, cum_mat = _tracking.find_m44(
         accelerator, indices='closed', fixed_point=fixed_point)
