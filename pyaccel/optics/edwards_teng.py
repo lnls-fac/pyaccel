@@ -770,9 +770,15 @@ def calc_edwards_teng(
     M12 = cum_mat[:, :2, 2:4]
     M21 = cum_mat[:, 2:4, :2]
     M22 = cum_mat[:, 2:4, 2:4]
-    L1 = (d0*M11 - M12@W0) / d0
-    L2 = (d0*M22 + M21@_symplectic_transpose(W0)) / d0
-    edteng.W = -(d0*M21 - M22@W0)@_symplectic_transpose(L1)
+
+    # Eq 366
+    L1_unnorm = d0 * M11 - M12 @ W0
+    d = _np.sqrt(_np.linalg.det(L1_unnorm))
+    # Eq 367
+    L1 = L1_unnorm / d[:, None, None]
+    L2 = (d0 * M22 + M21 @ _symplectic_transpose(W0)) / d[:, None, None]
+    # Eq 368
+    edteng.W = -(d0 * M21 - M22 @ W0) @ _symplectic_transpose(L1)
 
     # Get optical functions along the ring (Based on calc_twiss of trackcpp):
     edteng.beta1 = (
