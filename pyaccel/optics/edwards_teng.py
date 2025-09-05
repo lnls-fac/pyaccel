@@ -596,7 +596,7 @@ class EdwardsTengArray(_np.ndarray):
     @co.setter
     def co(self, value):
         """."""
-        self.rx, self.py = value[0], value[1]
+        self.rx, self.px = value[0], value[1]
         self.ry, self.py = value[2], value[3]
         self.de, self.dl = value[4], value[5]
 
