@@ -662,31 +662,6 @@ def calc_edwards_teng(
         numpy.ndarray (4x4): transfer matrix of the line/ring
 
     """
-    # TODO:
-    # Inconsistencies found when comparing optics obtained by providing
-    # `calc_edwards_teng` with an energy-offset vs those obtained by providing
-    # the function with an initial edteng object.
-    # The snipped below should replicate the discrepancies:
-
-    # >> import numpy as np
-    # >> import pyaccel as pa
-    # >> from pymodels import si
-    # >> model = si.create_accelerator()
-    # >> model = si.fitted_models.vertical_dispersion_and_coupling(model)
-    # >> init_edteng = pa.optics.calc_edwards_teng(
-    # >>    model, energy_offset=1e-2
-    # >> )[0][0]
-    # >> edteng, _ = pa.optics.calc_edwards_teng(
-    # >>    model, energy_offset=1e-2
-    # >> )
-    # >> edteng_, _ = pa.optics.calc_edwards_teng(
-    # >>    model, init_edteng=init_edteng
-    # >> )
-    # >> np.allclose(edteng.beta1, edteng_.beta1)
-    # >> False
-    # >> np.allclose(edteng.eta1, edteng_.eta1)
-    # >> False
-
     # Since Edwards and Teng decomposition is restricted to Symplectic 4D
     # motion, we need to turn off cavity and radiation here:
     cav_stt = accelerator.cavity_on
