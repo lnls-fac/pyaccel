@@ -757,7 +757,7 @@ def calc_edwards_teng(
         d0 = _np.sqrt(dsqr)
         W0 = -m_plus_nbar / (d0 * u)
 
-        # Eq 85 with notation of Eq XX
+        # Eq 85
         A0 = M - n @ W_over_d
         B0 = N + W_over_d @ n
 
