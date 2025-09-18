@@ -58,13 +58,32 @@ class EdwardsTeng(_np.record):
     """
 
     DTYPE = '<f8'
-    ORDER = _get_namedtuple('Order', field_names=[
-        'spos',
-        'beta1', 'alpha1', 'mu1',
-        'beta2', 'alpha2', 'mu2',
-        'W_11', 'W_12', 'W_21', 'W_22',
-        'eta1', 'etap1', 'eta2', 'etap2',
-        'rx', 'px', 'ry', 'py', 'de', 'dl'])
+    ORDER = _get_namedtuple(
+        'Order',
+        field_names=[
+            'spos',
+            'beta1',
+            'alpha1',
+            'mu1',
+            'beta2',
+            'alpha2',
+            'mu2',
+            'W_11',
+            'W_12',
+            'W_21',
+            'W_22',
+            'eta1',
+            'etap1',
+            'eta2',
+            'etap2',
+            'rx',
+            'px',
+            'ry',
+            'py',
+            'de',
+            'dl',
+        ],
+    )
 
     def __setattr__(self, attr, val):
         """."""
@@ -76,16 +95,16 @@ class EdwardsTeng(_np.record):
     def __str__(self):
         """."""
         rst = ''
-        rst += 'spos          : '+'{0:+10.3e}'.format(self.spos)
+        rst += 'spos          : ' + '{0:+10.3e}'.format(self.spos)
         fmt = '{0:+10.3e}, {1:+10.3e}'
-        rst += '\nrx, ry        : '+fmt.format(self.rx, self.ry)
-        rst += '\npx, py        : '+fmt.format(self.px, self.py)
-        rst += '\nde, dl        : '+fmt.format(self.de, self.dl)
-        rst += '\nmu1, mu2      : '+fmt.format(self.mu1, self.mu2)
-        rst += '\nbeta1, beta2  : '+fmt.format(self.beta1, self.beta2)
-        rst += '\nalpha1, alpha2: '+fmt.format(self.alpha1, self.alpha2)
-        rst += '\neta1, eta2    : '+fmt.format(self.eta1, self.eta2)
-        rst += '\netap1, etap2  : '+fmt.format(self.etap1, self.etap2)
+        rst += '\nrx, ry        : ' + fmt.format(self.rx, self.ry)
+        rst += '\npx, py        : ' + fmt.format(self.px, self.py)
+        rst += '\nde, dl        : ' + fmt.format(self.de, self.dl)
+        rst += '\nmu1, mu2      : ' + fmt.format(self.mu1, self.mu2)
+        rst += '\nbeta1, beta2  : ' + fmt.format(self.beta1, self.beta2)
+        rst += '\nalpha1, alpha2: ' + fmt.format(self.alpha1, self.alpha2)
+        rst += '\neta1, eta2    : ' + fmt.format(self.eta1, self.eta2)
+        rst += '\netap1, etap2  : ' + fmt.format(self.etap1, self.etap2)
         return rst
 
     @property
@@ -97,8 +116,9 @@ class EdwardsTeng(_np.record):
                 calculated.
 
         """
-        return _np.array([
-            self.rx, self.px, self.ry, self.py, self.de, self.dl])
+        return _np.array(
+            [self.rx, self.px, self.ry, self.py, self.de, self.dl]
+        )
 
     @property
     def W(self):
@@ -136,9 +156,9 @@ class EdwardsTeng(_np.record):
 
         """
         deyes = self.d * _np.eye(2)
-        return _np.block([
-            [deyes, _symplectic_transpose(self.W)],
-            [-self.W, deyes]])
+        return _np.block(
+            [[deyes, _symplectic_transpose(self.W)], [-self.W, deyes]]
+        )
 
     @property
     def Rinv(self):
@@ -149,9 +169,9 @@ class EdwardsTeng(_np.record):
 
         """
         deyes = self.d * _np.eye(2)
-        return _np.block([
-            [deyes, -_symplectic_transpose(self.W)],
-            [self.W, deyes]])
+        return _np.block(
+            [[deyes, -_symplectic_transpose(self.W)], [self.W, deyes]]
+        )
 
     def from_normal_modes(self, pos):
         """Transform from normal modes to XY plane.
@@ -194,8 +214,13 @@ class EdwardsTeng(_np.record):
         etap = [self.etap1, self.etap2]
         mus = [self.mu1, self.mu2]
         return {
-            'co': cod, 'beta': beta, 'alpha': alpha,
-            'eta': eta, 'etap': etap, 'mu': mus}
+            'co': cod,
+            'beta': beta,
+            'alpha': alpha,
+            'eta': eta,
+            'etap': etap,
+            'mu': mus,
+        }
 
     @staticmethod
     def make_new(*args, **kwrgs):
@@ -204,7 +229,7 @@ class EdwardsTeng(_np.record):
             if isinstance(args[0], dict):
                 kwrgs = args[0]
         twi = EdwardsTengArray(1)
-        cod = kwrgs.get('co', (0.0,)*6)
+        cod = kwrgs.get('co', (0.0,) * 6)
         twi['rx'], twi['px'], twi['ry'], twi['py'], twi['de'], twi['dl'] = cod
         twi['mu1'], twi['mu2'] = kwrgs.get('mu', (0.0, 0.0))
         twi['beta1'], twi['beta2'] = kwrgs.get('beta', (0.0, 0.0))
@@ -219,7 +244,7 @@ class EdwardsTeng(_np.record):
             leng = len(value)
         except TypeError:
             leng = 6
-            value = [value, ]*leng
+            value = [value] * leng
         if leng != 6:
             raise ValueError('closed orbit must have 6 elements.')
         self[EdwardsTeng.ORDER.rx] = value[0]
@@ -280,17 +305,20 @@ class EdwardsTengArray(_np.ndarray):
 
         if edteng is None:
             arr = _np.zeros(
-                (length, len(EdwardsTeng.ORDER)), dtype=EdwardsTeng.DTYPE)
+                (length, len(EdwardsTeng.ORDER)), dtype=EdwardsTeng.DTYPE
+            )
         elif isinstance(edteng, _np.ndarray):
             arr = edteng.copy() if copy else edteng
         elif isinstance(edteng, _np.record):
             arr = _np.ndarray(
-                (edteng.size, len(EdwardsTeng.ORDER)), buffer=edteng.data)
+                (edteng.size, len(EdwardsTeng.ORDER)), buffer=edteng.data
+            )
             arr = arr.copy() if copy else arr
 
         fmts = [(fmt, EdwardsTeng.DTYPE) for fmt in EdwardsTeng.ORDER._fields]
         return super().__new__(
-            cls, shape=(arr.shape[0], ), dtype=(EdwardsTeng, fmts), buffer=arr)
+            cls, shape=(arr.shape[0],), dtype=(EdwardsTeng, fmts), buffer=arr
+        )
 
     @property
     def spos(self):
@@ -322,7 +350,7 @@ class EdwardsTengArray(_np.ndarray):
     @property
     def gamma1(self):
         """."""
-        return (1 + self['alpha1']*self['alpha1'])/self['beta1']
+        return (1 + self['alpha1'] * self['alpha1']) / self['beta1']
 
     @property
     def mu1(self):
@@ -354,7 +382,7 @@ class EdwardsTengArray(_np.ndarray):
     @property
     def gamma2(self):
         """."""
-        return (1 + self['alpha2']*self['alpha2'])/self['beta2']
+        return (1 + self['alpha2'] * self['alpha2']) / self['beta2']
 
     @property
     def mu2(self):
@@ -431,7 +459,7 @@ class EdwardsTengArray(_np.ndarray):
             numpy.ndarray (N, ): d from ref [3].
 
         """
-        return _np.sqrt(1-_np.linalg.det(self.W))
+        return _np.sqrt(1 - _np.linalg.det(self.W))
 
     @property
     def R(self):
@@ -442,9 +470,9 @@ class EdwardsTengArray(_np.ndarray):
 
         """
         deyes = self.d[:, None, None] * _np.eye(2)
-        return _np.block([
-            [deyes, _symplectic_transpose(self.W)],
-            [-self.W, deyes]])
+        return _np.block(
+            [[deyes, _symplectic_transpose(self.W)], [-self.W, deyes]]
+        )
 
     @property
     def Rinv(self):
@@ -455,9 +483,9 @@ class EdwardsTengArray(_np.ndarray):
 
         """
         deyes = self.d[:, None, None] * _np.eye(2)
-        return _np.block([
-            [deyes, -_symplectic_transpose(self.W)],
-            [self.W, deyes]])
+        return _np.block(
+            [[deyes, -_symplectic_transpose(self.W)], [self.W, deyes]]
+        )
 
     def from_normal_modes(self, pos):
         """Transform from normal modes to XY plane.
@@ -590,13 +618,14 @@ class EdwardsTengArray(_np.ndarray):
                 calculated.
 
         """
-        return _np.array([
-            self.rx, self.px, self.ry, self.py, self.de, self.dl])
+        return _np.array(
+            [self.rx, self.px, self.ry, self.py, self.de, self.dl]
+        )
 
     @co.setter
     def co(self, value):
         """."""
-        self.rx, self.py = value[0], value[1]
+        self.rx, self.px = value[0], value[1]
         self.ry, self.py = value[2], value[3]
         self.de, self.dl = value[4], value[5]
 
@@ -607,22 +636,26 @@ class EdwardsTengArray(_np.ndarray):
             for val in edteng_list:
                 if not isinstance(val, (EdwardsTeng, EdwardsTengArray)):
                     raise _OpticsError(
-                        'can only compose lists of Twiss objects.')
+                        'can only compose lists of Twiss objects.'
+                    )
         else:
             raise _OpticsError('can only compose lists of Twiss objects.')
 
         arrs = list()
         for val in edteng_list:
-            arrs.append(_np.ndarray(
-                (val.size, len(EdwardsTeng.ORDER)), buffer=val.data))
+            arrs.append(
+                _np.ndarray(
+                    (val.size, len(EdwardsTeng.ORDER)), buffer=val.data
+                )
+            )
         arrs = _np.vstack(arrs)
         return EdwardsTengArray(arrs)
 
 
 @_interactive
 def calc_edwards_teng(
-        accelerator=None, init_edteng=None, indices='open',
-        energy_offset=0.0):
+    accelerator=None, init_edteng=None, indices='open', energy_offset=0.0
+):
     """Perform linear analysis of coupled lattices.
 
     Notation is the same as in reference [3]
@@ -662,99 +695,83 @@ def calc_edwards_teng(
         numpy.ndarray (4x4): transfer matrix of the line/ring
 
     """
-    # TODO:
-    # Inconsistencies found when comparing optics obtained by providing
-    # `calc_edwards_teng` with an energy-offset vs those obtained by providing
-    # the function with an initial edteng object.
-    # The snipped below should replicate the discrepancies:
-
-    # >> import numpy as np
-    # >> import pyaccel as pa
-    # >> from pymodels import si
-    # >> model = si.create_accelerator()
-    # >> model = si.fitted_models.vertical_dispersion_and_coupling(model)
-    # >> init_edteng = pa.optics.calc_edwards_teng(
-    # >>    model, energy_offset=1e-2
-    # >> )[0][0]
-    # >> edteng, _ = pa.optics.calc_edwards_teng(
-    # >>    model, energy_offset=1e-2
-    # >> )
-    # >> edteng_, _ = pa.optics.calc_edwards_teng(
-    # >>    model, init_edteng=init_edteng
-    # >> )
-    # >> np.allclose(edteng.beta1, edteng_.beta1)
-    # >> False
-    # >> np.allclose(edteng.eta1, edteng_.eta1)
-    # >> False
-
-    # Since Edwards and Teng decomposition is restricted to Symplectic 4D
-    # motion, we need to turn off cavity and radiation here:
-    cav_stt = accelerator.cavity_on
-    rad_stt = accelerator.radiation_on
-    accelerator.cavity_on = False
-    accelerator.radiation_on = 'off'
+    acc = accelerator
+    if acc.cavity_on or acc.radiation_on:
+        raise RuntimeError(
+            'Edwards and Teng decomposition is restricted to symplectic 4D '
+            'motion. Please turn off `cavity_on` and `radiation_on` flags.'
+        )
 
     cod = None
     if init_edteng is not None:
         if energy_offset:
-            # Turn cavity and radiation states back to their original values.
-            accelerator.cavity_on = cav_stt
-            accelerator.radiation_on = rad_stt
             raise _OpticsError(
-                'energy_offset and init_teng are mutually '
-                'exclusive options. Add the desired energy deviation to the '
-                'appropriate position of init_edteng object.')
+                'energy_offset and init_teng are mutually exclusive options. '
+                'Add the desired energy deviation to the appropriate '
+                'position  of init_edteng object.'
+            )
         # as a transport line: uses init_edteng
         fixed_point = init_edteng.co
     else:
         # as a periodic system: try to find periodic solution
-        if accelerator.harmonic_number == 0:
-            # Turn cavity and radiation states back to their original values.
-            accelerator.cavity_on = cav_stt
-            accelerator.radiation_on = rad_stt
+        if acc.harmonic_number == 0:
             raise _OpticsError(
                 'Either harmonic number was not set or calc_edwards_teng was '
-                'invoked for transport line without initial  EdwardsTeng')
+                'invoked for transport line without initial  EdwardsTeng'
+            )
         cod = _tracking.find_orbit(
-            accelerator, energy_offset=energy_offset, indices='closed')
-        fixed_point = cod[0]
+            acc, energy_offset=energy_offset, indices='closed'
+        )
+        fixed_point = cod[:, 0]
 
     m44, cum_mat = _tracking.find_m44(
-        accelerator, indices='closed', fixed_point=fixed_point)
+        acc, indices='closed', fixed_point=fixed_point
+    )
 
-    indices = _tracking._process_indices(accelerator, indices)
+    indices = _tracking._process_indices(acc, indices)
     edteng = EdwardsTengArray(cum_mat.shape[0])
-    edteng.spos = _lattice.find_spos(accelerator, indices='closed')
+    edteng.spos = _lattice.find_spos(acc, indices='closed')
 
     # Calculate initial matrices:
+    #  Based on ref [3].
     if init_edteng is None:
+        # Eqs 7 and 8
         M = m44[:2, :2]
         N = m44[2:4, 2:4]
         m = m44[2:4, :2]
         n = m44[:2, 2:4]
 
+        # Eq 86
         t = _np.trace(M - N)
 
+        # Eq 87
         m_plus_nbar = m + _symplectic_transpose(n)
         det_m_plus_nbar = _np.linalg.det(m_plus_nbar)
+        u = _np.sign(t) * _np.sqrt(t * t + 4 * det_m_plus_nbar)
 
-        u = _np.sign(t) * _np.sqrt(t*t + 4*det_m_plus_nbar)
-        dsqr = (1 + t/u)/2
-        W_over_d = -m_plus_nbar/(dsqr*u)
+        # Eq 86
+        dsqr = (1 + t / u) / 2
 
+        # Eq 85
+        W_over_d = -m_plus_nbar / (dsqr * u)
         d0 = _np.sqrt(dsqr)
-        W0 = -m_plus_nbar/(d0*u)
-        L10 = M - n @ W_over_d
-        L20 = N + W_over_d @ n
+        W0 = -m_plus_nbar / (d0 * u)
+
+        # Eq 85
+        A0 = M - n @ W_over_d
+        B0 = N + W_over_d @ n
+
         # Get initial betas and alphas. (Based on calc_twiss of trackcpp.)
-        sin_mu1 = _np.sign(L10[0, 1]) * _np.sqrt(
-            -L10[0, 1]*L10[1, 0] - (L10[0, 0] - L10[1, 1])**2/4.0)
-        sin_mu2 = _np.sign(L20[0, 1]) * _np.sqrt(
-            -L20[0, 1]*L20[1, 0] - (L20[0, 0] - L20[1, 1])**2/4.0)
-        alpha10 = (L10[0, 0] - L10[1, 1])/2/sin_mu1
-        alpha20 = (L20[0, 0] - L20[1, 1])/2/sin_mu2
-        beta10 = L10[0, 1]/sin_mu1
-        beta20 = L20[0, 1]/sin_mu2
+        sin_mu1 = _np.sign(A0[0, 1]) * _np.sqrt(
+            -A0[0, 1] * A0[1, 0] - (A0[0, 0] - A0[1, 1]) ** 2 / 4.0
+        )
+        sin_mu2 = _np.sign(B0[0, 1]) * _np.sqrt(
+            -B0[0, 1] * B0[1, 0] - (B0[0, 0] - B0[1, 1]) ** 2 / 4.0
+        )
+        alpha10 = (A0[0, 0] - A0[1, 1]) / 2 / sin_mu1
+        alpha20 = (B0[0, 0] - B0[1, 1]) / 2 / sin_mu2
+        beta10 = A0[0, 1] / sin_mu1
+        beta20 = B0[0, 1] / sin_mu2
     else:
         W0 = init_edteng.W
         d0 = init_edteng.d
@@ -765,32 +782,54 @@ def calc_edwards_teng(
 
     # #### Determine Twiss Parameters of uncoupled motion #########
     # First get the initial transfer matrices decompositions.
-    # (This method is based on equation 367 of ref[3])
+    # Eq 362
     M11 = cum_mat[:, :2, :2]
     M12 = cum_mat[:, :2, 2:4]
     M21 = cum_mat[:, 2:4, :2]
     M22 = cum_mat[:, 2:4, 2:4]
-    L1 = (d0*M11 - M12@W0) / d0
-    L2 = (d0*M22 + M21@_symplectic_transpose(W0)) / d0
-    edteng.W = -(d0*M21 - M22@W0)@_symplectic_transpose(L1)
+
+    # Eq 366
+    L1_unnorm = d0 * M11 - M12 @ W0
+    d = _np.sqrt(_np.linalg.det(L1_unnorm))
+    # Eq 367
+    L1 = L1_unnorm / d[:, None, None]
+    L2 = (d0 * M22 + M21 @ _symplectic_transpose(W0)) / d[:, None, None]
+    # Eq 368
+    edteng.W = -(d0 * M21 - M22 @ W0) @ _symplectic_transpose(L1)
+
+    # Eq 369: we don't need to calculate this.
+    # A = L1 @ A0 @ _symplectic_transpose(L1)
+    # B = L2 @ B0 @ _symplectic_transpose(L2)
 
     # Get optical functions along the ring (Based on calc_twiss of trackcpp):
     edteng.beta1 = (
-        (L1[:, 0, 0]*beta10 - L1[:, 0, 1]*alpha10)**2 + L1[:, 0, 1]**2)/beta10
+        (L1[:, 0, 0] * beta10 - L1[:, 0, 1] * alpha10) ** 2 + L1[:, 0, 1] ** 2
+    ) / beta10
     edteng.beta2 = (
-        (L2[:, 0, 0]*beta20 - L2[:, 0, 1]*alpha20)**2 + L2[:, 0, 1]**2)/beta20
-    edteng.alpha1 = -(
-        (L1[:, 0, 0]*beta10 - L1[:, 0, 1]*alpha10) *
-        (L1[:, 1, 0]*beta10 - L1[:, 1, 1]*alpha10) +
-        L1[:, 0, 1]*L1[:, 1, 1])/beta10
-    edteng.alpha2 = -(
-        (L2[:, 0, 0]*beta20 - L2[:, 0, 1]*alpha20) *
-        (L2[:, 1, 0]*beta20 - L2[:, 1, 1]*alpha20) +
-        L2[:, 0, 1]*L2[:, 1, 1])/beta20
-    mu1 = _np.arctan(L1[:, 0, 1]/(
-        L1[:, 0, 0]*beta10 - L1[:, 0, 1]*alpha10))
-    mu2 = _np.arctan(L2[:, 0, 1]/(
-        L2[:, 0, 0]*beta20 - L2[:, 0, 1]*alpha20))
+        (L2[:, 0, 0] * beta20 - L2[:, 0, 1] * alpha20) ** 2 + L2[:, 0, 1] ** 2
+    ) / beta20
+    edteng.alpha1 = (
+        -(
+            (L1[:, 0, 0] * beta10 - L1[:, 0, 1] * alpha10)
+            * (L1[:, 1, 0] * beta10 - L1[:, 1, 1] * alpha10)
+            + L1[:, 0, 1] * L1[:, 1, 1]
+        )
+        / beta10
+    )
+    edteng.alpha2 = (
+        -(
+            (L2[:, 0, 0] * beta20 - L2[:, 0, 1] * alpha20)
+            * (L2[:, 1, 0] * beta20 - L2[:, 1, 1] * alpha20)
+            + L2[:, 0, 1] * L2[:, 1, 1]
+        )
+        / beta20
+    )
+    mu1 = _np.arctan(
+        L1[:, 0, 1] / (L1[:, 0, 0] * beta10 - L1[:, 0, 1] * alpha10)
+    )
+    mu2 = _np.arctan(
+        L2[:, 0, 1] / (L2[:, 0, 0] * beta20 - L2[:, 0, 1] * alpha20)
+    )
     # unwrap phases
     summ = _np.zeros(mu1.size)
     _np.cumsum(_np.diff(mu1) < 0, out=summ[1:])
@@ -804,18 +843,22 @@ def calc_edwards_teng(
     dp = 1e-6
     if cod is not None:
         coddp = _tracking.find_orbit(
-            accelerator, energy_offset=fixed_point[4]+dp, indices='closed')
+            acc, energy_offset=fixed_point[4] + dp, indices='closed'
+        )
     else:
-        cod, *_ = _tracking.line_pass(
-            accelerator, fixed_point, indices='closed')
-        etas_norm = _np.array([
-            init_edteng.eta1, init_edteng.etap1,
-            init_edteng.eta2, init_edteng.etap2])
+        cod, *_ = _tracking.line_pass(acc, fixed_point, indices='closed')
+        etas_norm = _np.array(
+            [
+                init_edteng.eta1,
+                init_edteng.etap1,
+                init_edteng.eta2,
+                init_edteng.etap2,
+            ]
+        )
         etas = init_edteng.from_normal_modes(etas_norm)
         fixed_point[:4] += dp * etas
         fixed_point[4] += dp
-        coddp, *_ = _tracking.line_pass(
-            accelerator, fixed_point, indices='closed')
+        coddp, *_ = _tracking.line_pass(acc, fixed_point, indices='closed')
 
     eta = (coddp - cod) / dp
     eta = edteng.to_normal_modes(eta)
@@ -824,10 +867,6 @@ def calc_edwards_teng(
     edteng.etap1 = eta[1]
     edteng.eta2 = eta[2]
     edteng.etap2 = eta[3]
-
-    # Turn cavity and radiation states back to their original values.
-    accelerator.cavity_on = cav_stt
-    accelerator.radiation_on = rad_stt
 
     return edteng[indices], m44
 
@@ -882,13 +921,13 @@ def estimate_coupling_parameters(edteng_end):
     # ###### Estimative of emittance ratio #######
 
     # Equations 216 and 217 of ref [3]
-    D2 = edt.beta2*edt.W_22**2 + 2*edt.alpha2*edt.W_22*edt.W_12
-    D1 = edt.beta1*edt.W_11**2 - 2*edt.alpha1*edt.W_11*edt.W_12
-    D2 += edt.gamma2*edt.W_12**2
-    D1 += edt.gamma1*edt.W_12**2
+    D2 = edt.beta2 * edt.W_22**2 + 2 * edt.alpha2 * edt.W_22 * edt.W_12
+    D1 = edt.beta1 * edt.W_11**2 - 2 * edt.alpha1 * edt.W_11 * edt.W_12
+    D2 += edt.gamma2 * edt.W_12**2
+    D1 += edt.gamma1 * edt.W_12**2
 
     # Equation 237 of ref [3]
-    ratio = 1/edt.d**2 * _np.sqrt(D1*D2/edt.beta1/edt.beta2)
+    ratio = 1 / edt.d**2 * _np.sqrt(D1 * D2 / edt.beta1 / edt.beta2)
 
     # # This second formula is based on equation 258 of ref [3] which is
     # # approximately valid for weak coupling:
@@ -899,13 +938,14 @@ def estimate_coupling_parameters(edteng_end):
     # from equations 85, 86 and 89 of ref [3]:
     edt = edt[-1]
     dsqr = edt.d * edt.d
-    U = 2*(_np.cos(edt.mu1) - _np.cos(edt.mu2))
-    det_m_plus_nbar = U*U*dsqr*(1-dsqr)
+    U = 2 * (_np.cos(edt.mu1) - _np.cos(edt.mu2))
+    det_m_plus_nbar = U * U * dsqr * (1 - dsqr)
 
-    mu0 = ((edt.mu1 % (2*_np.pi)) + (edt.mu2 % (2*_np.pi)))/2
-    min_tunesep = 2*_np.arcsin(
-        _np.sqrt(_np.abs(det_m_plus_nbar))/_np.sin(mu0)/2)
-    min_tunesep /= 2*_np.pi
+    mu0 = ((edt.mu1 % (2 * _np.pi)) + (edt.mu2 % (2 * _np.pi))) / 2
+    min_tunesep = 2 * _np.arcsin(
+        _np.sqrt(_np.abs(det_m_plus_nbar)) / _np.sin(mu0) / 2
+    )
+    min_tunesep /= 2 * _np.pi
 
     return min_tunesep, ratio
 
@@ -919,6 +959,7 @@ def _trans(a):
 
 
 def _symplectic_transpose(a):
+    """Definition in Eq 15 of ref [3]."""
     if len(a.shape) >= 3:
         return -_S @ _trans(a) @ _S
     else:
