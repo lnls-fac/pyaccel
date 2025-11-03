@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 import ctypes as _ctypes
@@ -14,7 +13,7 @@ _DBL_MAX = _trackcpp.get_double_max()
 _NUM_COORDS = 6
 _DIMS = (_NUM_COORDS, _NUM_COORDS)
 
-PASS_METHODS  = tuple(_trackcpp.pm_dict)
+PASS_METHODS = tuple(_trackcpp.pm_dict)
 VChamberShape = _trackcpp.VChamberShape
 
 
@@ -22,7 +21,7 @@ VChamberShape = _trackcpp.VChamberShape
 def marker(fam_name):
     """Create a marker element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     """
     ele = _trackcpp.marker_wrapper(fam_name)
@@ -33,7 +32,7 @@ def marker(fam_name):
 def bpm(fam_name):
     """Create a beam position monitor element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     """
     ele = _trackcpp.bpm_wrapper(fam_name)
@@ -44,7 +43,7 @@ def bpm(fam_name):
 def drift(fam_name, length):
     """Create a drift element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     """
@@ -56,7 +55,7 @@ def drift(fam_name, length):
 def matrix(fam_name, length):
     """Create a matrix element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     """
@@ -68,7 +67,7 @@ def matrix(fam_name, length):
 def hcorrector(fam_name, length=0.0, hkick=0.0):
     """Create a horizontal corrector element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     hkick -- horizontal kick [rad]
@@ -81,7 +80,7 @@ def hcorrector(fam_name, length=0.0, hkick=0.0):
 def vcorrector(fam_name, length=0.0, vkick=0.0):
     """Create a vertical corrector element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     vkick -- vertical kick [rad]
@@ -94,7 +93,7 @@ def vcorrector(fam_name, length=0.0, vkick=0.0):
 def corrector(fam_name, length=0.0, hkick=0.0, vkick=0.0):
     """Create a corrector element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     hkick -- horizontal kick [rad]
@@ -105,12 +104,23 @@ def corrector(fam_name, length=0.0, hkick=0.0, vkick=0.0):
 
 
 @_interactive
-def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
-          gap=0.0, fint_in=0.0, fint_out=0.0, polynom_a=None,
-          polynom_b=None, K=None, S=None):
+def rbend(
+    fam_name,
+    length,
+    angle,
+    angle_in=0.0,
+    angle_out=0.0,
+    gap=0.0,
+    fint_in=0.0,
+    fint_out=0.0,
+    polynom_a=None,
+    polynom_b=None,
+    K=None,
+    S=None,
+):
     """Create a rectangular dipole element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     angle -- [rad]
@@ -125,8 +135,19 @@ def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
     if S is None:
         S = polynom_b[2]
     ele = _trackcpp.rbend_wrapper(
-        fam_name, length, angle, angle_in, angle_out, gap, fint_in, fint_out,
-        polynom_a, polynom_b, K, S)
+        fam_name,
+        length,
+        angle,
+        angle_in,
+        angle_out,
+        gap,
+        fint_in,
+        fint_out,
+        polynom_a,
+        polynom_b,
+        K,
+        S,
+    )
     return Element(element=ele)
 
 
@@ -134,7 +155,7 @@ def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
 def quadrupole(fam_name, length, K, nr_steps=10):
     """Create a quadrupole element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     K -- [m^-2]
@@ -148,7 +169,7 @@ def quadrupole(fam_name, length, K, nr_steps=10):
 def sextupole(fam_name, length, S, nr_steps=5):
     """Create a sextupole element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     S -- (1/2!)(d^2By/dx^2)/(Brho)[m^-3]
@@ -162,7 +183,7 @@ def sextupole(fam_name, length, S, nr_steps=5):
 def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     """Create a RF cavity element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     voltage -- [V]
@@ -170,17 +191,22 @@ def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     phase_lag -- [rad]
     """
     ele = _trackcpp.rfcavity_wrapper(
-        fam_name, length, frequency, voltage, phase_lag)
+        fam_name, length, frequency, voltage, phase_lag
+    )
     return Element(element=ele)
 
 
 @_interactive
 def kickmap(
-        fam_name, kicktable_fname, nr_steps=20,
-        rescale_length=1.0, rescale_kicks=1.0):
+    fam_name,
+    kicktable_fname,
+    nr_steps=20,
+    rescale_length=1.0,
+    rescale_kicks=1.0,
+):
     """Create a kickmap element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     kicktable_fname -- filename of kicktable
     nr_steps -- number of steps (default 20)
@@ -188,7 +214,25 @@ def kickmap(
     rescale_kicks -- rescale all kicktable length (default 1)
     """
     e = _trackcpp.kickmap_wrapper(
-        fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks)
+        fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks
+    )
+    return Element(element=e)
+
+
+@_interactive
+def field3d(
+    fam_name,
+    length,
+    s0,
+    kx,
+    ks,
+    coefs,
+    nr_steps,
+):
+    """Create a kickmap element."""
+    e = _trackcpp.field3d_wrapper(
+        fam_name, length, s0, kx, ks, coefs, nr_steps
+    )
     return Element(element=e)
 
 
@@ -212,7 +256,9 @@ def _process_polynoms(polya, polyb):
 class Kicktable:
     """."""
 
-    kicktable_list = _trackcpp.cvar.kicktable_list  # trackcpp vector with all Kicktables in use.
+    kicktable_list = (
+        _trackcpp.cvar.kicktable_list
+    )  # trackcpp vector with all Kicktables in use.
 
     def __init__(self, **kwargs):
         """."""
@@ -295,7 +341,9 @@ class Kicktable:
     def get_kicks(self, rx, ry):
         """Return (hkick, vkick) at (rx,ry)."""
         idx = self.kicktable_idx
-        self._status, hkick, vkick = _trackcpp.kicktable_getkicks_wrapper(idx, rx, ry)
+        self._status, hkick, vkick = _trackcpp.kicktable_getkicks_wrapper(
+            idx, rx, ry
+        )
         return hkick, vkick
 
     def __eq__(self, other):
@@ -312,7 +360,7 @@ class Element:
     """."""
 
     _t_valid_types = (list, _numpy.ndarray)
-    _r_valid_types = (_numpy.ndarray, )
+    _r_valid_types = (_numpy.ndarray,)
 
     def __init__(self, element=None, fam_name='', length=0.0):
         """."""
@@ -324,7 +372,8 @@ class Element:
             element = element.trackcpp_e
         else:
             raise TypeError(
-                'element must be a trackcpp.Element or a Element object.')
+                'element must be a trackcpp.Element or a Element object.'
+            )
         self.trackcpp_e = _trackcpp.Element(element)
 
     @property
@@ -352,10 +401,10 @@ class Element:
                 self.trackcpp_e.pass_method = PASS_METHODS.index(value)
         elif isinstance(value, int):
             if not 0 <= value < len(PASS_METHODS):
-                raise IndexError("pass method index out of range")
+                raise IndexError('pass method index out of range')
             self.trackcpp_e.pass_method = value
         else:
-            raise TypeError("pass method value must be string or index")
+            raise TypeError('pass method value must be string or index')
 
     @property
     def length(self):
@@ -511,7 +560,9 @@ class Element:
     def kicktable(self):
         """."""
         if self.trackcpp_e.kicktable_idx != -1:
-            kicktable = _trackcpp.cvar.kicktable_list[self.trackcpp_e.kicktable_idx]
+            kicktable = _trackcpp.cvar.kicktable_list[
+                self.trackcpp_e.kicktable_idx
+            ]
             return Kicktable(kicktable=kicktable)
         else:
             return None
@@ -526,7 +577,8 @@ class Element:
     @property
     def rescale_kicks(self):
         """Scale factor applied to values given by kicktable.
-        Default value: 1.0"""
+        Default value: 1.0
+        """
         return self.trackcpp_e.rescale_kicks
 
     @rescale_kicks.setter
@@ -535,15 +587,57 @@ class Element:
         self.trackcpp_e.rescale_kicks = value
 
     @property
+    def kz(self):
+        """."""
+        return self.trackcpp_e.ks
+
+    @kz.setter
+    def kz(self, value):
+        """."""
+        self.trackcpp_e.ks = value
+
+    @property
+    def kx(self):
+        """."""
+        return self.trackcpp_e.kx
+
+    @kx.setter
+    def kx(self, value):
+        """."""
+        self.trackcpp_e.kx = value
+
+    @property
+    def s0(self):
+        """."""
+        return self.trackcpp_e.s0
+
+    @s0.setter
+    def s0(self, value):
+        """."""
+        self.trackcpp_e.s0 = value
+
+    @property
+    def coeffs(self):
+        """."""
+        return self.trackcpp_e.coefs
+
+    @coeffs.setter
+    def coeffs(self, value):
+        """."""
+        self.trackcpp_e.coefs = value
+
+    @property
     def vchamber(self):
         """Shape of vacuum chamber.
-        See trackcpp.VChamberShape for values."""
+        See trackcpp.VChamberShape for values.
+        """
         return self.trackcpp_e.vchamber
 
     @vchamber.setter
     def vchamber(self, value):
         """Set shape of vacuum chamber.
-        See trackcpp.VChamberShape for values."""
+        See trackcpp.VChamberShape for values.
+        """
         if value >= 0:
             self.trackcpp_e.vchamber = value
         else:
@@ -704,7 +798,7 @@ class Element:
     @hkick_polynom.setter
     def hkick_polynom(self, value):
         """."""
-        self.trackcpp_e.polynom_b[0] = - value / self.trackcpp_e.length
+        self.trackcpp_e.polynom_b[0] = -value / self.trackcpp_e.length
 
     @property
     def vkick_polynom(self):
@@ -753,33 +847,35 @@ class Element:
     @property
     def t_in(self):
         """."""
-        return TransVector(self.trackcpp_e, "in")
+        return TransVector(self.trackcpp_e, 'in')
 
     @t_in.setter
     def t_in(self, value):
         """."""
         Element._check_type(value, Element._t_valid_types)
         Element._set_c_array_from_vector(
-            self.trackcpp_e.t_in, _NUM_COORDS, value)
+            self.trackcpp_e.t_in, _NUM_COORDS, value
+        )
         self.trackcpp_e.reflag_t_in()
 
     @property
     def t_out(self):
         """."""
-        return TransVector(self.trackcpp_e, "out")
+        return TransVector(self.trackcpp_e, 'out')
 
     @t_out.setter
     def t_out(self, value):
         """."""
         Element._check_type(value, Element._t_valid_types)
         Element._set_c_array_from_vector(
-            self.trackcpp_e.t_out, _NUM_COORDS, value)
+            self.trackcpp_e.t_out, _NUM_COORDS, value
+        )
         self.trackcpp_e.reflag_t_out()
 
     @property
     def r_in(self):
         """."""
-        return RotMatrix(self.trackcpp_e, "in")
+        return RotMatrix(self.trackcpp_e, 'in')
 
     @r_in.setter
     def r_in(self, value):
@@ -791,7 +887,7 @@ class Element:
     @property
     def r_out(self):
         """."""
-        return RotMatrix(self.trackcpp_e, "out")
+        return RotMatrix(self.trackcpp_e, 'out')
 
     @r_out.setter
     def r_out(self, value):
@@ -846,10 +942,12 @@ class Element:
             rst += fmtstr.format('thin_SL', self.thin_SL, '1/m²')
         if not all([v == 0 for v in self.polynom_a]):
             rst += fmtstr.format(
-                'polynom_a', self.polynom_a, '1/m¹, 1/m², 1/m³, ...')
+                'polynom_a', self.polynom_a, '1/m¹, 1/m², 1/m³, ...'
+            )
         if not all([v == 0 for v in self.polynom_b]):
             rst += fmtstr.format(
-                'polynom_b', self.polynom_b, '1/m¹, 1/m², 1/m³, ...')
+                'polynom_b', self.polynom_b, '1/m¹, 1/m², 1/m³, ...'
+            )
         if self.hkick != 0:
             rst += fmtstr.format('hkick', self.hkick, 'rad')
         if self.vkick != 0:
@@ -871,7 +969,9 @@ class Element:
         if self.vmax != _DBL_MAX:
             rst += fmtstr.format('vmax', self.vmax, 'm')
         if self.trackcpp_e.kicktable_idx != -1:
-            kicktable = _trackcpp.cvar.kicktable_list[self.trackcpp_e.kicktable_idx]
+            kicktable = _trackcpp.cvar.kicktable_list[
+                self.trackcpp_e.kicktable_idx
+            ]
             rst += fmtstr.format('kicktable', kicktable.filename, '')
         if not (self.t_in == _numpy.zeros(_NUM_COORDS)).all():
             rst += fmtstr.format('t_in', self.t_in, 'm')
@@ -892,7 +992,7 @@ class Element:
     def _set_c_array_from_vector(array, size, values):
         """."""
         if not size == len(values):
-            raise ValueError("array and vector must have same size")
+            raise ValueError('array and vector must have same size')
         for i in range(size):
             _trackcpp.c_array_set(array, i, values[i])
 
@@ -900,11 +1000,11 @@ class Element:
     def _set_c_array_from_matrix(array, shape, values):
         """."""
         if not shape == values.shape:
-            raise ValueError("array and matrix must have same shape")
+            raise ValueError('array and matrix must have same shape')
         rows, cols = shape
         for i in range(rows):
             for j in range(cols):
-                _trackcpp.c_array_set(array, i*cols + j, values[i, j])
+                _trackcpp.c_array_set(array, i * cols + j, values[i, j])
 
     @staticmethod
     def _check_type(value, types):
@@ -913,17 +1013,17 @@ class Element:
         for typ in types:
             res = res or isinstance(value, typ)
         if not res:
-            raise TypeError("value must be list or numpy.ndarray")
+            raise TypeError('value must be list or numpy.ndarray')
 
     @staticmethod
     def _check_size(value, size):
         if not len(value) == size:
-            raise ValueError("size must be " + str(size))
+            raise ValueError('size must be ' + str(size))
 
     @staticmethod
     def _check_shape(value, shape):
         if not value.shape == shape:
-            raise ValueError("shape must be " + str(shape))
+            raise ValueError('shape must be ' + str(shape))
 
     @staticmethod
     def _get_cpp_vector(cppvector):
@@ -935,7 +1035,9 @@ class Element:
 
 class _CustomArray(_numpy.ndarray):
     """."""
+
     _COORD_ARRAY = None
+
     def __new__(cls, c_element, field, shape):
         """."""
         address = int(getattr(c_element, field))
@@ -948,7 +1050,7 @@ class _CustomArray(_numpy.ndarray):
     def __setitem__(self, index, value):
         """."""
         super().__setitem__(index, value)
-        getattr(self._e, "reflag_"+self.field)()
+        getattr(self._e, 'reflag_' + self.field)()
 
     def is_identity(self):
         """."""
@@ -957,21 +1059,25 @@ class _CustomArray(_numpy.ndarray):
 
     def reflag(self):
         """."""
-        return getattr(self._e, "reflag_"+self.field)
+        return getattr(self._e, 'reflag_' + self.field)
 
 
 class TransVector(_CustomArray):
-    _COORD_ARRAY = _ctypes.c_double*_NUM_COORDS
+    _COORD_ARRAY = _ctypes.c_double * _NUM_COORDS
+
     def __new__(cls, c_element, direction):
-        return super().__new__(cls, c_element, "t_"+direction, _NUM_COORDS)
+        return super().__new__(cls, c_element, 't_' + direction, _NUM_COORDS)
 
 
 class RotMatrix(_CustomArray):
-    _COORD_ARRAY = _ctypes.c_double*_DIMS[0]*_DIMS[1]
+    _COORD_ARRAY = _ctypes.c_double * _DIMS[0] * _DIMS[1]
+
     def __new__(cls, c_element, direction):
-        return super().__new__(cls, c_element, "r_"+direction, _DIMS)
+        return super().__new__(cls, c_element, 'r_' + direction, _DIMS)
 
 
 _warnings.filterwarnings(
-    "ignore", "Item size computed from the PEP 3118 \
-    buffer format string does not match the actual item size.")
+    'ignore',
+    'Item size computed from the PEP 3118 \
+    buffer format string does not match the actual item size.',
+)

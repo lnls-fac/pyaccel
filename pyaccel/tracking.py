@@ -13,6 +13,7 @@ return particle positions structure missing one or more indices but the
 PCEN ordering is preserved.
 
 """
+
 import multiprocessing as _multiproc
 
 import mathphys as _mp
@@ -140,7 +141,7 @@ def generate_bunch(
     sigmae=None,
     sigmas=None,
     optics=None,
-    cutoff=3
+    cutoff=3,
 ):
     """Create centered bunch with the desired equilibrium and optics params.
 
@@ -186,7 +187,8 @@ def generate_bunch(
         # distribution, such that:
         # np.cov(znor) == <znor @ znor.T> == np.eye(6)
         znor = _mp.functions.generate_random_numbers(
-            6*n_part, dist_type='norm', cutoff=cutoff).reshape(6, -1)
+            6 * n_part, dist_type='norm', cutoff=cutoff
+        ).reshape(6, -1)
         # The Cholesky decomposition finds a matrix env_chol such that:
         # env_chol @ env_chol.T == envelope
         try:
@@ -209,8 +211,9 @@ def generate_bunch(
 
     if None in (emit1, emit2, sigmae, sigmas, optics):
         raise ValueError(
-            'When envelope is not provided, emit1, emit2, sigmae, sigmas ' +
-            'and optics are mandatory arguments.')
+            'When envelope is not provided, emit1, emit2, sigmae, sigmas '
+            + 'and optics are mandatory arguments.'
+        )
 
     if isinstance(optics, _Twiss):
         beta1, beta2 = optics.betax, optics.betay
@@ -227,31 +230,34 @@ def generate_bunch(
 
     # generate longitudinal phase space
     parts = _mp.functions.generate_random_numbers(
-        2*n_part, dist_type='norm', cutoff=cutoff)
+        2 * n_part, dist_type='norm', cutoff=cutoff
+    )
     p_en = sigmae * parts[:n_part]
     p_s = sigmas * parts[n_part:]
 
     # generate transverse phase space
     parts = _mp.functions.generate_random_numbers(
-        2*n_part, dist_type='exp', cutoff=cutoff*cutoff/2)
-    amp1 = _np.sqrt(emit1 * 2*parts[:n_part])
-    amp2 = _np.sqrt(emit2 * 2*parts[n_part:])
+        2 * n_part, dist_type='exp', cutoff=cutoff * cutoff / 2
+    )
+    amp1 = _np.sqrt(emit1 * 2 * parts[:n_part])
+    amp2 = _np.sqrt(emit2 * 2 * parts[n_part:])
 
     parts = _mp.functions.generate_random_numbers(
-        2*n_part, dist_type='unif', cutoff=cutoff)
+        2 * n_part, dist_type='unif', cutoff=cutoff
+    )
     ph1 = _np.pi * parts[:n_part]
     ph2 = _np.pi * parts[n_part:]
 
-    p_1 = amp1*_np.sqrt(beta1)
-    p_2 = amp2*_np.sqrt(beta2)
+    p_1 = amp1 * _np.sqrt(beta1)
+    p_2 = amp2 * _np.sqrt(beta2)
     p_1 *= _np.cos(ph1)
     p_2 *= _np.cos(ph2)
     p_1 += eta1 * p_en
     p_2 += eta2 * p_en
-    p_1p = -amp1/_np.sqrt(beta1)
-    p_2p = -amp2/_np.sqrt(beta2)
-    p_1p *= alpha1*_np.cos(ph1) + _np.sin(ph1)
-    p_2p *= alpha2*_np.cos(ph2) + _np.sin(ph2)
+    p_1p = -amp1 / _np.sqrt(beta1)
+    p_2p = -amp2 / _np.sqrt(beta2)
+    p_1p *= alpha1 * _np.cos(ph1) + _np.sin(ph1)
+    p_2p *= alpha2 * _np.cos(ph2) + _np.sin(ph2)
     p_1p += etap1 * p_en
     p_2p += etap2 * p_en
 
@@ -349,7 +355,7 @@ def element_pass(
         accelerator.trackcpp_acc, element.trackcpp_e, p_in
     )
     if ret > 0:
-        raise TrackingError("Problem found during tracking.")
+        raise TrackingError('Problem found during tracking.')
 
     return p_in.squeeze()
 
@@ -360,7 +366,7 @@ def line_pass(
     particles,
     indices=None,
     element_offset: float = 0,
-    parallel=False
+    parallel=False,
 ):
     """Track particle(s) along an accelerator.
 
@@ -453,18 +459,35 @@ def line_pass(
     """
     # checks whether single or multiple particles, reformats particles
     p_in, indices = _process_args(accelerator, particles, indices)
-    indices = indices if indices is not None else [len(accelerator), ]
+    indices = (
+        indices
+        if indices is not None
+        else [
+            len(accelerator),
+        ]
+    )
 
     if not parallel:
         p_out, lost_flag, lost_element, lost_plane, lost_pos = _line_pass(
-            accelerator, p_in, indices, element_offset)
+            accelerator, p_in, indices, element_offset
+        )
     else:
         slcs = _get_slices_multiprocessing(parallel, p_in.shape[1])
         with _multiproc.Pool(processes=len(slcs)) as pool:
             res = []
             for slc in slcs:
-                res.append(pool.apply_async(_line_pass, (
-                    accelerator, p_in[:, slc], indices, element_offset, True)))
+                res.append(
+                    pool.apply_async(
+                        _line_pass,
+                        (
+                            accelerator,
+                            p_in[:, slc],
+                            indices,
+                            element_offset,
+                            True,
+                        ),
+                    )
+                )
 
             lost_pos, p_out = [], []
             lost_flag, lost_element, lost_plane = [], [], []
@@ -501,8 +524,11 @@ def _line_pass(accelerator, p_in, indices, element_offset, set_seed=False):
         _set_random_seed()
 
     # tracking
-    lost_flag = bool(_trackcpp.track_linepass_wrapper(
-        accelerator.trackcpp_acc, p_in, p_out, args))
+    lost_flag = bool(
+        _trackcpp.track_linepass_wrapper(
+            accelerator.trackcpp_acc, p_in, p_out, args
+        )
+    )
 
     # After tracking, the input vector contains the lost positions.
     lost_pos = p_in
@@ -523,7 +549,7 @@ def ring_pass(
     nr_turns: int = 1,
     turn_by_turn: bool = False,
     element_offset: float = 0,
-    parallel=False
+    parallel=False,
 ):
     """Track particle(s) along a ring.
 
@@ -626,9 +652,19 @@ def ring_pass(
         with _multiproc.Pool(processes=len(slcs)) as pool:
             res = []
             for slc in slcs:
-                res.append(pool.apply_async(_ring_pass, (
-                    accelerator, p_in[:, slc], nr_turns, turn_by_turn,
-                    element_offset, True)))
+                res.append(
+                    pool.apply_async(
+                        _ring_pass,
+                        (
+                            accelerator,
+                            p_in[:, slc],
+                            nr_turns,
+                            turn_by_turn,
+                            element_offset,
+                            True,
+                        ),
+                    )
+                )
 
             p_out, lost_pos = [], []
             lost_flag, lost_turn, lost_element, lost_plane = [], [], [], []
@@ -652,12 +688,7 @@ def ring_pass(
 
 
 def _ring_pass(
-    accelerator,
-    p_in,
-    nr_turns,
-    turn_by_turn,
-    element_offset,
-    set_seed=False
+    accelerator, p_in, nr_turns, turn_by_turn, element_offset, set_seed=False
 ):
     # static parameters of ringpass
     args = _trackcpp.RingPassArgs()
@@ -668,7 +699,7 @@ def _ring_pass(
     p_in = p_in.copy()
     n_part = p_in.shape[1]
     if bool(turn_by_turn):
-        p_out = _np.zeros((6, n_part*(nr_turns+1)), dtype=float)
+        p_out = _np.zeros((6, n_part * (nr_turns + 1)), dtype=float)
     else:
         p_out = _np.zeros((6, n_part), dtype=float)
 
@@ -699,7 +730,7 @@ def find_orbit4(
     accelerator: _Accelerator,
     energy_offset=0.0,
     indices=None,
-    fixed_point_guess=None
+    fixed_point_guess=None,
 ):
     """Calculate closed orbit of accelerator and return it.
 
@@ -744,7 +775,8 @@ def find_orbit4(
 
     _closed_orbit = _trackcpp.CppDoublePosVector()
     ret = _trackcpp.track_findorbit4(
-        accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
+        accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess
+    )
     if ret > 0:
         raise TrackingError(_trackcpp.string_error_messages[ret])
 
@@ -754,9 +786,7 @@ def find_orbit4(
 
 @_interactive
 def find_orbit6(
-    accelerator: _Accelerator,
-    indices=None,
-    fixed_point_guess=None
+    accelerator: _Accelerator, indices=None, fixed_point_guess=None
 ):
     """Calculate closed orbit of accelerator and return it.
 
@@ -809,7 +839,8 @@ def find_orbit6(
     _closed_orbit = _trackcpp.CppDoublePosVector()
 
     ret = _trackcpp.track_findorbit6(
-        accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
+        accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess
+    )
 
     accelerator.radiation_on = rad_stt
 
@@ -825,7 +856,7 @@ def find_orbit(
     accelerator: _Accelerator,
     energy_offset=0.0,
     indices=None,
-    fixed_point_guess=None
+    fixed_point_guess=None,
 ):
     """Calculate closed orbit of accelerator and return it.
 
@@ -871,7 +902,7 @@ def find_orbit(
             accelerator,
             indices=indices,
             energy_offset=energy_offset,
-            fixed_point_guess=fixed_point_guess
+            fixed_point_guess=fixed_point_guess,
         )
         corb = _np.zeros((6, orb.shape[1]))
         corb[:4, :] = orb
@@ -886,11 +917,7 @@ def find_orbit(
 
 
 @_interactive
-def find_m66(
-    accelerator: _Accelerator,
-    indices=None,
-    fixed_point=None
-):
+def find_m66(accelerator: _Accelerator, indices=None, fixed_point=None):
     """Calculate 6D transfer matrices of elements in an accelerator.
 
     Args:
@@ -933,7 +960,8 @@ def find_m66(
         fixed_point_guess = _trackcpp.CppDoublePos()
         _closed_orbit = _trackcpp.CppDoublePosVector()
         ret = _trackcpp.track_findorbit6(
-            accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
+            accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess
+        )
         if ret > 0:
             raise TrackingError(_trackcpp.string_error_messages[ret])
     else:
@@ -945,8 +973,13 @@ def find_m66(
     m66 = _np.zeros((6, 6), dtype=float)
     _v0 = _trackcpp.CppDoublePos()
     ret = _trackcpp.track_findm66_wrapper(
-        accelerator.trackcpp_acc, _closed_orbit[0], cumul_trans_matrices,
-        m66, _v0, trackcpp_idx)
+        accelerator.trackcpp_acc,
+        _closed_orbit[0],
+        cumul_trans_matrices,
+        m66,
+        _v0,
+        trackcpp_idx,
+    )
     if ret > 0:
         raise TrackingError(_trackcpp.string_error_messages[ret])
 
@@ -960,7 +993,7 @@ def find_m44(
     accelerator: _Accelerator,
     indices=None,
     energy_offset=0.0,
-    fixed_point=None
+    fixed_point=None,
 ):
     """Calculate 4D transfer matrices of elements in an accelerator.
 
@@ -1007,7 +1040,8 @@ def find_m44(
         fixed_point_guess.de = energy_offset
         _closed_orbit = _trackcpp.CppDoublePosVector()
         ret = _trackcpp.track_findorbit4(
-            accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess)
+            accelerator.trackcpp_acc, _closed_orbit, fixed_point_guess
+        )
 
         if ret > 0:
             raise TrackingError(_trackcpp.string_error_messages[ret])
@@ -1020,8 +1054,13 @@ def find_m44(
     m44 = _np.zeros((4, 4), dtype=float)
     _v0 = _trackcpp.CppDoublePos()
     ret = _trackcpp.track_findm66_wrapper(
-        accelerator.trackcpp_acc, _closed_orbit[0], cumul_trans_matrices,
-        m44, _v0, trackcpp_idx)
+        accelerator.trackcpp_acc,
+        _closed_orbit[0],
+        cumul_trans_matrices,
+        m44,
+        _v0,
+        trackcpp_idx,
+    )
     if ret > 0:
         raise TrackingError(_trackcpp.string_error_messages[ret])
 
@@ -1043,25 +1082,28 @@ def _get_slices_multiprocessing(parallel, nparticles):
     nrproc = max(nrproc, 1)
     nrproc = min(nrproc, nparticles)
 
-    np_proc = (nparticles // nrproc)*_np.ones(nrproc, dtype=int)
-    np_proc[:(nparticles % nrproc)] += 1
+    np_proc = (nparticles // nrproc) * _np.ones(nrproc, dtype=int)
+    np_proc[: (nparticles % nrproc)] += 1
     parts_proc = _np.r_[0, _np.cumsum(np_proc)]
-    return [slice(parts_proc[i], parts_proc[i+1]) for i in range(nrproc)]
+    return [slice(parts_proc[i], parts_proc[i + 1]) for i in range(nrproc)]
 
 
 def _Numpy2CppDoublePos(p_in):
     p_out = _trackcpp.CppDoublePos(
-        float(p_in[0]), float(p_in[1]),
-        float(p_in[2]), float(p_in[3]),
-        float(p_in[4]), float(p_in[5]))
+        float(p_in[0]),
+        float(p_in[1]),
+        float(p_in[2]),
+        float(p_in[3]),
+        float(p_in[4]),
+        float(p_in[5]),
+    )
     return p_out
 
 
 def _4Numpy2CppDoublePos(p_in, de=0.0):
     p_out = _trackcpp.CppDoublePos(
-        float(p_in[0]), float(p_in[1]),
-        float(p_in[2]), float(p_in[3]),
-        de, 0)
+        float(p_in[0]), float(p_in[1]), float(p_in[2]), float(p_in[3]), de, 0
+    )
     return p_out
 
 
@@ -1119,12 +1161,18 @@ def _process_array(pos, dim='6d'):
 
 def _process_indices(accelerator, indices, closed=True, proc_none=True):
     if indices is None:
-        indices = [0, ] if proc_none else indices
+        indices = (
+            [
+                0,
+            ]
+            if proc_none
+            else indices
+        )
     elif isinstance(indices, str):
         if indices.startswith('open'):
             indices = _np.arange(len(accelerator))
         elif closed and indices.startswith('closed'):
-            indices = _np.arange(len(accelerator)+1)
+            indices = _np.arange(len(accelerator) + 1)
         else:
             raise TrackingError("invalid value for 'indices'")
     elif isinstance(indices, (list, tuple, _np.ndarray)):
