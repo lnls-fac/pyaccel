@@ -129,7 +129,7 @@ def calc_touschek_energy_acceptance(
 
     # ############ Check tunes ############
     # Make sure tunes don't cross int and half-int resonances
-    # Must be symmetric due to syncrhotron oscillations
+    # Must be symmetric due to synchrotron oscillations
     ap_tune = _np.full(energy_offsets.shape, _np.inf)
     if check_tune:
         tune0_int = _np.floor(tune0)

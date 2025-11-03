@@ -54,6 +54,7 @@ class EqParamsFromBeamEnvelope:
         self._damping_numbers = _np.zeros(3)
         self._tunes = _np.zeros(3)
         self._fixed_point = None
+        self._U0 = None
         self.accelerator = accelerator
 
     def __str__(self):
@@ -306,8 +307,14 @@ class EqParamsFromBeamEnvelope:
     @property
     def U0(self):
         """."""
-        res = _calc_U0(self._acc.energy, self.energy_offset, self._integral2)
-        return res
+        if self._U0 is None:
+            return _calc_U0(
+                self._acc.energy, self.energy_offset, self._integral2)
+        return self._U0
+
+    @U0.setter
+    def U0(self, value):
+        self._U0 = value
 
     @property
     def overvoltage(self):
