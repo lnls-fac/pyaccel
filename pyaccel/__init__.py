@@ -4,6 +4,7 @@
 from . import elements
 from . import accelerator
 from . import lattice
+from . import optics
 from . import tracking
 from . import graphics
 from . import intrabeam_scattering

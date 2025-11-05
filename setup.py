@@ -52,7 +52,7 @@ setup(
     ],
     packages=find_packages(),
     install_requires=_requirements,
-    package_data={'pyaccel': ['VERSION', 'data/d_touschek.npz']},
+    package_data={'pyaccel': ['VERSION', ]},
     include_package_data=True,
     python_requires=">=3.6",
     zip_safe=False,
