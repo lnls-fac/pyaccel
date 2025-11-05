@@ -561,7 +561,10 @@ class Lifetime:
         )
 
     def calc_energy_acceptance(self, **kwargs):
-        """."""
+        """Calculate Touschek scattering energy acceptance.
+        
+        See `pyaccel.optics.calc_touschek_energy_acceptance` for details.
+        """
         dic = _optics.calc_touschek_energy_acceptance(
             self.accelerator, **kwargs
         )
