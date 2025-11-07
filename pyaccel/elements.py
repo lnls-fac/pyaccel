@@ -227,11 +227,14 @@ def field3d(
     kx,
     ks,
     coefs,
+    coefs2,
+    coefs3,
+    coefs4,
     nr_steps,
 ):
     """Create a kickmap element."""
     e = _trackcpp.field3d_wrapper(
-        fam_name, length, s0, kx, ks, coefs, nr_steps
+        fam_name, length, s0, kx, ks, coefs, coefs2, coefs3, coefs4, nr_steps
     )
     return Element(element=e)
 
@@ -625,6 +628,36 @@ class Element:
     def coeffs(self, value):
         """."""
         self.trackcpp_e.coefs = value
+
+    @property
+    def coeffs2(self):
+        """."""
+        return self.trackcpp_e.coefs2
+
+    @coeffs2.setter
+    def coeffs2(self, value):
+        """."""
+        self.trackcpp_e.coefs2 = value
+
+    @property
+    def coeffs3(self):
+        """."""
+        return self.trackcpp_e.coefs3
+
+    @coeffs3.setter
+    def coeffs3(self, value):
+        """."""
+        self.trackcpp_e.coefs3 = value
+
+    @property
+    def coeffs4(self):
+        """."""
+        return self.trackcpp_e.coefs4
+
+    @coeffs4.setter
+    def coeffs4(self, value):
+        """."""
+        self.trackcpp_e.coefs4 = value
 
     @property
     def vchamber(self):
