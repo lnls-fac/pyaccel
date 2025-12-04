@@ -1,25 +1,11 @@
 #!/usr/bin/env python-sirius
 
-import pkg_resources
+import pathlib
 from setuptools import find_packages, setup
-from distutils.version import StrictVersion
-
-
-trackcpp_version = '4.10.5'
-
-try:
-    import trackcpp
-except ImportError:
-    raise RuntimeError("trackcpp package not found")
-
-if StrictVersion(trackcpp.__version__) < StrictVersion(trackcpp_version):
-    msg = ("trackcpp package version must be >= " + trackcpp_version +
-        " (version installed is " + trackcpp.__version__ + ")")
-    raise RuntimeError(msg)
 
 
 def get_abs_path(relative):
-    return pkg_resources.resource_filename(__name__, relative)
+    return str(pathlib.Path(__file__).parent / relative)
 
 
 with open(get_abs_path("README.md"), "r") as _f:
@@ -30,9 +16,8 @@ with open(get_abs_path("VERSION"), "r") as _f:
     __version__ = _f.read().strip()
 
 
-_requirements = ['', ]
-#with open(get_abs_path("requirements.txt"), "r") as _f:
-#    _requirements = _f.read().strip().split("\n")
+with open(get_abs_path("requirements.txt"), "r") as _f:
+    _requirements = _f.read().strip().split("\n")
 
 
 setup(

@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=44"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyaccel"
+authors = [{ name = "lnls-fac" } ]
+maintainers = [
+  {name = "Ana Oliveira", email = "ana.clara@lnls.br"},
+  {name = "Ximenes Resende", email = "xresende@gmail.com"},
+  {name = "Fernando H. de Sá", email = "fernandohds564@gmail.com"},
+  {name = "Murilo Barbosa Alves", email= "alvesb.murilo@gmail.com"}
+]
+description = "High level Accelerator Physics package"
+readme = "README.md" 
+dynamic = ["version", "dependencies"]
+requires-python = ">=3.6"
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+]
+license = "MIT"
+license-files= [ "LICENSE", ]
+
+[project.urls]
+Homepage = "https://github.com/lnls-fac/pyaccel"
+Download = "https://github.com/lnls-fac/pyaccel"
+Repository = "https://github.com/lnls-fac/pyaccel.git"
+Issues = "https://github.com/lnls-fac/pyaccel/issues"
+
+# --- Configurações específicas do Setuptools --- 
+[tool.setuptools]
+include-package-data = true 
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+dependencies = { file = "requirements.txt" }
+
+[tool.setuptools.package-data]
+pyaccel = ["VERSION", "data/d_touschek.npz"]
+
+# --- linter and formatter configurations ---
+[tool.ruff]
+select = [
+    "W", "E", "A", "B", "C90", "D", "I002", "N", "F", "G", "ARG", "S", "NPY"]
+ignore = [
+    "D203", "D204", "D213", "D215", "D400", "D401", "D404", "D406", "D407",
+    "D408", "D409", "D413", "E203", "E226"]
+ignore-init-module-imports = true
+preview = true
+line-length = 79
+fix = true
+
+[tool.ruff.extend-per-file-ignores]
+"__init__.py" = ["F401", "F821"]
+
+[tool.ruff.format]
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+combine-as-imports = true
+
+[tool.isort]
+split_on_trailing_comma = false
+combine_as_imports = true
+combine_star = true
+multi_line_output = "HANGING_INDENT"
+order_by_type = false
+
+[tool.black]
+line-length = 79
