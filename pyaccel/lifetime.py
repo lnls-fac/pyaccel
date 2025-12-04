@@ -1,22 +1,14 @@
 """Beam lifetime calculation."""
 
-import os as _os
-import importlib as _implib
 from copy import deepcopy as _dcopy
+
 import numpy as _np
+import scipy.integrate as _integrate
+import scipy.special as _special
+from mathphys import beam_optics as _beam, constants as _cst, units as _u
 from mathphys.functions import get_namedtuple as _get_namedtuple
 
-from mathphys import constants as _cst, units as _u, \
-    beam_optics as _beam
-
 from . import optics as _optics
-
-if _implib.util.find_spec('scipy'):
-    import scipy.integrate as _integrate
-    import scipy.special as _special
-else:
-    _integrate = None
-    _special = None
 
 
 class Lifetime:
@@ -24,12 +16,6 @@ class Lifetime:
 
     # Constant factors
     _MBAR_2_PASCAL = 1.0e-3 / _u.pascal_2_bar
-
-    _D_TOUSCHEK_FILE = _os.path.join(
-        _os.path.dirname(__file__), 'data', 'd_touschek.npz')
-
-    _KSI_TABLE = None
-    _D_TABLE = None
 
     OPTICS = _get_namedtuple('Optics', ['EdwardsTeng', 'Twiss'])
     EQPARAMS = _get_namedtuple('EqParams', ['BeamEnvelope', 'RadIntegrals'])
@@ -40,8 +26,9 @@ class Lifetime:
     DEFAULT_ATOMIC_NUMBER = 7  # Nitrogen
     DEFAULT_TEMPERATURE = 300  # [K]
 
-    def __init__(self, accelerator, touschek_model=None,
-                 eqparams=None, type_optics=None):
+    def __init__(
+        self, accelerator, touschek_model=None, eqparams=None, type_optics=None
+    ):
         """."""
         self._acc = accelerator
 
@@ -66,7 +53,8 @@ class Lifetime:
         res = _optics.calc_transverse_acceptance(self._acc, _twiss)
         self._accepx_nom = _np.min(res[0])
         self._accepy_nom = _np.min(res[1])
-        self._curr_per_bun = self.DEFAULT_BEAM_CURRENT / self._acc.harmonic_number
+        self._curr_per_bun = self.DEFAULT_BEAM_CURRENT
+        self._curr_per_bun /= self._acc.harmonic_number
         self._avg_pressure = self.DEFAULT_AVG_PRESSURE
         self._atomic_number = self.DEFAULT_ATOMIC_NUMBER
         self._temperature = self.DEFAULT_TEMPERATURE
@@ -80,17 +68,32 @@ class Lifetime:
         rst = ''
 
         rst += '--- particles ---'
-        rst += fmte.format('\ntotal current [mA]', self.curr_per_bunch * self._acc.harmonic_number)
+        rst += fmte.format(
+            '\ntotal current [mA]',
+            self.curr_per_bunch * self._acc.harmonic_number
+        )
         rst += fmte.format('\ncurr per bunch [mA]', self.curr_per_bunch)
         rst += fmte.format('\navg pressure [mbar]', self.avg_pressure)
 
         rst += '\n--- acceptances ---'
         accp, accn = self.accepen['accp'], self.accepen['accn']
-        rst += fmte.format('\naccepen_pos [%] (min,max)', 100*min(accp), 100*max(accp))
-        rst += fmte.format('\naccepen_neg [%] (min,max)', 100*min(accn), 100*max(accn))
+        rst += fmte.format(
+            '\naccepen_pos [%] (min,max)',
+            100*min(accp), 100*max(accp)
+        )
+        rst += fmte.format(
+            '\naccepen_neg [%] (min,max)',
+            100*min(accn), 100*max(accn)
+        )
         accx, accy = self.accepx['acc'], self.accepy['acc']
-        rst += fmte.format('\naccepx [mm.mrad] (min,max)', 1e6*min(accx), 1e6*max(accy))
-        rst += fmte.format('\naccepy [mm.mrad] (min,max)', 1e6*min(accy), 1e6*max(accy))
+        rst += fmte.format(
+            '\naccepx [mm.mrad] (min,max)',
+            1e6*min(accx), 1e6*max(accy)
+        )
+        rst += fmte.format(
+            '\naccepy [mm.mrad] (min,max)',
+            1e6*min(accy), 1e6*max(accy)
+        )
 
         rst += '\n--- equilibrium parameters ---'
         rst += '\n' + self.equi_params.__str__()
@@ -323,7 +326,7 @@ class Lifetime:
             spos = self._optics_data.spos
             accp = spos*0.0 + val[1]
             accn = spos*0.0 + val[0]
-        elif isinstance(val, (int, _np.int_, float, _np.float_)):
+        elif isinstance(val, (int, float)):
             spos = self._optics_data.spos
             accp = spos*0.0 + val
             accn = spos*0.0 - val
@@ -349,7 +352,7 @@ class Lifetime:
                     "Dictionary must contain keys 'spos', 'acc'")
             spos = val['spos']
             acc = val['acc']
-        elif isinstance(val, (int, _np.int_, float, _np.float_)):
+        elif isinstance(val, (int, float)):
             spos = self._optics_data.spos
             acc = spos*0.0 + val
         else:
@@ -374,7 +377,7 @@ class Lifetime:
                     "Dictionary must contain keys 'spos', 'acc'")
             spos = val['spos']
             acc = val['acc']
-        elif isinstance(val, (int, _np.int_, float, _np.float_)):
+        elif isinstance(val, (int, float)):
             spos = self._optics_data.spos
             acc = spos*0.0 + val
         else:
@@ -428,7 +431,6 @@ class Lifetime:
             touschek_coeffs = dict with coefficients for corresponding
                 formalism
         """
-        self._load_touschek_integration_table()
         gamma = self._acc.gamma_factor
         beta = self._acc.beta_factor
         en_accep = self.accepen
@@ -495,10 +497,9 @@ class Lifetime:
             ksin = (2*_np.sqrt(c_var)/gamma * d_accn)**2
 
             # Interpolate d_touschek
-            d_pos = _np.interp(
-                ksip, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
-            d_neg = _np.interp(
-                ksin, self._KSI_TABLE, self._D_TABLE, left=0.0, right=0.0)
+            ksi_tab, d_tab = self._calc_d_touschek_table(use_quad=False)
+            d_pos = _np.interp(ksip, ksi_tab, d_tab, left=0.0, right=0.0)
+            d_neg = _np.interp(ksin, ksi_tab, d_tab, left=0.0, right=0.0)
 
             touschek_coeffs['a_var'] = a_var
             touschek_coeffs['b_var'] = b_var
@@ -511,7 +512,6 @@ class Lifetime:
             # Touschek rate
             ratep = const * nr_part/gamma**2 / d_accp**3 * d_pos / vol
             raten = const * nr_part/gamma**2 / d_accn**3 * d_neg / vol
-            rate = (ratep+raten)/2
         elif self.touschek_model == self.TOUSCHEKMODEL.Piwinski:
             eta1til2 = (alpha1*eta1 + beta1*eta1l)**2
             eta2til2 = (alpha2*eta2 + beta2*eta2l)**2
@@ -546,20 +546,36 @@ class Lifetime:
             touschek_coeffs['f_int_p'] = f_int_p
             touschek_coeffs['f_int_n'] = f_int_n
 
-            rate_const = const * nr_part/gamma**2/bunlen
+            rate_const = const * nr_part / gamma**2 / bunlen
             rate_const /= _np.sqrt(ch_)
-            ratep = rate_const * f_int_p/taum_p
-            raten = rate_const * f_int_n/taum_n
-            rate = (ratep + raten)/2
+            ratep = rate_const * f_int_p / taum_p
+            raten = rate_const * f_int_n / taum_n
 
+        rate = (ratep + raten)/2
         rate = _np.array(rate).ravel()
         # Average inverse Touschek Lifetime
         avg_rate = _np.trapz(rate, x=s_calc) / (s_calc[-1] - s_calc[0])
-        dit = dict(
-            rate=rate, avg_rate=avg_rate,
-            volume=vol, pos=s_calc,
-            touschek_coeffs=touschek_coeffs)
-        return dit
+        return dict(
+            rate=rate, rate_neg=raten, rate_pos=ratep, avg_rate=avg_rate,
+            volume=vol, pos=s_calc, touschek_coeffs=touschek_coeffs
+        )
+
+    def calc_energy_acceptance(self, **kwargs):
+        """Calculate Touschek scattering energy acceptance.
+        
+        See `pyaccel.optics.calc_touschek_energy_acceptance` for details.
+        """
+        dic = _optics.calc_touschek_energy_acceptance(
+            self.accelerator, **kwargs
+        )
+        self.accepen = dic
+        return dic
+
+    _doc = _optics.calc_touschek_energy_acceptance.__doc__
+    _doc = [d for d in _doc.splitlines() if 'accelerator (py' not in d]
+    _doc = '\n'.join(_doc)
+    calc_energy_acceptance.__doc__ = _doc
+    del _doc
 
     @staticmethod
     def f_function_arg(kappa, kappam, b1_, b2_):
@@ -574,18 +590,18 @@ class Lifetime:
         without number). This argument is integrated from kappam to pi/2 in
         the method f_integral_simps of this class.
         """
-        tau = (_np.tan(kappa)**2)[:, None]
+        tau = (_np.tan(kappa)**2)
         taum = (_np.tan(kappam)**2)[None, :]
-        ratio = tau/taum/(1+tau)
-        arg = (2*tau+1)**2 * (ratio - 1)/tau
-        arg += tau - _np.sqrt(tau*taum*(1+tau))
-        arg -= (2+1/(2*tau))*_np.log(ratio)
-        arg *= _np.sqrt(1+tau)
-        bessel = _np.exp(-(b1_-b2_)*tau)*_special.i0e(b2_*tau)
+        ratio = tau / taum / (1 + tau)
+        arg = (2 * tau + 1)**2 * (ratio - 1) / tau
+        arg += tau - _np.sqrt(tau * taum * (1 + tau))
+        arg -= (2 + 1 / (2 * tau)) * _np.log(ratio)
+        arg *= _np.sqrt(1 + tau)
+        bessel = _np.exp(-(b1_ - b2_) * tau) * _special.i0e(b2_ * tau)
         return arg * bessel
 
     @staticmethod
-    def f_integral_simps(taum, b1_, b2_):
+    def f_integral_simps(taum, b1_, b2_, full=False, npts=300):
         """F(taum, B1, B2) function.
 
         The expression used for F can be found right below Eq. (42) from Ref.
@@ -593,21 +609,21 @@ class Lifetime:
         from kappam to pi/2 is performed with the Simpson's 3/8 Rule.
         """
         kappam = _np.arctan(_np.sqrt(taum))
-        npts = int(3*100)
-        dkappa = (_np.pi/2-kappam)/npts
-        kappa = _np.linspace(kappam, _np.pi/2, npts+1)
+        npts = int(npts)
+        kappa = _np.logspace(
+            _np.log10(kappam), _np.log10(_np.pi / 2), npts + 1
+        )
         func = Lifetime.f_function_arg(kappa, kappam, b1_, b2_)
 
-        # Simpson's 3/8 Rule - N must be mod(N, 3) = 0
-        val1 = func[0:-1:3, :] + func[3::3, :]
-        val2 = func[1::3, :] + func[2::3, :]
-        f_int = 3*dkappa/8*_np.sum(val1 + 3*val2, axis=0)
+        # Simpson's 1/3 Rule with scipy.
+        f_int = _integrate.simpson(func, x=kappa, axis=0)
 
-        # # Simpson's 1/3 Rule - N must be mod(N, 2) = 0
-        # val1 = func[0::2, :] + func[2::2, :]
-        # val2 = func[1::2, :]
-        # f_int = dkappa/3*_np.sum(val1+4*val2, axis=0)
-        f_int *= 2*_np.sqrt(_np.pi*(b1_**2-b2_**2))*taum
+        const = 2 * _np.sqrt(_np.pi * (b1_**2 - b2_**2)) * taum
+        f_int *= const
+        if full:
+            func *= const[None, :]
+            tau = _np.tan(kappa)**2
+            return f_int, tau, func
         return f_int
 
     @property
@@ -618,8 +634,7 @@ class Lifetime:
 
     @property
     def elastic_data(self):
-        """
-        Calculate beam loss rate due to elastic scattering from residual gas.
+        """Calculate loss rate due to elastic scattering from residual gas.
 
         Parameters used in calculations:
         accepx, accepy = horizontal and vertical acceptances [m·rad]
@@ -685,8 +700,8 @@ class Lifetime:
 
     @property
     def inelastic_data(self):
-        """
-        Calculate loss rate due to inelastic scattering beam lifetime.
+        """Calculate loss rate due to inelastic scattering beam lifetime.
+
         Based on Ref[1].
 
         Parameters used in calculations:
@@ -704,6 +719,7 @@ class Lifetime:
 
         References:
             [1] Beam losses and lifetime - A. Piwinski, em CERN 85-19.
+
         """
         en_accep = self.accepen
         pressure = self.avg_pressure
@@ -886,21 +902,16 @@ class Lifetime:
         loss = self.lossrate_total
         return 1 / loss if loss > 0 else _np.inf
 
-    @classmethod
-    def get_touschek_integration_table(cls, ksi_ini=None, ksi_end=None):
-        """Return Touschek interpolation table."""
-        if None in (ksi_ini, ksi_end):
-            cls._load_touschek_integration_table()
-        else:
-            cls._calc_d_touschek_table(ksi_ini, ksi_end)
-        return cls._KSI_TABLE, cls._D_TABLE
-
     # ----- private methods -----
 
     def _process_eqparams(self, eqparams):
         # equilibrium parameters argument
-        beamenv_set = (_optics.EqParamsFromBeamEnvelope, _optics.EqParamsNormalModes)
-        radiint_set = (_optics.EqParamsFromRadIntegrals, _optics.EqParamsXYModes)
+        beamenv_set = (
+            _optics.EqParamsFromBeamEnvelope, _optics.EqParamsNormalModes
+        )
+        radiint_set = (
+            _optics.EqParamsFromRadIntegrals, _optics.EqParamsXYModes
+        )
         if eqparams in (None, Lifetime.EQPARAMS.BeamEnvelope):
             self._type_eqparams = Lifetime.EQPARAMS.BeamEnvelope
             self._eqparams_func = _optics.EqParamsFromBeamEnvelope
@@ -925,36 +936,61 @@ class Lifetime:
         return 2*ksi*_np.exp(-ksi)/tau
 
     @classmethod
-    def _load_touschek_integration_table(cls):
-        if cls._KSI_TABLE is None or cls._D_TABLE is None:
-            data = _np.load(cls._D_TOUSCHEK_FILE)
-            cls._KSI_TABLE = data['ksi']
-            cls._D_TABLE = data['d']
+    def _calc_d_touschek_table(
+        cls, ksi_ini=1e-12, ksi_end=100, npoints=10000, use_quad=False
+    ):
+        """Calculate interpolation table for flat beam model.
 
-    @classmethod
-    def _calc_d_touschek_table(cls, ksi_ini, ksi_end, npoints):
-        if not _implib.util.find_spec('scipy'):
-            raise NotImplementedError(
-                'Scipy is needed for this calculation!')
-        ksi_tab = _np.logspace(ksi_ini, ksi_end, npoints)
-        d_tab = _np.zeros(ksi_tab.size)
-        for i, ksi in enumerate(ksi_tab):
-            d_tab[i] = cls._calc_d_touschek_scipy(ksi)
-        cls._D_TABLE = d_tab
-        cls._KSI_TABLE = ksi_tab
+        The table will be calculated with a logarithmic scale.
 
-    @staticmethod
-    def _calc_d_touschek_scipy(ksi):
-        if _integrate is None:
-            raise ImportError('scipy library not available')
-        lim = 1000
-        int1, _ = _integrate.quad(
-            lambda x: _np.exp(-x)/x, ksi, _np.inf, limit=lim)
-        int2, _ = _integrate.quad(
-            lambda x: _np.exp(-x)*_np.log(x)/x, ksi, _np.inf, limit=lim)
-        d_val = _np.sqrt(ksi)*(
+        Args:
+            ksi_ini (_type_, optional): first value for independent
+                variable of the table. Defaults to 1e-12.
+            ksi_end (int, optional): last value for independent
+                variable of the table. Defaults to 100.
+            npoints (int, optional): number of points of the table.
+                Defaults to 10000.
+            use_quad (bool, optional): Whether to use scipy.integrade.quad
+                method to perform integration. Defaults to False. If False,
+                then scipy.integrate.simpsons will be used instead.
+                The quad function provides better results, but is
+                approximately 200 times slower than the simpson method.
+                The difference in accuracy, on the other hand, does not
+                compromises the result at the range of interest.
+
+        """
+        ksi = _np.logspace(_np.log10(ksi_ini), _np.log10(ksi_end), npoints)
+        # The integral of
+        #    exp(-x) / x from ksi to infinity
+        # is equal to the exponential integral function,
+        # which is implemented in scipy:
+        int1 = _special.exp1(ksi)
+
+        if use_quad:
+            x = _np.r_[ksi, _np.inf]
+            int2 = []
+            # make a cummulative integral with scipy quad method.
+            for xi, xip1 in zip(x[:-1], x[1:]):
+                int2.append(_integrate.quad(
+                    lambda p: _np.exp(-p) * _np.log(p) / p,
+                    xi,
+                    xip1,
+                    limit=10000
+                )[0])
+            int2 = _np.cumsum(int2[::-1])[::-1]
+        else:
+            # Simpsons rule do not integrate to infinity, but since the
+            # integrand goes to zero exponentialy, this is not a practical
+            # problem.
+            x = ksi[::-1]
+            y = _np.exp(-x) * _np.log(x) / x
+            int2 = _integrate.cumulative_simpson(
+                y, x=-x, axis=0, initial=0,
+            )[::-1]
+
+        d_tab = _np.sqrt(ksi) * (
             -1.5 * _np.exp(-ksi) +
-            0.5 * (3*ksi - ksi*_np.log(ksi) + 2) * int1 +
-            0.5 * ksi * int2
-            )
-        return d_val
+            0.5 * int1 * (3 * ksi - ksi * _np.log(ksi) + 2) +
+            0.5 * int2 * ksi
+        )
+        return ksi, d_tab
