@@ -46,11 +46,9 @@ class Accelerator(object):
             self.trackcpp_acc.lattice_version = kwargs['lattice_version']
 
         electron_rest_energy_ev = _c.electron_rest_energy * _u.joule_2_eV
-
         if self.trackcpp_acc.energy < electron_rest_energy_ev:
-            self._brho, self._velocity, self._beta, self._gamma, \
-                self.trackcpp_acc.energy = \
-                _mp.beam_optics.beam_rigidity(gamma=1.0)
+            raise AcceleratorError(
+                'Accelerator energy less than electron rest energy!')
         else:
             self._brho, self._velocity, self._beta, self._gamma, energy = \
                 _mp.beam_optics.beam_rigidity(energy=self.energy/1e9)
