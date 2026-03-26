@@ -1,9 +1,13 @@
 """Accelerator class."""
 
-import mathphys as _mp
 import numpy as _np
-import trackcpp as _trackcpp
+
+import mathphys as _mp
+from mathphys import constants as _c
+from mathphys import units as _u
 from mathphys.functions import get_namedtuple as _get_namedtuple
+
+import trackcpp as _trackcpp
 
 from . import elements as _elements
 from .utils import interactive as _interactive
@@ -41,7 +45,9 @@ class Accelerator(object):
         if 'lattice_version' in kwargs:
             self.trackcpp_acc.lattice_version = kwargs['lattice_version']
 
-        if self.trackcpp_acc.energy == 0:
+        electron_rest_energy_ev = _c.electron_rest_energy * _u.joule_2_eV
+
+        if self.trackcpp_acc.energy < electron_rest_energy_ev:
             self._brho, self._velocity, self._beta, self._gamma, \
                 self.trackcpp_acc.energy = \
                 _mp.beam_optics.beam_rigidity(gamma=1.0)
