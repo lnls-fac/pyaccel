@@ -22,7 +22,7 @@ class _EqParams:
 
     def __init__(self, eqparams=None):
         """."""
-        # initialize parameters with corresponding eqparam values or with none.
+        # initialize parameters with corresponding eqparam values or with None.
         for param in self.PARAMETERS:
             if isinstance(eqparams, dict):
                 value = eqparams.get(param, None)
@@ -31,9 +31,9 @@ class _EqParams:
             value = _copy.deepcopy(value)
             setattr(self, param, value)
 
-    def __str__(cls):
+    def __str__(self):
         """."""
-        return cls.eqparam_to_string(cls)
+        return self.eqparam_to_string(self)
 
 
 class EqParamsXYModes(_EqParams):
