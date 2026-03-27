@@ -73,6 +73,9 @@ class EqParamsXYModes(_EqParams):
             rst += fmte.format(prechar + 'Energy [GeV]', eqparam.energy * 1e-9)
             prechar = '\n'
         if eqparam.energy_offset is not None:
+            rst += prechar + fmte.format(
+                'Energy offset [%]', eqparam.energy_offset * 100
+            )
             prechar = '\n'
 
         if None not in (eqparam.Jx, eqparam.Jy, eqparam.Je):
