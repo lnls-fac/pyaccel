@@ -3,8 +3,6 @@
 import copy as _copy
 import math as _math
 
-import mathphys as _mp
-
 
 class _EqParams:
     """Equilibrium parameters base class."""
