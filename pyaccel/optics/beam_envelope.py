@@ -485,7 +485,7 @@ def calc_beamenvelope(
     has_cavity = True
     try:
         accelerator.cavity_on = True
-    except _accelerator.AcceleratorException as excp:
+    except _accelerator.AcceleratorError as excp:
         has_cavity = False
 
     if fixed_point is None:
