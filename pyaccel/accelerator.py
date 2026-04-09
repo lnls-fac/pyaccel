@@ -1,9 +1,13 @@
 """Accelerator class."""
 
-import mathphys as _mp
 import numpy as _np
-import trackcpp as _trackcpp
+
+import mathphys as _mp
+from mathphys import constants as _c
+from mathphys import units as _u
 from mathphys.functions import get_namedtuple as _get_namedtuple
+
+import trackcpp as _trackcpp
 
 from . import elements as _elements
 from .utils import interactive as _interactive
@@ -41,10 +45,10 @@ class Accelerator(object):
         if 'lattice_version' in kwargs:
             self.trackcpp_acc.lattice_version = kwargs['lattice_version']
 
-        if self.trackcpp_acc.energy == 0:
-            self._brho, self._velocity, self._beta, self._gamma, \
-                self.trackcpp_acc.energy = \
-                _mp.beam_optics.beam_rigidity(gamma=1.0)
+        electron_rest_energy_ev = _c.electron_rest_energy * _u.joule_2_eV
+        if self.trackcpp_acc.energy < electron_rest_energy_ev:
+            raise AcceleratorError(
+                'Accelerator energy less than electron rest energy!')
         else:
             self._brho, self._velocity, self._beta, self._gamma, energy = \
                 _mp.beam_optics.beam_rigidity(energy=self.energy/1e9)
@@ -59,72 +63,66 @@ class Accelerator(object):
 
     @property
     def energy(self):
-        """Return beam energy [eV]."""
+        """Beam energy [eV]."""
         return self.trackcpp_acc.energy
 
     @energy.setter
     def energy(self, value):
-        """."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(energy=value/1e9)
         self.trackcpp_acc.energy = energy * 1e9
 
     @property
     def gamma_factor(self):
-        """Return beam relativistic gamma factor."""
+        """Beam relativistic gamma factor."""
         return self._gamma
 
     @gamma_factor.setter
     def gamma_factor(self, value):
-        """Set beam relativistic gamma factor."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(gamma=value)
         self.trackcpp_acc.energy = energy * 1e9
 
     @property
     def beta_factor(self):
-        """Return beam relativistic beta factor."""
+        """Beam relativistic beta factor."""
         return self._beta
 
     @beta_factor.setter
     def beta_factor(self, value):
-        """Set beam relativistic beta factor."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(beta=value)
         self.trackcpp_acc.energy = energy * 1e9
 
     @property
     def velocity(self):
-        """Return beam velocity [m/s]."""
+        """Beam velocity [m/s]."""
         return self._velocity
 
     @velocity.setter
     def velocity(self, value):
-        """Set beam velocity [m/s]."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(velocity=value)
         self.trackcpp_acc.energy = energy * 1e9
 
     @property
     def brho(self):
-        """Return beam rigidity [T.m]."""
+        """Beam magnetic rigidity [T.m]."""
         return self._brho
 
     @brho.setter
     def brho(self, value):
-        """Set beam rigidity [T.m]."""
         self._brho, self._velocity, self._beta, self._gamma, energy = \
             _mp.beam_optics.beam_rigidity(brho=value)
         self.trackcpp_acc.energy = energy * 1e9
 
     @property
     def harmonic_number(self):
-        """Return accelerator harmonic number."""
+        """Accelerator harmonic number."""
         return self.trackcpp_acc.harmonic_number
 
     @harmonic_number.setter
     def harmonic_number(self, value):
-        """Set accelerator harmonic number."""
         if not isinstance(value, int) or value < 1:
             raise AcceleratorError(
                 'harmonic number has to be a positive integer')
@@ -132,29 +130,28 @@ class Accelerator(object):
 
     @property
     def cavity_on(self):
-        """Return cavity on state."""
+        """Cavity On state."""
         return self.trackcpp_acc.cavity_on
 
     @cavity_on.setter
     def cavity_on(self, value):
-        """Set cavity on state."""
         if self.trackcpp_acc.harmonic_number < 1:
             raise AcceleratorError('invalid harmonic number')
         self.trackcpp_acc.cavity_on = value
 
     @property
     def radiation_on(self):
-        """Return radiation on state."""
+        """Radiation On state."""
         return self.trackcpp_acc.radiation_on
 
     @property
     def radiation_on_str(self):
-        """Return radiation_on state in string format."""
+        """Radiation On state in string format."""
         return self.RadiationStates._fields[self.trackcpp_acc.radiation_on]
 
     @radiation_on.setter
     def radiation_on(self, value):
-        """Set radiation on state.
+        """Radiation On state.
 
         Args:
             value (int, bool or string): Radiation state to be set, the
@@ -180,22 +177,20 @@ class Accelerator(object):
 
     @property
     def vchamber_on(self):
-        """Return vacuum chamber on state."""
+        """Vacuum chamber On state [True/False]."""
         return self.trackcpp_acc.vchamber_on
 
     @vchamber_on.setter
     def vchamber_on(self, value):
-        """Set vacuum chamber on state."""
         self.trackcpp_acc.vchamber_on = value
 
     @property
     def lattice_version(self):
-        """Return lattice version."""
+        """Lattice version."""
         return self.trackcpp_acc.lattice_version
 
     @lattice_version.setter
     def lattice_version(self, value):
-        """Set lattice version."""
         self.trackcpp_acc.lattice_version = value
 
     def pop(self, index):
@@ -263,6 +258,7 @@ class Accelerator(object):
         acc = Accelerator()
         _trackcpp.read_flat_file_wrapper(stri, acc.trackcpp_acc, False)
         self.trackcpp_acc = acc.trackcpp_acc
+        self.energy = acc.trackcpp_acc.energy
 
     def __setattr__(self, key, value):
         """."""
