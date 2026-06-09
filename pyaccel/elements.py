@@ -584,22 +584,22 @@ class Element:
         self.trackcpp_e.s0 = value
 
     @property
-    def coeffs1(self):
+    def coefs1(self):
         """."""
         return self.trackcpp_e.coefs1
 
-    @coeffs1.setter
+    @coefs1.setter
     def coeffs1(self, value):
         """."""
         self.trackcpp_e.coefs1 = value
 
     @property
-    def coeffs2(self):
+    def coefs2(self):
         """."""
         return self.trackcpp_e.coefs2
 
-    @coeffs2.setter
-    def coeffs2(self, value):
+    @coefs2.setter
+    def coefs2(self, value):
         """."""
         self.trackcpp_e.coefs2 = value
 
