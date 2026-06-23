@@ -196,16 +196,16 @@ def kickmap(
 def field3d(
     fam_name,
     length,
-    s0,
-    kx,
-    ks,
-    coefs1,
-    coefs2,
+    hori_s0,
+    hori_kx,
+    hori_ks,
+    hori_coefs_cos,
+    hori_coefs_sin,
     nr_steps,
 ):
     """Create a field 3D element."""
     e = _trackcpp.field3d_wrapper(
-        fam_name, length, s0, kx, ks, coefs1, coefs2, nr_steps
+        fam_name, length, hori_s0, hori_kx, hori_ks, hori_coefs_cos, hori_coefs_sin, nr_steps
     )
     return Element(element=e)
 
@@ -554,58 +554,59 @@ class Element:
         self.trackcpp_e.rescale_kicks = value
 
     @property
-    def ks(self):
+    def field3d_hori_ks(self):
         """."""
-        return self.trackcpp_e.ks
+        return self.trackcpp_e.field3d_hori_ks
 
-    @ks.setter
-    def ks(self, value):
+    @field3d_hori_ks.setter
+    def field3d_hori_ks(self, value):
         """."""
-        self.trackcpp_e.ks = value
-
-    @property
-    def kx(self):
-        """."""
-        return self.trackcpp_e.kx
-
-    @kx.setter
-    def kx(self, value):
-        """."""
-        self.trackcpp_e.kx = value
+        self.trackcpp_e.field3d_hori_ks = value
 
     @property
-    def s0(self):
+    def field3d_hori_kx(self):
+        """."""
+        return self.trackcpp_e.field3d_hori_kx
+
+    @field3d_hori_kx.setter
+    def field3d_hori_kx(self, value):
+        """."""
+        self.trackcpp_e.field3d_hori_kx = value
+
+    @property
+    def field3d_hori_s0(self):
         """."""
         return self.trackcpp_e.s0
 
-    @s0.setter
-    def s0(self, value):
+    @field3d_hori_s0.setter
+    def field3d_hori_s0(self, value):
         """."""
-        self.trackcpp_e.s0 = value
+        self.trackcpp_e.field3d_hori_s0 = value
 
     @property
-    def coefs1(self):
+    def field3d_hori_coefs_cos(self):
         """."""
-        return self.trackcpp_e.coefs1
+        return self.trackcpp_e.field3d_hori_coefs_cos
 
-    @coefs1.setter
-    def coeffs1(self, value):
+    @field3d_hori_coefs_cos.setter
+    def field3d_hori_coefs_cos(self, value):
         """."""
-        self.trackcpp_e.coefs1 = value
+        self.trackcpp_e.field3d_hori_coefs_cos = value
 
     @property
-    def coefs2(self):
+    def field3d_hori_coefs_sin(self):
         """."""
-        return self.trackcpp_e.coefs2
+        return self.trackcpp_e.field3d_hori_coefs_sin
 
-    @coefs2.setter
-    def coefs2(self, value):
+    @field3d_hori_coefs_sin.setter
+    def field3d_hori_coefs_sin(self, value):
         """."""
-        self.trackcpp_e.coefs2 = value
+        self.trackcpp_e.field3d_hori_coefs_sin = value
 
     @property
     def vchamber(self):
         """Shape of vacuum chamber.
+
         See trackcpp.VChamberShape for values.
         """
         return self.trackcpp_e.vchamber
@@ -613,6 +614,7 @@ class Element:
     @vchamber.setter
     def vchamber(self, value):
         """Set shape of vacuum chamber.
+        
         See trackcpp.VChamberShape for values.
         """
         if value >= 0:
