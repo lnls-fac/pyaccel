@@ -204,6 +204,8 @@ def field3d(
     nr_steps,
 ):
     """Create a field 3D element."""
+    hori_coefs_cos = Element._numpy_to_coefmatrix(hori_coefs_cos)
+    hori_coefs_sin = Element._numpy_to_coefmatrix(hori_coefs_sin)
     e = _trackcpp.field3d_wrapper(
         fam_name, length, hori_s0, hori_kx, hori_ks, hori_coefs_cos, hori_coefs_sin, nr_steps
     )
@@ -585,23 +587,29 @@ class Element:
 
     @property
     def field3d_hori_coefs_cos(self):
-        """."""
-        return self.trackcpp_e.field3d_hori_coefs_cos
+        return Element._get_cpp_coefmatrix(self.trackcpp_e.field3d_hori_coefs_cos)
 
     @field3d_hori_coefs_cos.setter
     def field3d_hori_coefs_cos(self, value):
-        """."""
-        self.trackcpp_e.field3d_hori_coefs_cos = value
+        value = _numpy.asarray(value, dtype=float)
+        rows, cols = value.shape
+        cpp = self.trackcpp_e.field3d_hori_coefs_cos
+        cpp.resize(rows, cols)
+        mat = Element._get_cpp_coefmatrix(cpp)
+        mat[:] = value
 
     @property
     def field3d_hori_coefs_sin(self):
-        """."""
-        return self.trackcpp_e.field3d_hori_coefs_sin
+        return Element._get_cpp_coefmatrix(self.trackcpp_e.field3d_hori_coefs_sin)
 
     @field3d_hori_coefs_sin.setter
     def field3d_hori_coefs_sin(self, value):
-        """."""
-        self.trackcpp_e.field3d_hori_coefs_sin = value
+        value = _numpy.asarray(value, dtype=float)
+        rows, cols = value.shape
+        cpp = self.trackcpp_e.field3d_hori_coefs_sin
+        cpp.resize(rows, cols)
+        mat = Element._get_cpp_coefmatrix(cpp)
+        mat[:] = value
 
     @property
     def vchamber(self):
@@ -614,7 +622,7 @@ class Element:
     @vchamber.setter
     def vchamber(self, value):
         """Set shape of vacuum chamber.
-        
+
         See trackcpp.VChamberShape for values.
         """
         if value >= 0:
@@ -1004,6 +1012,26 @@ class Element:
         c_empty_array = _ctypes.c_double * cppvector.size()
         c_array = c_empty_array.from_address(address)
         return _numpy.ctypeslib.as_array(c_array)
+
+    @staticmethod
+    def _get_cpp_coefmatrix(cppmatrix):
+        rows = cppmatrix.rows()
+        cols = cppmatrix.cols()
+        address = int(cppmatrix.data())
+        c_array_type = _ctypes.c_double * (rows * cols)
+        c_array = c_array_type.from_address(address)
+        return _numpy.ctypeslib.as_array(c_array).reshape((rows, cols))
+
+    def _numpy_to_coefmatrix(array):
+        array = _numpy.asarray(array, dtype=_numpy.float64, order="C")
+        rows, cols = array.shape
+        M = _trackcpp.CoefMatrix(rows, cols)
+        address = int(M.data())
+        c_type = _ctypes.c_double * (rows * cols)
+        c_array = c_type.from_address(address)
+        cpp = _numpy.ctypeslib.as_array(c_array)
+        cpp[:] = array.ravel()
+        return M
 
 
 class _CustomArray(_numpy.ndarray):
