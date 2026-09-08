@@ -14,7 +14,7 @@ _DBL_MAX = _trackcpp.get_double_max()
 _NUM_COORDS = 6
 _DIMS = (_NUM_COORDS, _NUM_COORDS)
 
-PASS_METHODS  = tuple(_trackcpp.pm_dict)
+PASS_METHODS = tuple(_trackcpp.pm_dict)
 VChamberShape = _trackcpp.VChamberShape
 
 
@@ -22,7 +22,7 @@ VChamberShape = _trackcpp.VChamberShape
 def marker(fam_name):
     """Create a marker element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     """
     ele = _trackcpp.marker_wrapper(fam_name)
@@ -33,7 +33,7 @@ def marker(fam_name):
 def bpm(fam_name):
     """Create a beam position monitor element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     """
     ele = _trackcpp.bpm_wrapper(fam_name)
@@ -44,7 +44,7 @@ def bpm(fam_name):
 def drift(fam_name, length):
     """Create a drift element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     """
@@ -56,7 +56,7 @@ def drift(fam_name, length):
 def matrix(fam_name, length):
     """Create a matrix element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     """
@@ -68,7 +68,7 @@ def matrix(fam_name, length):
 def hcorrector(fam_name, length=0.0, hkick=0.0):
     """Create a horizontal corrector element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     hkick -- horizontal kick [rad]
@@ -81,7 +81,7 @@ def hcorrector(fam_name, length=0.0, hkick=0.0):
 def vcorrector(fam_name, length=0.0, vkick=0.0):
     """Create a vertical corrector element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     vkick -- vertical kick [rad]
@@ -94,7 +94,7 @@ def vcorrector(fam_name, length=0.0, vkick=0.0):
 def corrector(fam_name, length=0.0, hkick=0.0, vkick=0.0):
     """Create a corrector element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     hkick -- horizontal kick [rad]
@@ -110,7 +110,7 @@ def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
           polynom_b=None, K=None, S=None):
     """Create a rectangular dipole element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     angle -- [rad]
@@ -134,7 +134,7 @@ def rbend(fam_name, length, angle, angle_in=0.0, angle_out=0.0,
 def quadrupole(fam_name, length, K, nr_steps=10):
     """Create a quadrupole element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     K -- [m^-2]
@@ -148,7 +148,7 @@ def quadrupole(fam_name, length, K, nr_steps=10):
 def sextupole(fam_name, length, S, nr_steps=5):
     """Create a sextupole element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     S -- (1/2!)(d^2By/dx^2)/(Brho)[m^-3]
@@ -162,7 +162,7 @@ def sextupole(fam_name, length, S, nr_steps=5):
 def rfcavity(fam_name, length, voltage, frequency, phase_lag=0.0):
     """Create a RF cavity element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     length -- [m]
     voltage -- [V]
@@ -180,7 +180,7 @@ def kickmap(
         rescale_length=1.0, rescale_kicks=1.0):
     """Create a kickmap element.
 
-    Keyword arguments:
+    Keyword Arguments:
     fam_name -- family name
     kicktable_fname -- filename of kicktable
     nr_steps -- number of steps (default 20)
@@ -189,6 +189,26 @@ def kickmap(
     """
     e = _trackcpp.kickmap_wrapper(
         fam_name, kicktable_fname, nr_steps, rescale_length, rescale_kicks)
+    return Element(element=e)
+
+
+@_interactive
+def field3d(
+    fam_name,
+    length,
+    hori_s0,
+    hori_kx,
+    hori_ks,
+    hori_coefs_cos,
+    hori_coefs_sin,
+    nr_steps,
+):
+    """Create a field 3D element."""
+    hori_coefs_cos = Element._numpy_to_coefmatrix(hori_coefs_cos)
+    hori_coefs_sin = Element._numpy_to_coefmatrix(hori_coefs_sin)
+    e = _trackcpp.field3d_wrapper(
+        fam_name, length, hori_s0, hori_kx, hori_ks, hori_coefs_cos, hori_coefs_sin, nr_steps
+    )
     return Element(element=e)
 
 
@@ -526,7 +546,8 @@ class Element:
     @property
     def rescale_kicks(self):
         """Scale factor applied to values given by kicktable.
-        Default value: 1.0"""
+        Default value: 1.0
+        """
         return self.trackcpp_e.rescale_kicks
 
     @rescale_kicks.setter
@@ -535,15 +556,75 @@ class Element:
         self.trackcpp_e.rescale_kicks = value
 
     @property
+    def field3d_hori_ks(self):
+        """."""
+        return self.trackcpp_e.field3d_hori_ks
+
+    @field3d_hori_ks.setter
+    def field3d_hori_ks(self, value):
+        """."""
+        self.trackcpp_e.field3d_hori_ks = value
+
+    @property
+    def field3d_hori_kx(self):
+        """."""
+        return self.trackcpp_e.field3d_hori_kx
+
+    @field3d_hori_kx.setter
+    def field3d_hori_kx(self, value):
+        """."""
+        self.trackcpp_e.field3d_hori_kx = value
+
+    @property
+    def field3d_hori_s0(self):
+        """."""
+        return self.trackcpp_e.s0
+
+    @field3d_hori_s0.setter
+    def field3d_hori_s0(self, value):
+        """."""
+        self.trackcpp_e.field3d_hori_s0 = value
+
+    @property
+    def field3d_hori_coefs_cos(self):
+        return Element._get_cpp_coefmatrix(self.trackcpp_e.field3d_hori_coefs_cos)
+
+    @field3d_hori_coefs_cos.setter
+    def field3d_hori_coefs_cos(self, value):
+        value = _numpy.asarray(value, dtype=float)
+        rows, cols = value.shape
+        cpp = self.trackcpp_e.field3d_hori_coefs_cos
+        cpp.resize(rows, cols)
+        mat = Element._get_cpp_coefmatrix(cpp)
+        mat[:] = value
+
+    @property
+    def field3d_hori_coefs_sin(self):
+        return Element._get_cpp_coefmatrix(self.trackcpp_e.field3d_hori_coefs_sin)
+
+    @field3d_hori_coefs_sin.setter
+    def field3d_hori_coefs_sin(self, value):
+        value = _numpy.asarray(value, dtype=float)
+        rows, cols = value.shape
+        cpp = self.trackcpp_e.field3d_hori_coefs_sin
+        cpp.resize(rows, cols)
+        mat = Element._get_cpp_coefmatrix(cpp)
+        mat[:] = value
+
+    @property
     def vchamber(self):
         """Shape of vacuum chamber.
-        See trackcpp.VChamberShape for values."""
+
+        See trackcpp.VChamberShape for values.
+        """
         return self.trackcpp_e.vchamber
 
     @vchamber.setter
     def vchamber(self, value):
         """Set shape of vacuum chamber.
-        See trackcpp.VChamberShape for values."""
+
+        See trackcpp.VChamberShape for values.
+        """
         if value >= 0:
             self.trackcpp_e.vchamber = value
         else:
@@ -932,10 +1013,31 @@ class Element:
         c_array = c_empty_array.from_address(address)
         return _numpy.ctypeslib.as_array(c_array)
 
+    @staticmethod
+    def _get_cpp_coefmatrix(cppmatrix):
+        rows = cppmatrix.rows()
+        cols = cppmatrix.cols()
+        address = int(cppmatrix.data())
+        c_array_type = _ctypes.c_double * (rows * cols)
+        c_array = c_array_type.from_address(address)
+        return _numpy.ctypeslib.as_array(c_array).reshape((rows, cols))
+
+    def _numpy_to_coefmatrix(array):
+        array = _numpy.asarray(array, dtype=_numpy.float64, order="C")
+        rows, cols = array.shape
+        M = _trackcpp.CoefMatrix(rows, cols)
+        address = int(M.data())
+        c_type = _ctypes.c_double * (rows * cols)
+        c_array = c_type.from_address(address)
+        cpp = _numpy.ctypeslib.as_array(c_array)
+        cpp[:] = array.ravel()
+        return M
+
 
 class _CustomArray(_numpy.ndarray):
     """."""
     _COORD_ARRAY = None
+
     def __new__(cls, c_element, field, shape):
         """."""
         address = int(getattr(c_element, field))
@@ -962,12 +1064,14 @@ class _CustomArray(_numpy.ndarray):
 
 class TransVector(_CustomArray):
     _COORD_ARRAY = _ctypes.c_double*_NUM_COORDS
+
     def __new__(cls, c_element, direction):
         return super().__new__(cls, c_element, "t_"+direction, _NUM_COORDS)
 
 
 class RotMatrix(_CustomArray):
     _COORD_ARRAY = _ctypes.c_double*_DIMS[0]*_DIMS[1]
+
     def __new__(cls, c_element, direction):
         return super().__new__(cls, c_element, "r_"+direction, _DIMS)
 
